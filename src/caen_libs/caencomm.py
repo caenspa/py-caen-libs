@@ -6,8 +6,9 @@ from contextlib import contextmanager
 import ctypes as ct
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-import sys
 from typing import Callable, Sequence, Tuple, Type, TypeVar, Union
+
+from caen_libs import _utils
 
 
 @unique
@@ -74,44 +75,11 @@ class Error(RuntimeError):
         super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
 
 
-class _Lib:
-    """
-    This class loads the shared library and
-    exposes its functions on its public attributes
-    using ctypes.
-    """
+class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
-        self.name = name
-        self.__load_lib()
+        super().__init__(name)
         self.__load_api()
-
-    def __load_lib(self) -> None:
-        loader: ct.LibraryLoader
-
-        # Platform dependent stuff
-        if sys.platform == 'win32':
-            loader = ct.windll
-            path = f'{self.name}.dll'
-        else:
-            loader = ct.cdll
-            path = f'lib{self.name}.so'
-
-        ## Library path on the filesystem
-        self.path = path
-
-        # Load library
-        try:
-            self.__lib = loader.LoadLibrary(self.path)
-        except FileNotFoundError as ex:
-            raise RuntimeError(
-                f'Library {self.name} not found. '
-                'This module requires the latest version of '
-                'the library to be installed on your system. '
-                'You may find the official installers at '
-                'https://www.caen.it/. '
-                'Please install it and retry.'
-            ) from ex
 
     def __load_api(self) -> None:
         # Load API not related to devices
@@ -161,7 +129,7 @@ class _Lib:
                 def fallback(*args, **kwargs):
                     raise RuntimeError(f'{name} requires {self.name} >= {min_version}. Please update it.')
                 return fallback
-        func = getattr(self.__lib, f'CAENComm_{name}')
+        func = getattr(self.lib, f'CAENComm_{name}')
         func.argtypes = args
         func.restype = ct.c_int
         func.errcheck = self.__api_errcheck
