@@ -1,0 +1,33 @@
+stages:
+  - test
+  - deploy
+
+test-mypy:
+  image: python:3.7
+  stage: test
+  when: manual
+  script:
+    - pip install mypy numpy typing-extensions --quiet
+    - mypy src
+
+test-pylint:
+  image: python:3.7
+  stage: test
+  when: manual
+  script:
+    - pip install pylint numpy typing-extensions --quiet
+    - pylint src
+
+pypi-upload:
+  image: python:3.7
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - pip install build twine --quiet
+    # Build
+    - python -m build
+    # Upload to local package repository
+    - python -m twine upload --username gitlab-ci-token --password ${CI_JOB_TOKEN} --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+    # Upload to pypi.org
+    - python -m twine upload --username __token__ --password ${PYPI_TOKEN} dist/*

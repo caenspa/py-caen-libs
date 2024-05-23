@@ -1,0 +1,34 @@
+[project]
+name = "caen_libs"
+authors = [
+	{ name="Giovanni Cerretani", email="g.cerretani@caen.it" },
+]
+description = "Official Python wrapper for CAEN VMELib, CAEN Comm and CAEN PLU libraries."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+	"Development Status :: 4 - Beta",
+	"Intended Audience :: Science/Research",
+	"License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+	"Natural Language :: English",
+	"Operating System :: OS Independent",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3.7",
+	"Programming Language :: Python :: 3.8",
+	"Programming Language :: Python :: 3.9",
+	"Programming Language :: Python :: 3.10",
+	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
+	"Topic :: Scientific/Engineering :: Physics",
+	"Typing :: Typed",
+]
+dependencies = [
+]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "caen_libs.__version__"}
+
+[project.urls]
+homepage = "https://www.caen.it"
+documentation = "https://www.caen.it/subfamilies/software-libraries/"
