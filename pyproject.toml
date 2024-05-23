@@ -1,7 +1,7 @@
 [project]
 name = "caen_libs"
 authors = [
-	{ name="Giovanni Cerretani", email="g.cerretani@caen.it" },
+	{ name="Giovanni Cerretani" },
 ]
 description = "Official Python wrapper for CAEN VMELib, CAEN Comm and CAEN PLU libraries."
 readme = "README.md"
@@ -30,5 +30,5 @@ dynamic = ["version"]
 version = {attr = "caen_libs.__version__"}
 
 [project.urls]
-homepage = "https://www.caen.it"
-documentation = "https://www.caen.it/subfamilies/software-libraries/"
+Homepage = "https://www.caen.it"
+Support = "https://www.caen.it/mycaen/support/"
