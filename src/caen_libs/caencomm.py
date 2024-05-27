@@ -233,7 +233,7 @@ class Device:
         if self.opened:
             raise RuntimeError('Already connected.')
         l_arg = _get_l_arg(self.connection_type, self.arg)
-        l_handle = ct.c_int32()
+        l_handle = ct.c_int()
         lib.open_device2(self.connection_type, l_arg, self.conet_node, self.vme_base_address, l_handle)
         self.handle = l_handle.value
         self.opened = True

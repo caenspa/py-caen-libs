@@ -20,13 +20,20 @@ class Lib:
 
     def __load_lib(self) -> None:
         loader: ct.LibraryLoader
+        loader_variadic: ct.LibraryLoader
 
         # Platform dependent stuff
         if sys.platform == 'win32':
+            # API functions are declared as __stdcall, but variadic
+            # functions are __cdecl even if declared as __stdcall.
+            # This difference applies only to 32 bit applications,
+            # 64 bit applications have its own calling convention.
             loader = ct.windll
+            loader_variadic = ct.cdll
             path = f'{self.name}.dll'
         else:
             loader = ct.cdll
+            loader_variadic = ct.cdll
             path = f'lib{self.name}.so'
 
         ## Library path on the filesystem
@@ -35,6 +42,7 @@ class Lib:
         # Load library
         try:
             self.__lib = loader.LoadLibrary(path)
+            self.__lib_variadic = loader_variadic.LoadLibrary(self.path)
         except FileNotFoundError as ex:
             raise RuntimeError(
                 f'Library {self.name} not found. '
@@ -59,3 +67,8 @@ class Lib:
     def lib(self) -> Any:
         """ctypes object to shared library"""
         return self.__lib
+
+    @property
+    def lib_variadic(self) -> Any:
+        """ctypes object to shared library (for variadic functions)"""
+        return self.__lib_variadic
