@@ -273,35 +273,38 @@ class Device:
         lib.read16(self.handle, address, l_value)
         return l_value.value
 
-    def multi_write32(self, address: Sequence[int], n_cycles: int, data: Sequence[int]) -> None:
+    def multi_write32(self, address: Sequence[int], data: Sequence[int]) -> None:
         """
         Wrapper to CAENComm_MultiWrite32()
         """
-        l_address = (ct.c_uint32 * n_cycles)(*address[:n_cycles])
-        l_data = (ct.c_uint32 * n_cycles)(*data[:n_cycles])
+        n_cycles = len(address)
+        l_address = (ct.c_uint32 * n_cycles)(*address)
+        l_data = (ct.c_uint32 * n_cycles)(*data)
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_write32(self.handle, l_address, n_cycles, l_data, l_error_code)
         if any(l_error_code):
             failed_cycles = [i for i, ec in enumerate(l_error_code) if ec]
             raise RuntimeError(f'multi_write32 failed at cycles {failed_cycles}')
 
-    def multi_write16(self, address: Sequence[int], n_cycles: int, data: Sequence[int]) -> None:
+    def multi_write16(self, address: Sequence[int], data: Sequence[int]) -> None:
         """
         Wrapper to CAENComm_MultiWrite16()
         """
-        l_address = (ct.c_uint32 * n_cycles)(*address[:n_cycles])
-        l_data = (ct.c_uint16 * n_cycles)(*data[:n_cycles])
+        n_cycles = len(address)
+        l_address = (ct.c_uint32 * n_cycles)(*address)
+        l_data = (ct.c_uint16 * n_cycles)(*data)
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_write16(self.handle, l_address, n_cycles, l_data, l_error_code)
         if any(l_error_code):
             failed_cycles = [i for i, ec in enumerate(l_error_code) if ec]
             raise RuntimeError(f'multi_write16 failed at cycles {failed_cycles}')
 
-    def multi_read32(self, address: Sequence[int], n_cycles: int) -> Tuple[int, ...]:
+    def multi_read32(self, address: Sequence[int]) -> Tuple[int, ...]:
         """
         Wrapper to CAENComm_MultiRead32()
         """
-        l_address = (ct.c_uint32 * n_cycles)(*address[:n_cycles])
+        n_cycles = len(address)
+        l_address = (ct.c_uint32 * n_cycles)(*address)
         l_data = (ct.c_uint32 * n_cycles)()
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_read32(self.handle, l_address, n_cycles, l_data, l_error_code)
@@ -310,11 +313,12 @@ class Device:
             raise RuntimeError(f'multi_read32 failed at cycles {failed_cycles}')
         return tuple(int(d) for d in l_data)
 
-    def multi_read16(self, address: Sequence[int], n_cycles: int) -> Tuple[int, ...]:
+    def multi_read16(self, address: Sequence[int]) -> Tuple[int, ...]:
         """
         Wrapper to CAENComm_MultiRead16()
         """
-        l_address = (ct.c_uint32 * n_cycles)(*address[:n_cycles])
+        n_cycles = len(address)
+        l_address = (ct.c_uint32 * n_cycles)(*address)
         l_data = (ct.c_uint16 * n_cycles)()
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_read16(self.handle, l_address, n_cycles, l_data, l_error_code)

@@ -706,6 +706,84 @@ class Device:
         """
         lib.get_exec_comm_list(self.handle, name.encode())
 
+    def subscribe_system_params(self, port: int, param_list: Sequence[str]) -> None:
+        """
+        Wrapper to CAENHV_SubscribeSystemParams()
+        """
+        param_list_len = len(param_list)
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        lib.subscribe_system_params(self.handle, port, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        if any(result_codes):
+            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            raise RuntimeError(f'subscribe_system_params failed at params {failed_params}')
+
+    def subscribe_board_params(self, port: int, slot: int, param_list: Sequence[str]) -> None:
+        """
+        Wrapper to CAENHV_SubscribeBoardParams()
+        """
+        param_list_len = len(param_list)
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        lib.subscribe_board_params(self.handle, port, slot, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        if any(result_codes):
+            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            raise RuntimeError(f'subscribe_board_params failed at params {failed_params}')
+
+    def subscribe_channel_params(self, port: int, slot: int, channel: int, param_list: Sequence[str]) -> None:
+        """
+        Wrapper to CAENHV_SubscribeChannelParams()
+        """
+        param_list_len = len(param_list)
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        lib.subscribe_channel_params(self.handle, port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        if any(l_result_codes):
+            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            raise RuntimeError(f'subscribe_channel_params failed at params {failed_params}')
+
+    def unsubscribe_system_params(self, port: int, param_list: Sequence[str]) -> None:
+        """
+        Wrapper to CAENHV_UnSubscribeSystemParams()
+        """
+        param_list_len = len(param_list)
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        lib.unsubscribe_system_params(self.handle, port, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        if any(l_result_codes):
+            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            raise RuntimeError(f'unsubscribe_system_params failed at params {failed_params}')
+
+    def unsubscribe_board_params(self, port: int, slot: int, param_list: Sequence[str]) -> None:
+        """
+        Wrapper to CAENHV_UnSubscribeBoardParams()
+        """
+        param_list_len = len(param_list)
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        lib.unsubscribe_board_params(self.handle, port, slot, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        if any(l_result_codes):
+            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            raise RuntimeError(f'unsubscribe_board_params failed at params {failed_params}')
+
+    def unsubscribe_channel_params(self, port: int, slot: int, channel: int, param_list: Sequence[str]) -> None:
+        """
+        Wrapper to CAENHV_SubscribeChannelParams()
+        """
+        param_list_len = len(param_list)
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        lib.unsubscribe_channel_params(self.handle, port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        if any(result_codes):
+            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
+
     # Python utilities
 
     @contextmanager

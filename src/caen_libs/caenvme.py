@@ -628,14 +628,15 @@ class Device:
         l_value = dw.ctypes(value)
         lib.write_cycle(self.handle, address, ct.pointer(l_value), am, dw)
 
-    def multi_read(self, addrs: Sequence[int], n_cycles: int, ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> Tuple[int, ...]:
+    def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> Tuple[int, ...]:
         """
         Wrapper to CAENVME_MultiRead()
         """
-        l_addrs = (ct.c_uint32 * n_cycles)(*addrs[:n_cycles])
+        n_cycles = len(addrs)
+        l_addrs = (ct.c_uint32 * n_cycles)(*addrs)
         l_data = (ct.c_uint32 * n_cycles)()
-        l_ams = (ct.c_int * n_cycles)(*ams[:n_cycles])
-        l_dws = (ct.c_int * n_cycles)(*dws[:n_cycles])
+        l_ams = (ct.c_int * n_cycles)(*ams)
+        l_dws = (ct.c_int * n_cycles)(*dws)
         l_ecs = (ct.c_int * n_cycles)()
         lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
@@ -643,14 +644,15 @@ class Device:
             raise RuntimeError(f'multi_read failed at cycles {failed_cycles}')
         return tuple(int(d) for d in l_data)
 
-    def multi_write(self, addrs: Sequence[int], data: Sequence[int], n_cycles: int, ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> None:
+    def multi_write(self, addrs: Sequence[int], data: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> None:
         """
         Wrapper to CAENVME_MultiWrite()
         """
-        l_addrs = (ct.c_uint32 * n_cycles)(*addrs[:n_cycles])
-        l_data = (ct.c_uint32 * n_cycles)(*data[:n_cycles])
-        l_ams = (ct.c_int * n_cycles)(*ams[:n_cycles])
-        l_dws = (ct.c_int * n_cycles)(*dws[:n_cycles])
+        n_cycles = len(addrs)
+        l_addrs = (ct.c_uint32 * n_cycles)(*addrs)
+        l_data = (ct.c_uint32 * n_cycles)(*data)
+        l_ams = (ct.c_int * n_cycles)(*ams)
+        l_dws = (ct.c_int * n_cycles)(*dws)
         l_ecs = (ct.c_int * n_cycles)()
         lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
@@ -693,44 +695,42 @@ class Device:
         lib.fifo_mblt_read_cycle(self.handle, address, l_data, size, am, l_count)
         return bytes(l_data[:l_count.value])
 
-    def blt_write_cycle(self, address: int, data: Sequence[int], size: int, am: AddressModifiers, dw: DataWidth) -> int:
+    def blt_write_cycle(self, address: int, data: Sequence[int], am: AddressModifiers, dw: DataWidth) -> int:
         """
         Wrapper to CAENVME_BLTWriteCycle()
         """
-        n_data = size // ct.sizeof(dw.ctypes)  # size in bytes
+        n_data = len(data)
+        size = n_data * ct.sizeof(dw.ctypes)  # in bytes
         l_data = (dw.ctypes * size)(*data[:n_data])
         l_count = ct.c_int()
         lib.blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_count.value
 
-    def fifo_blt_write_cycle(self, address: int, data: Sequence[int], size: int, am: AddressModifiers, dw: DataWidth) -> int:
+    def fifo_blt_write_cycle(self, address: int, data: Sequence[int], am: AddressModifiers, dw: DataWidth) -> int:
         """
         Wrapper to CAENVME_FIFOBLTWriteCycle()
         """
-        n_data = size // ct.sizeof(dw.ctypes)  # data in bytes
-        l_data = (dw.ctypes * size)(*data[:n_data])
+        n_data = len(data)
+        size = n_data * ct.sizeof(dw.ctypes)  # in bytes
+        l_data = (dw.ctypes * n_data)(*data)
         l_count = ct.c_int()
         lib.fifo_blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_count.value
 
-    def mblt_write_cycle(self, address: int, data: bytes, size: int, am: AddressModifiers) -> int:
+    def mblt_write_cycle(self, address: int, data: bytes, am: AddressModifiers) -> int:
         """
         Wrapper to CAENVME_MBLTWriteCycle()
         """
-        if len(data) < size:
-            raise RuntimeError('Invalid data size')
         l_count = ct.c_int()
-        lib.mblt_write_cycle(self.handle, address, data, size, am, l_count)
+        lib.mblt_write_cycle(self.handle, address, data, len(data), am, l_count)
         return l_count.value
 
-    def fifo_mblt_write_cycle(self, address: int, data: bytes, size: int, am: AddressModifiers) -> int:
+    def fifo_mblt_write_cycle(self, address: int, data: bytes, am: AddressModifiers) -> int:
         """
         Wrapper to CAENVME_FIFOMBLTWriteCycle()
         """
-        if len(data) < size:
-            raise RuntimeError('Invalid data size')
         l_count = ct.c_int()
-        lib.fifo_mblt_write_cycle(self.handle, address, data, size, am, l_count)
+        lib.fifo_mblt_write_cycle(self.handle, address, data, len(data), am, l_count)
         return l_count.value
 
     def ado_cycle(self, address: int, am: AddressModifiers) -> None:
