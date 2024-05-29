@@ -6,6 +6,7 @@ from contextlib import contextmanager
 import ctypes as ct
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
+import socket
 import sys
 from typing import Callable, List, Optional, Sequence, Tuple, Type, TypeVar, Union
 
@@ -155,6 +156,7 @@ class SysPropType(IntEnum):
     INT2    = 4
     INT4    = 5
     BOOLEAN = 6
+    SOCKET  = 1000 # Special
 
 
 @unique
@@ -268,7 +270,10 @@ _c_uint_p = _P(ct.c_uint)
 _system_status_p = _P(SystemStatus)
 _event_type_p = _P(EventType)
 _event_type_p_p = _P(_event_type_p)
-
+if sys.platform == 'win32':
+    _socket = ct.c_void_p
+else:
+    _socket = ct.c_int
 
 class _Lib(_utils.Lib):
 
@@ -278,10 +283,7 @@ class _Lib(_utils.Lib):
 
     def __load_api(self) -> None:
         # Load API not related to devices
-        if sys.platform == 'win32':
-            self.get_event_data = self.__get('GetEventData', ct.c_void_p, _system_status_p, _event_type_p_p, _c_uint_p)
-        else:
-            self.get_event_data = self.__get('GetEventData', ct.c_int, _system_status_p, _event_type_p_p, _c_uint_p)
+        self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_type_p_p, _c_uint_p)
         self.free_event_data = self.__get('FreeEventData', _event_type_p_p)
         self.__free = self.__get('Free', ct.c_void_p)
 
@@ -382,6 +384,8 @@ class Device:
     arg: Union[str] = field(repr=False)
     username: str = field(repr=False)
     password: str = field(repr=False)
+    port: Optional[int] = field(repr=False, default=0)
+    socket: Optional[int] = field(repr=False, default=None)
 
     def __del__(self) -> None:
         if self.opened:
@@ -475,7 +479,11 @@ class Device:
         """
         l_value = ct.create_string_buffer(1024)  # should be enough for all types
         lib.get_sys_prop(self.handle, name.encode(), l_value)
-        prop_type = self.get_sys_prop_info(name).type
+        if self.system_type == SystemType.R6060 and name == 'EventDataSocket':
+            # Special library only for R6060, get_sys_prop_info not implemented
+            prop_type = SysPropType.SOCKET
+        else:
+            prop_type = self.get_sys_prop_info(name).type
         prop_type_map = {
             SysPropType.STR: lambda v: v.value.decode(),
             SysPropType.REAL: lambda v: ct.cast(v, _P(ct.c_float)).contents.value,
@@ -484,6 +492,7 @@ class Device:
             SysPropType.INT2: lambda v: ct.cast(v, _P(ct.c_int16)).contents.value,
             SysPropType.INT4: lambda v: ct.cast(v, _P(ct.c_int32)).contents.value,
             SysPropType.BOOLEAN: lambda v: bool(ct.cast(v, _P(ct.c_uint)).contents.value),
+            SysPropType.SOCKET: lambda v: ct.cast(v, _P(_socket)).contents.value,
         }
         return prop_type_map[prop_type](l_value)
 
@@ -656,8 +665,8 @@ class Device:
         l_fmw_rel_max = ct.c_ubyte()
         with g_model as l_m, g_description as l_d:
             lib.test_bd_presence(self.handle, slot, l_nr_of_ch, l_m, l_d, l_ser_num, l_fmw_rel_min, l_fmw_rel_max)
-            model = ct.string_at(l_m).decode()
-            description = ct.string_at(l_d).decode()
+            model = ct.string_at(ct.addressof(l_m.contents)).decode()
+            description = ct.string_at(ct.addressof(l_d.contents)).decode()
             return Board(model, description, l_ser_num.value, l_nr_of_ch.value, (l_fmw_rel_max.value, l_fmw_rel_min.value))
 
     def get_ch_param_prop(self, slot: int, channel: int, name: str) -> ParamProp:
@@ -706,83 +715,126 @@ class Device:
         """
         lib.get_exec_comm_list(self.handle, name.encode())
 
-    def subscribe_system_params(self, port: int, param_list: Sequence[str]) -> None:
+    def __init_events_pre(self, port: int = 10001):
+        if self.socket is not None:
+            # Already initialized
+            return
+        if self.system_type == SystemType.R6060:
+            # Must be initialized after first subscription...
+            return
+        new_socket = socket.socket()
+        new_socket.bind(('', port))
+        new_socket.listen(socket.SOMAXCONN)
+        self.port = port
+        self.socket = new_socket.fileno()
+
+    def __init_events_post(self):
+        if self.socket is not None:
+            # Already initialized
+            return
+        if self.system_type != SystemType.R6060:
+            return
+        lib_socket = self.get_sys_prop('EventDataSocket')
+        assert isinstance(lib_socket, int)
+        self.port = 0
+        self.socket = lib_socket
+
+    def subscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
         Wrapper to CAENHV_SubscribeSystemParams()
         """
+        self.__init_events_pre()
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_system_params(self.handle, port, l_param_name_list, param_list_len, l_result_codes)
+        lib.subscribe_system_params(self.handle, self.port, l_param_name_list, param_list_len, l_result_codes)
+        self.__init_events_post()
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'subscribe_system_params failed at params {failed_params}')
 
-    def subscribe_board_params(self, port: int, slot: int, param_list: Sequence[str]) -> None:
+    def subscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
         """
         Wrapper to CAENHV_SubscribeBoardParams()
         """
+        self.__init_events_pre()
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_board_params(self.handle, port, slot, l_param_name_list, param_list_len, l_result_codes)
+        lib.subscribe_board_params(self.handle, self.port, slot, l_param_name_list, param_list_len, l_result_codes)
+        self.__init_events_post()
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'subscribe_board_params failed at params {failed_params}')
 
-    def subscribe_channel_params(self, port: int, slot: int, channel: int, param_list: Sequence[str]) -> None:
+    def subscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
         """
         Wrapper to CAENHV_SubscribeChannelParams()
         """
+        self.__init_events_pre()
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_channel_params(self.handle, port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        lib.subscribe_channel_params(self.handle, self.port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        self.__init_events_post()
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(l_result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'subscribe_channel_params failed at params {failed_params}')
 
-    def unsubscribe_system_params(self, port: int, param_list: Sequence[str]) -> None:
+    def unsubscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
         Wrapper to CAENHV_UnSubscribeSystemParams()
         """
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_system_params(self.handle, port, l_param_name_list, param_list_len, l_result_codes)
+        lib.unsubscribe_system_params(self.handle, self.port, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(l_result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'unsubscribe_system_params failed at params {failed_params}')
 
-    def unsubscribe_board_params(self, port: int, slot: int, param_list: Sequence[str]) -> None:
+    def unsubscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
         """
         Wrapper to CAENHV_UnSubscribeBoardParams()
         """
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_board_params(self.handle, port, slot, l_param_name_list, param_list_len, l_result_codes)
+        lib.unsubscribe_board_params(self.handle, self.port, slot, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(l_result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'unsubscribe_board_params failed at params {failed_params}')
 
-    def unsubscribe_channel_params(self, port: int, slot: int, channel: int, param_list: Sequence[str]) -> None:
+    def unsubscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
         """
         Wrapper to CAENHV_SubscribeChannelParams()
         """
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_channel_params(self.handle, port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        lib.unsubscribe_channel_params(self.handle, self.port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
+
+    def get_event_data(self) -> None:
+        """
+        Wrapper to CAENHV_GetEventData()
+        """
+        if self.socket is None:
+            raise RuntimeWarning('Events not initialized.')
+        l_system_status = SystemStatus()
+        g_event_data = lib.af(_event_type_p)
+        l_data_number = ct.c_uint()
+        with g_event_data as l_ed:
+            lib.get_event_data(self.socket, l_system_status, l_ed, l_data_number)
+            print(ct.string_at(l_ed.contents.ItemID))
 
     # Python utilities
 
