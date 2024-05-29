@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, unique
 import socket
 import sys
-from typing import Callable, List, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
 
@@ -97,7 +97,7 @@ class LinkType(IntEnum):
     A4818   = 7
 
 
-class SystemStatus(ct.Structure):
+class SystemStatusRaw(ct.Structure):
     """
     Wrapper to ::CAENHV_SYSTEMSTATUS_t
     """
@@ -107,7 +107,7 @@ class SystemStatus(ct.Structure):
     ]
 
 
-class IdValue(ct.Union):
+class IdValueRaw(ct.Union):
     """
     Wrapper to ::IDValue_t
     """
@@ -118,18 +118,39 @@ class IdValue(ct.Union):
     ]
 
 
-class EventType(ct.Structure):
-    """
-    Wrapper to ::CAENHVEVENT_TYPE_t
-    """
+class _EventDataRaw(ct.Structure):
     _fields_ = [
         ('Type', ct.c_int),
         ('SystemHandle', ct.c_int),
         ('BoardIndex', ct.c_int),
         ('ChannelIndex', ct.c_int),
         ('ItemID', ct.c_char * 20),
-        ('Value', IdValue),
+        ('Value', IdValueRaw),
     ]
+
+
+@unique
+class EventType(IntEnum):
+    """
+    Wrapper to ::CAENHV_ID_TYPE_t
+    """
+    PARAMETER   = 0
+    ALARM       = 1
+    KEEPALIVE   = 2
+    TRMODE      = 3
+
+
+@dataclass
+class EventData:
+    """
+    Wrapper to ::CAENHVEVENT_TYPE_t
+    """
+    type: EventType
+    item_id: str
+    system_handle: int = field(default=-1)
+    board_index: int = field(default=-1)
+    channel_index: int = field(default=-1)
+    value: Union[str, int, float] = field(default=-1)
 
 
 @dataclass
@@ -267,13 +288,71 @@ _c_ushort_p = _P(ct.c_ushort)
 _c_ushort_p_p = _P(_c_ushort_p)
 _c_int_p = _P(ct.c_int)
 _c_uint_p = _P(ct.c_uint)
-_system_status_p = _P(SystemStatus)
-_event_type_p = _P(EventType)
-_event_type_p_p = _P(_event_type_p)
+_system_status_p = _P(SystemStatusRaw)
+_event_data_p = _P(_EventDataRaw)
+_event_data_p_p = _P(_event_data_p)
 if sys.platform == 'win32':
     _socket = ct.c_void_p
 else:
     _socket = ct.c_int
+
+
+_PROP_TYPE_GET_ARG = {
+    SysPropType.STR: lambda v: v.value.decode(),
+    SysPropType.REAL: lambda v: ct.cast(v, _P(ct.c_float)).contents.value,
+    SysPropType.UINT2: lambda v: ct.cast(v, _P(ct.c_uint16)).contents.value,
+    SysPropType.UINT4: lambda v: ct.cast(v, _P(ct.c_uint32)).contents.value,
+    SysPropType.INT2: lambda v: ct.cast(v, _P(ct.c_int16)).contents.value,
+    SysPropType.INT4: lambda v: ct.cast(v, _P(ct.c_int32)).contents.value,
+    SysPropType.BOOLEAN: lambda v: bool(ct.cast(v, _P(ct.c_uint)).contents.value),
+    SysPropType.SOCKET: lambda v: ct.cast(v, _P(_socket)).contents.value,
+}
+
+
+_PROP_TYPE_SET_ARG = {
+    SysPropType.STR: lambda v: v.encode(),
+    SysPropType.REAL: lambda v: ct.pointer(ct.c_float(v)),
+    SysPropType.UINT2: lambda v: ct.pointer(ct.c_uint16(v)),
+    SysPropType.UINT4: lambda v: ct.pointer(ct.c_uint32(v)),
+    SysPropType.INT2: lambda v: ct.pointer(ct.c_int16(v)),
+    SysPropType.INT4: lambda v: ct.pointer(ct.c_int32(v)),
+    SysPropType.BOOLEAN: lambda v: ct.pointer(ct.c_uint(v)),
+}
+
+
+_PARAM_TYPE_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
+    ParamType.NUMERIC: lambda n: (ct.c_float * n)(),
+    ParamType.ONOFF: lambda n: (ct.c_int * n)(),
+    ParamType.CHSTATUS: lambda n: (ct.c_int * n)(),
+    ParamType.BDSTATUS: lambda n: (ct.c_int * n)(),
+    ParamType.BINARY: lambda n: (ct.c_int * n)(),
+    ParamType.STRING: lambda n: ct.create_string_buffer(1024 * n),
+    ParamType.ENUM: lambda n: (ct.c_int * n)(),
+    ParamType.CMD: lambda n: (ct.c_int * n)(),
+}
+
+
+_PROP_TYPE_EVENT_ARG = {
+    SysPropType.STR: lambda v: v.StringValue.decode(),
+    SysPropType.REAL: lambda v: v.FloatValue,
+    SysPropType.UINT2: lambda v: v.IntValue,
+    SysPropType.UINT4: lambda v: v.IntValue,
+    SysPropType.INT2: lambda v: v.IntValue,
+    SysPropType.INT4: lambda v: v.IntValue,
+    SysPropType.BOOLEAN: lambda v: v.IntValue,
+}
+
+
+_PARAM_TYPE_EVENT_ARG = {
+    ParamType.NUMERIC: lambda v: v.FloatValue,
+    ParamType.ONOFF: lambda v: v.IntValue,
+    ParamType.CHSTATUS: lambda v: v.IntValue,
+    ParamType.BDSTATUS: lambda v: v.IntValue,
+    ParamType.BINARY: lambda v: v.IntValue,
+    ParamType.STRING: lambda v: v.StringValue.decode(),
+    ParamType.ENUM: lambda v: v.IntValue,
+    ParamType.CMD: lambda v: v.IntValue,
+}
 
 class _Lib(_utils.Lib):
 
@@ -283,8 +362,8 @@ class _Lib(_utils.Lib):
 
     def __load_api(self) -> None:
         # Load API not related to devices
-        self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_type_p_p, _c_uint_p)
-        self.free_event_data = self.__get('FreeEventData', _event_type_p_p)
+        self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_data_p_p, _c_uint_p)
+        self.free_event_data = self.__get('FreeEventData', _event_data_p_p)
         self.__free = self.__get('Free', ct.c_void_p)
 
         # CAENHVLibSwRel has non conventional API
@@ -385,7 +464,8 @@ class Device:
     username: str = field(repr=False)
     password: str = field(repr=False)
     port: Optional[int] = field(repr=False, default=0)
-    socket: Optional[int] = field(repr=False, default=None)
+    skt_server: Optional[socket.socket] = field(repr=False, default=None)
+    skt_client: Optional[socket.socket] = field(repr=False, default=None)
 
     def __del__(self) -> None:
         if self.opened:
@@ -484,55 +564,30 @@ class Device:
             prop_type = SysPropType.SOCKET
         else:
             prop_type = self.get_sys_prop_info(name).type
-        prop_type_map = {
-            SysPropType.STR: lambda v: v.value.decode(),
-            SysPropType.REAL: lambda v: ct.cast(v, _P(ct.c_float)).contents.value,
-            SysPropType.UINT2: lambda v: ct.cast(v, _P(ct.c_uint16)).contents.value,
-            SysPropType.UINT4: lambda v: ct.cast(v, _P(ct.c_uint32)).contents.value,
-            SysPropType.INT2: lambda v: ct.cast(v, _P(ct.c_int16)).contents.value,
-            SysPropType.INT4: lambda v: ct.cast(v, _P(ct.c_int32)).contents.value,
-            SysPropType.BOOLEAN: lambda v: bool(ct.cast(v, _P(ct.c_uint)).contents.value),
-            SysPropType.SOCKET: lambda v: ct.cast(v, _P(_socket)).contents.value,
-        }
-        return prop_type_map[prop_type](l_value)
+        return _PROP_TYPE_GET_ARG[prop_type](l_value)
 
     def set_sys_prop(self, name: str, value: Union[str, float, int, bool]) -> None:
         """
         Wrapper to CAENHV_SetSysProp()
         """
         prop_type = self.get_sys_prop_info(name).type
-        prop_type_map = {
-            SysPropType.STR: lambda v: v.encode(),
-            SysPropType.REAL: lambda v: ct.pointer(ct.c_float(v)),
-            SysPropType.UINT2: lambda v: ct.pointer(ct.c_uint16(v)),
-            SysPropType.UINT4: lambda v: ct.pointer(ct.c_uint32(v)),
-            SysPropType.INT2: lambda v: ct.pointer(ct.c_int16(v)),
-            SysPropType.INT4: lambda v: ct.pointer(ct.c_int32(v)),
-            SysPropType.BOOLEAN: lambda v: ct.pointer(ct.c_uint(v)),
-        }
-        l_value = prop_type_map[prop_type](value)
+        l_value = _PROP_TYPE_SET_ARG[prop_type](value)
         lib.set_sys_prop(self.handle, name.encode(), l_value)
 
     def __get_param(self, index_list: Sequence[int], name: str, slot: Optional[int] = None) -> Union[List[float], List[int], List[str]]:
         n_indexes = len(index_list)
-        first_slot = index_list[0]  # Assuming all are equal
+        first_index = index_list[0]  # Assuming all are equal
         if slot is None:
-            param_prop_type = self.get_bd_param_prop(first_slot, name).type
+            param_type = self.get_bd_param_prop(first_index, name).type
         else:
-            param_prop_type = self.get_ch_param_prop(first_slot, slot, name).type
-        l_data: ct.Array
-        if param_prop_type == ParamType.NUMERIC:
-            l_data = (ct.c_float * n_indexes)()
-        elif param_prop_type == ParamType.STRING:
-            l_data = ct.create_string_buffer(1024)
-        else:
-            l_data = (ct.c_int * n_indexes)()
-        l_index_list = (ct.c_ushort * n_indexes)(*index_list[:n_indexes])
+            param_type = self.get_ch_param_prop(slot, first_index, name).type
+        l_data = _PARAM_TYPE_ARG[param_type](n_indexes)
+        l_index_list = (ct.c_ushort * n_indexes)(*index_list)
         if slot is None:
             lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
         else:
             lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data)
-        if param_prop_type == ParamType.STRING:
+        if param_type == ParamType.STRING:
             offset = 0
             res: List[str] = []
             for _ in range(n_indexes):
@@ -545,19 +600,22 @@ class Device:
 
     def __set_param(self, index_list: Sequence[int], name: str, value: Union[float, int, str], slot: Optional[int] = None) -> None:
         n_indexes = len(index_list)
-        first_slot = index_list[0]  # Assuming all are equal
-        param_prop_type = self.get_bd_param_prop(first_slot, name).type
+        first_index = index_list[0]  # Assuming all are equal
+        if slot is None:
+            param_type = self.get_bd_param_prop(first_index, name).type
+        else:
+            param_type = self.get_ch_param_prop(slot, first_index, name).type
         l_data: Union[bytes, ct._SimpleCData]
-        if param_prop_type == ParamType.NUMERIC:
+        if param_type == ParamType.NUMERIC:
             assert isinstance(value, (int, float)), 'value expected to be an instance of str'
             l_data = ct.c_float(value)
-        elif param_prop_type == ParamType.STRING:
+        elif param_type == ParamType.STRING:
             assert isinstance(value, str), 'value expected to be an instance of str'
             l_data = value.encode()
         else:
             assert isinstance(value, int), 'value expected to be an instance of int'
             l_data = ct.c_int(value)
-        l_index_list = (ct.c_ushort * n_indexes)(*index_list[:n_indexes])
+        l_index_list = (ct.c_ushort * n_indexes)(*index_list)
         if slot is None:
             lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
         else:
@@ -715,40 +773,42 @@ class Device:
         """
         lib.get_exec_comm_list(self.handle, name.encode())
 
-    def __init_events_pre(self, port: int = 10001):
-        if self.socket is not None:
-            # Already initialized
+    def __init_events_server(self):
+        if self.skt_server is not None:
             return
         if self.system_type == SystemType.R6060:
-            # Must be initialized after first subscription...
+            # Nothing to do, client socket intialized within the library
             return
-        new_socket = socket.socket()
-        new_socket.bind(('', port))
-        new_socket.listen(socket.SOMAXCONN)
+        skt = socket.socket()
+        port = 10001 + self.handle  # Should be unique
+        skt.bind(('', port))
+        skt.listen(socket.SOMAXCONN)
         self.port = port
-        self.socket = new_socket.fileno()
+        self.skt_server = skt
 
-    def __init_events_post(self):
-        if self.socket is not None:
-            # Already initialized
+    def __init_events_client(self):
+        if self.skt_client is not None:
             return
-        if self.system_type != SystemType.R6060:
-            return
-        lib_socket = self.get_sys_prop('EventDataSocket')
-        assert isinstance(lib_socket, int)
-        self.port = 0
-        self.socket = lib_socket
+        if self.system_type == SystemType.R6060:
+            # Use the value returned by this special system property
+            lib_socket = self.get_sys_prop('EventDataSocket')
+            assert isinstance(lib_socket, int)
+            self.port = 0
+            self.skt_client = socket.socket(fileno=lib_socket)
+        else:
+            assert self.skt_server is not None
+            self.skt_client = self.skt_server.accept()[0]
 
     def subscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
         Wrapper to CAENHV_SubscribeSystemParams()
         """
-        self.__init_events_pre()
+        self.__init_events_server()
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.subscribe_system_params(self.handle, self.port, l_param_name_list, param_list_len, l_result_codes)
-        self.__init_events_post()
+        self.__init_events_client()
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -758,12 +818,12 @@ class Device:
         """
         Wrapper to CAENHV_SubscribeBoardParams()
         """
-        self.__init_events_pre()
+        self.__init_events_server()
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.subscribe_board_params(self.handle, self.port, slot, l_param_name_list, param_list_len, l_result_codes)
-        self.__init_events_post()
+        self.__init_events_client()
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -773,14 +833,14 @@ class Device:
         """
         Wrapper to CAENHV_SubscribeChannelParams()
         """
-        self.__init_events_pre()
+        self.__init_events_server()
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.subscribe_channel_params(self.handle, self.port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        self.__init_events_post()
+        self.__init_events_client()
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
-        if any(l_result_codes):
+        if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'subscribe_channel_params failed at params {failed_params}')
 
@@ -823,18 +883,39 @@ class Device:
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
 
-    def get_event_data(self) -> None:
+    def get_event_data(self) -> EventData:
         """
         Wrapper to CAENHV_GetEventData()
         """
-        if self.socket is None:
+        if self.skt_client is None:
             raise RuntimeWarning('Events not initialized.')
-        l_system_status = SystemStatus()
-        g_event_data = lib.af(_event_type_p)
+        l_system_status = SystemStatusRaw()
+        g_event_data = lib.af(_event_data_p)
         l_data_number = ct.c_uint()
         with g_event_data as l_ed:
-            lib.get_event_data(self.socket, l_system_status, l_ed, l_data_number)
-            print(ct.string_at(l_ed.contents.ItemID))
+            lib.get_event_data(self.skt_client.fileno(), l_system_status, l_ed, l_data_number)
+            ed = l_ed.contents
+            event_type = EventType(ed.Type)
+            idem_id = ed.ItemID.decode()
+            system_handle = ed.SystemHandle
+            board_index = ed.BoardIndex
+            channel_index = ed.ChannelIndex
+            if event_type in (EventType.KEEPALIVE, EventType.ALARM):
+                return EventData(event_type, idem_id, system_handle, board_index, channel_index)
+            value: Union[str, int, float]
+            if board_index == -1:
+                # System prop
+                prop_type = self.get_sys_prop_info(idem_id).type
+                value = _PROP_TYPE_EVENT_ARG[prop_type](ed.Value)
+            else:
+                if channel_index == -1:
+                    # Board param
+                    param_type = self.get_bd_param_prop(board_index, idem_id).type
+                else:
+                    # Channel param
+                    param_type = self.get_ch_param_prop(board_index, channel_index, idem_id).type
+                value = _PARAM_TYPE_EVENT_ARG[param_type](ed.Value)
+            return EventData(event_type, idem_id, system_handle, board_index, channel_index, value)
 
     # Python utilities
 
