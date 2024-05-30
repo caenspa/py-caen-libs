@@ -4,6 +4,7 @@ __license__ = 'LGPL-3.0-or-later'  # SPDX-License-Identifier
 
 from contextlib import contextmanager
 import ctypes as ct
+import ctypes.wintypes as ctw
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 import socket
@@ -97,14 +98,31 @@ class LinkType(IntEnum):
     A4818   = 7
 
 
-class SystemStatusRaw(ct.Structure):
+@unique
+class EventStatus(IntEnum):
     """
-    Wrapper to ::CAENHV_SYSTEMSTATUS_t
+    Wrapper to ::CAENHV_EVT_STATUS_t
     """
+    SYNC        = 0
+    ASYNC       = 1
+    UNSYNC      = 2
+    NOTAVAIL    = 3
+
+
+class _SystemStatusRaw(ct.Structure):
     _fields_ = [
         ('System', ct.c_int),
         ('Board', ct.c_int * 16),
     ]
+
+
+@dataclass
+class SystemStatus:
+    """
+    Wrapper to ::CAENHV_SYSTEMSTATUS_t
+    """
+    system: EventStatus
+    board: List[EventStatus]
 
 
 class IdValueRaw(ct.Union):
@@ -177,7 +195,6 @@ class SysPropType(IntEnum):
     INT2    = 4
     INT4    = 5
     BOOLEAN = 6
-    SOCKET  = 1000 # Special
 
 
 @unique
@@ -280,7 +297,7 @@ class Error(RuntimeError):
 
 # Utility definitions
 _P = ct.POINTER
-_c_char_p = _P(ct.c_char)
+_c_char_p = _P(ct.c_char)  # ct.c_char_p is not fine due to its own memory management
 _c_char_p_p = _P(_c_char_p)
 _c_ubyte_p = _P(ct.c_ubyte)
 _c_ubyte_p_p = _P(_c_ubyte_p)
@@ -288,63 +305,62 @@ _c_ushort_p = _P(ct.c_ushort)
 _c_ushort_p_p = _P(_c_ushort_p)
 _c_int_p = _P(ct.c_int)
 _c_uint_p = _P(ct.c_uint)
-_system_status_p = _P(SystemStatusRaw)
+_system_status_p = _P(_SystemStatusRaw)
 _event_data_p = _P(_EventDataRaw)
 _event_data_p_p = _P(_event_data_p)
 if sys.platform == 'win32':
-    _socket = ct.c_void_p
+    _socket = ctw.WPARAM  # Actually a SOCKET is UINT_PTR, same as WPARAM
 else:
     _socket = ct.c_int
 
 
-_PROP_TYPE_GET_ARG = {
-    SysPropType.STR: lambda v: v.value.decode(),
-    SysPropType.REAL: lambda v: ct.cast(v, _P(ct.c_float)).contents.value,
-    SysPropType.UINT2: lambda v: ct.cast(v, _P(ct.c_uint16)).contents.value,
-    SysPropType.UINT4: lambda v: ct.cast(v, _P(ct.c_uint32)).contents.value,
-    SysPropType.INT2: lambda v: ct.cast(v, _P(ct.c_int16)).contents.value,
-    SysPropType.INT4: lambda v: ct.cast(v, _P(ct.c_int32)).contents.value,
-    SysPropType.BOOLEAN: lambda v: bool(ct.cast(v, _P(ct.c_uint)).contents.value),
-    SysPropType.SOCKET: lambda v: ct.cast(v, _P(_socket)).contents.value,
+_SYS_PROP_TYPE_GET_ARG = {
+    SysPropType.STR:        lambda v: v.value.decode(),
+    SysPropType.REAL:       lambda v: ct.cast(v, _P(ct.c_float)).contents.value,
+    SysPropType.UINT2:      lambda v: ct.cast(v, _P(ct.c_uint16)).contents.value,
+    SysPropType.UINT4:      lambda v: ct.cast(v, _P(ct.c_uint32)).contents.value,
+    SysPropType.INT2:       lambda v: ct.cast(v, _P(ct.c_int16)).contents.value,
+    SysPropType.INT4:       lambda v: ct.cast(v, _P(ct.c_int32)).contents.value,
+    SysPropType.BOOLEAN:    lambda v: bool(ct.cast(v, _P(ct.c_uint)).contents.value),
 }
 
 
-_PROP_TYPE_SET_ARG = {
-    SysPropType.STR: lambda v: v.encode(),
-    SysPropType.REAL: lambda v: ct.pointer(ct.c_float(v)),
-    SysPropType.UINT2: lambda v: ct.pointer(ct.c_uint16(v)),
-    SysPropType.UINT4: lambda v: ct.pointer(ct.c_uint32(v)),
-    SysPropType.INT2: lambda v: ct.pointer(ct.c_int16(v)),
-    SysPropType.INT4: lambda v: ct.pointer(ct.c_int32(v)),
-    SysPropType.BOOLEAN: lambda v: ct.pointer(ct.c_uint(v)),
+_SYS_PROP_TYPE_SET_ARG = {
+    SysPropType.STR:        lambda v: v.encode(),
+    SysPropType.REAL:       lambda v: ct.pointer(ct.c_float(v)),
+    SysPropType.UINT2:      lambda v: ct.pointer(ct.c_uint16(v)),
+    SysPropType.UINT4:      lambda v: ct.pointer(ct.c_uint32(v)),
+    SysPropType.INT2:       lambda v: ct.pointer(ct.c_int16(v)),
+    SysPropType.INT4:       lambda v: ct.pointer(ct.c_int32(v)),
+    SysPropType.BOOLEAN:    lambda v: ct.pointer(ct.c_uint(v)),
 }
 
 
 _PARAM_TYPE_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
-    ParamType.NUMERIC: lambda n: (ct.c_float * n)(),
-    ParamType.ONOFF: lambda n: (ct.c_int * n)(),
+    ParamType.NUMERIC:  lambda n: (ct.c_float * n)(),
+    ParamType.ONOFF:    lambda n: (ct.c_int * n)(),
     ParamType.CHSTATUS: lambda n: (ct.c_int * n)(),
     ParamType.BDSTATUS: lambda n: (ct.c_int * n)(),
-    ParamType.BINARY: lambda n: (ct.c_int * n)(),
-    ParamType.STRING: lambda n: ct.create_string_buffer(1024 * n),
-    ParamType.ENUM: lambda n: (ct.c_int * n)(),
-    ParamType.CMD: lambda n: (ct.c_int * n)(),
+    ParamType.BINARY:   lambda n: (ct.c_int * n)(),
+    ParamType.STRING:   lambda n: (ct.c_char * 1024 * n)(),
+    ParamType.ENUM:     lambda n: (ct.c_int * n)(),
+    ParamType.CMD:      lambda n: (ct.c_int * n)(),
 }
 
 
-_PROP_TYPE_EVENT_ARG = {
-    SysPropType.STR: lambda v: v.StringValue.decode(),
-    SysPropType.REAL: lambda v: v.FloatValue,
-    SysPropType.UINT2: lambda v: v.IntValue,
-    SysPropType.UINT4: lambda v: v.IntValue,
-    SysPropType.INT2: lambda v: v.IntValue,
-    SysPropType.INT4: lambda v: v.IntValue,
-    SysPropType.BOOLEAN: lambda v: v.IntValue,
+_SYS_PROP_TYPE_EVENT_ARG = {
+    SysPropType.STR:        lambda v: v.StringValue.decode(),
+    SysPropType.REAL:       lambda v: v.FloatValue,
+    SysPropType.UINT2:      lambda v: v.IntValue,
+    SysPropType.UINT4:      lambda v: v.IntValue,
+    SysPropType.INT2:       lambda v: v.IntValue,
+    SysPropType.INT4:       lambda v: v.IntValue,
+    SysPropType.BOOLEAN:    lambda v: v.IntValue,
 }
 
 
 _PARAM_TYPE_EVENT_ARG = {
-    ParamType.NUMERIC: lambda v: v.FloatValue,
+    ParamType.NUMERIC:  lambda v: v.FloatValue,
     ParamType.ONOFF: lambda v: v.IntValue,
     ParamType.CHSTATUS: lambda v: v.IntValue,
     ParamType.BDSTATUS: lambda v: v.IntValue,
@@ -426,7 +442,7 @@ class _Lib(_utils.Lib):
         return self.___sw_rel().decode()
 
     @contextmanager
-    def af(self, pointer_type: Type):
+    def auto_free(self, pointer_type: Type):
         """Context manager to auto free on scope exit"""
         value = pointer_type()
         try:
@@ -449,6 +465,32 @@ lib: _Lib
 lib = _Lib('CAENHVWrapper')
 
 
+def _decode_char(data: ct.c_char, n_string: int) -> List[str]:
+    res: List[str] = []
+    offset = 0
+    for _ in range(n_string):
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        offset += len(value) + 1
+        res.append(value)
+    return res
+
+
+def _decode_char_p(data: ct._Pointer, n_string: int) -> List[str]:
+    # Trick to avoid dereferences in case of n_string == 0
+    return _decode_char(data.contents, n_string) if n_string != 0 else []
+
+
+def _decode_char_fixed_size(data: ct.c_char, string_size: int) -> List[str]:
+    res: List[str] = []
+    offset = 0
+    while True:
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        if len(value) == 0:
+            return res
+        offset += string_size
+        res.append(value)
+
+
 @dataclass
 class Device:
     """
@@ -463,7 +505,7 @@ class Device:
     arg: Union[str] = field(repr=False)
     username: str = field(repr=False)
     password: str = field(repr=False)
-    port: Optional[int] = field(repr=False, default=0)
+    port: int = field(repr=False, default=0)
     skt_server: Optional[socket.socket] = field(repr=False, default=None)
     skt_client: Optional[socket.socket] = field(repr=False, default=None)
 
@@ -504,28 +546,25 @@ class Device:
         lib.deinit_system(self.handle)
         self.opened = False
 
+
     def get_crate_map(self) -> List[Board]:
         """
         Wrapper to CAENHV_GetCrateMap()
         """
         l_nr_of_slot = ct.c_ushort()
-        g_nr_of_ch_list = lib.af(_c_ushort_p)
-        g_model_list = lib.af(_c_char_p)
-        g_description_list = lib.af(_c_char_p)
-        g_ser_num_list = lib.af(_c_ushort_p)
-        g_fmw_rel_min_list = lib.af(_c_ubyte_p)
-        g_fmw_rel_max_list = lib.af(_c_ubyte_p)
+        g_nr_of_ch_list = lib.auto_free(_c_ushort_p)
+        g_model_list = lib.auto_free(_c_char_p)
+        g_description_list = lib.auto_free(_c_char_p)
+        g_ser_num_list = lib.auto_free(_c_ushort_p)
+        g_fmw_rel_min_list = lib.auto_free(_c_ubyte_p)
+        g_fmw_rel_max_list = lib.auto_free(_c_ubyte_p)
         res: List[Board] = []
         with g_nr_of_ch_list as l_nocl, g_model_list as l_ml, g_description_list as l_dl, g_ser_num_list as l_snl, g_fmw_rel_min_list as l_frminl, g_fmw_rel_max_list as l_frmaxl:
             lib.get_crate_map(self.handle, l_nr_of_slot, l_nocl, l_ml, l_dl, l_snl, l_frminl, l_frmaxl)
-            ml_offset = 0
-            dl_offset = 0
+            ml = _decode_char_p(l_ml, l_nr_of_slot.value)
+            dl = _decode_char_p(l_dl, l_nr_of_slot.value)
             for i in range(l_nr_of_slot.value):
-                model = ct.string_at(ct.addressof(l_ml.contents) + ml_offset).decode()
-                ml_offset += len(model) + 1
-                description = ct.string_at(ct.addressof(l_dl.contents) + dl_offset).decode()
-                dl_offset += len(description) + 1
-                res.append(Board(model, description, l_snl[i], l_nocl[i], (l_frmaxl[i], l_frminl[i])))
+                res.append(Board(ml[i], dl[i], l_snl[i], l_nocl[i], (l_frmaxl[i], l_frminl[i])))
         return res
 
     def get_sys_prop_list(self) -> List[str]:
@@ -533,16 +572,10 @@ class Device:
         Wrapper to CAENHV_GetSysPropList()
         """
         l_num_prop = ct.c_ushort()
-        g_prop_name_list = lib.af(_c_char_p)
-        res: List[str] = []
+        g_prop_name_list = lib.auto_free(_c_char_p)
         with g_prop_name_list as l_pnl:
             lib.get_sys_prop_list(self.handle, l_num_prop, l_pnl)
-            pnl_offset = 0
-            for _ in range(l_num_prop.value):
-                prop_name = ct.string_at(ct.addressof(l_pnl.contents) + pnl_offset).decode()
-                pnl_offset += len(prop_name) + 1
-                res.append(prop_name)
-        return res
+            return _decode_char_p(l_pnl, l_num_prop.value)
 
     def get_sys_prop_info(self, name: str) -> SysProp:
         """
@@ -559,19 +592,15 @@ class Device:
         """
         l_value = ct.create_string_buffer(1024)  # should be enough for all types
         lib.get_sys_prop(self.handle, name.encode(), l_value)
-        if self.system_type == SystemType.R6060 and name == 'EventDataSocket':
-            # Special library only for R6060, get_sys_prop_info not implemented
-            prop_type = SysPropType.SOCKET
-        else:
-            prop_type = self.get_sys_prop_info(name).type
-        return _PROP_TYPE_GET_ARG[prop_type](l_value)
+        prop_type = self.get_sys_prop_info(name).type
+        return _SYS_PROP_TYPE_GET_ARG[prop_type](l_value)
 
     def set_sys_prop(self, name: str, value: Union[str, float, int, bool]) -> None:
         """
         Wrapper to CAENHV_SetSysProp()
         """
         prop_type = self.get_sys_prop_info(name).type
-        l_value = _PROP_TYPE_SET_ARG[prop_type](value)
+        l_value = _SYS_PROP_TYPE_SET_ARG[prop_type](value)
         lib.set_sys_prop(self.handle, name.encode(), l_value)
 
     def __get_param(self, index_list: Sequence[int], name: str, slot: Optional[int] = None) -> Union[List[float], List[int], List[str]]:
@@ -588,13 +617,7 @@ class Device:
         else:
             lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data)
         if param_type == ParamType.STRING:
-            offset = 0
-            res: List[str] = []
-            for _ in range(n_indexes):
-                prop_name = ct.string_at(ct.addressof(l_data) + offset).decode()
-                offset += len(prop_name) + 1
-                res.append(prop_name)
-            return res
+            return _decode_char(l_data, n_indexes)
         else:
             return list(l_data)
 
@@ -632,60 +655,48 @@ class Device:
                 # Ignore errors
                 return None
             return gen(l_value)
-        l_value_str = ct.create_string_buffer(1024)  # should be enough for all types
-        l_value_uint = ct.c_uint()
-        l_value_short = ct.c_short()
-        l_value_ushort = ct.c_ushort()
-        l_value_float = ct.c_float()
-        param_type = _get('Type', l_value_uint, lambda v: ParamType(v.value))
-        param_mode = _get('Mode', l_value_uint, lambda v: ParamMode(v.value))
+        l_str = ct.create_string_buffer(1024)  # should be enough for all types
+        l_uint = ct.c_uint()
+        l_short = ct.c_short()
+        l_ushort = ct.c_ushort()
+        l_float = ct.c_float()
+        param_type = _get('Type', l_uint, lambda v: ParamType(v.value))
+        param_mode = _get('Mode', l_uint, lambda v: ParamMode(v.value))
         res = ParamProp(name, param_type, param_mode)
         if param_type == ParamType.NUMERIC:
-            res.minval = _get('Minval', l_value_float, lambda v: v.value)
-            res.maxval = _get('Maxval', l_value_float, lambda v: v.value)
-            res.unit = _get('Unit', l_value_ushort, lambda v: ParamUnit(v.value))
-            res.minval = _get('Exp', l_value_short, lambda v: v.value)
+            res.minval = _get('Minval', l_float, lambda v: v.value)
+            res.maxval = _get('Maxval', l_float, lambda v: v.value)
+            res.unit = _get('Unit', l_ushort, lambda v: ParamUnit(v.value))
+            res.minval = _get('Exp', l_short, lambda v: v.value)
         elif param_type == ParamType.ONOFF:
-            res.onstate = _get('Onstate', l_value_str, lambda v: v.value.decode())
-            res.offstate = _get('Offstate', l_value_str, lambda v: v.value.decode())
+            res.onstate = _get('Onstate', l_str, lambda v: v.value.decode())
+            res.offstate = _get('Offstate', l_str, lambda v: v.value.decode())
         elif param_type == ParamType.ENUM:
-            res.minval = _get('Minval', l_value_float, lambda v: v.value)
-            res.maxval = _get('Maxval', l_value_float, lambda v: v.value)
+            res.minval = _get('Minval', l_float, lambda v: v.value)
+            res.maxval = _get('Maxval', l_float, lambda v: v.value)
             if res.minval is not None and res.maxval is not None:
                 n_enum_value = int(res.maxval - res.minval)
-                g_value_str_array = lib.af(_c_char_p)
+                g_value_str_array = lib.auto_free(_c_char_p)
                 with g_value_str_array as l_value_str_array:
                     l_value = _get('Enum', l_value_str_array, lambda v: v.contents)
                     if l_value is not None:
-                        enum = []
-                        offset = 0
-                        for _ in range(n_enum_value):
-                            prop_name = ct.string_at(ct.addressof(l_value) + offset).decode()
-                            offset += len(prop_name) + 1
-                            enum.append(prop_name)
-                    res.enum = enum
+                        enum = _decode_char(l_value, n_enum_value)
+                        res.enum = enum
         return res
 
     def __get_param_info(self, slot: int, channel: Optional[int] = None) -> List[str]:
-        g_value_str_array = lib.af(_c_char_p)
-        res_size: Optional[int] = None
-        with g_value_str_array as l_value_str_array:
+        g_value = lib.auto_free(_c_char_p)
+        max_param_name = 10  # see MAX_PARAM_NAME
+        with g_value as l_value:
             if channel is None:
-                lib.get_bd_param_info(self.handle, slot, l_value_str_array)
+                lib.get_bd_param_info(self.handle, slot, l_value)
+                return _decode_char_fixed_size(l_value.contents, max_param_name)
             else:
                 l_size = ct.c_int()
-                lib.get_ch_param_info(self.handle, slot, channel, l_value_str_array, l_size)
-                res_size = l_size.value
-            res: List[str] = []
-            offset = 0
-            while True:
-                param_name = ct.string_at(ct.addressof(l_value_str_array.contents) + offset).decode()
-                if len(param_name) == 0:
-                    if res_size is not None:
-                        assert res_size == len(res)
-                    return res
-                offset += 10  # 10 is MAX_PARAM_NAME
-                res.append(param_name)
+                lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
+                res = _decode_char_fixed_size(l_value.contents, max_param_name)
+                assert l_size.value == len(res)  # only channel version return result size...
+                return res
 
     def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[List[float], List[int], List[str]]:
         """
@@ -716,15 +727,15 @@ class Device:
         Wrapper to CAENHV_TestBdPresence()
         """
         l_nr_of_ch = ct.c_ushort()
-        g_model = lib.af(_c_char_p)
-        g_description = lib.af(_c_char_p)
+        g_model = lib.auto_free(_c_char_p)
+        g_description = lib.auto_free(_c_char_p)
         l_ser_num = ct.c_ushort()
         l_fmw_rel_min = ct.c_ubyte()
         l_fmw_rel_max = ct.c_ubyte()
         with g_model as l_m, g_description as l_d:
             lib.test_bd_presence(self.handle, slot, l_nr_of_ch, l_m, l_d, l_ser_num, l_fmw_rel_min, l_fmw_rel_max)
-            model = ct.string_at(ct.addressof(l_m.contents)).decode()
-            description = ct.string_at(ct.addressof(l_d.contents)).decode()
+            model = l_m.contents.value.decode()
+            description = l_d.contents.value.decode()
             return Board(model, description, l_ser_num.value, l_nr_of_ch.value, (l_fmw_rel_max.value, l_fmw_rel_min.value))
 
     def get_ch_param_prop(self, slot: int, channel: int, name: str) -> ParamProp:
@@ -756,16 +767,10 @@ class Device:
         Wrapper to CAENHV_GetExecCommList()
         """
         l_num_comm = ct.c_ushort()
-        g_comm_name_list = lib.af(_c_char_p)
+        g_comm_name_list = lib.auto_free(_c_char_p)
         with g_comm_name_list as l_cnl:
             lib.get_exec_comm_list(self.handle, l_num_comm, l_cnl)
-            offset = 0
-            res: List[str] = []
-            for _ in range(l_num_comm.value):
-                exec_comm = ct.string_at(ct.addressof(l_cnl.contents) + offset).decode()
-                offset += len(exec_comm) + 1
-                res.append(exec_comm)
-        return res
+            return _decode_char(l_cnl.contents, l_num_comm.value)
 
     def exec_comm(self, name: str) -> None:
         """
@@ -790,13 +795,20 @@ class Device:
         if self.skt_client is not None:
             return
         if self.system_type == SystemType.R6060:
-            # Use the value returned by this special system property
-            lib_socket = self.get_sys_prop('EventDataSocket')
-            assert isinstance(lib_socket, int)
-            self.port = 0
+            # A socket has already been opened by the library: we must use the value
+            # returned by the special system property EventDataSocket to get the fd.
+            # Since self.get_sys_prop calls get_sys_prop_info to get the output type,
+            # and since that function is not implemented for EventDataSocket being a
+            # library only property, that returns a socket object, we call directly
+            # the ctypes object.
+            l_value = _socket()
+            lib.get_sys_prop(self.handle, b'EventDataSocket', ct.byref(l_value))
+            lib_socket = l_value.value if l_value.value is not None else 0
             self.skt_client = socket.socket(fileno=lib_socket)
         else:
-            assert self.skt_server is not None
+            if self.skt_server is None:
+                # Initialization is done on first call to a subscribe function
+                raise RuntimeError('No subscription done.')
             self.skt_client = self.skt_server.accept()[0]
 
     def subscribe_system_params(self, param_list: Sequence[str]) -> None:
@@ -808,7 +820,6 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.subscribe_system_params(self.handle, self.port, l_param_name_list, param_list_len, l_result_codes)
-        self.__init_events_client()
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -823,7 +834,6 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.subscribe_board_params(self.handle, self.port, slot, l_param_name_list, param_list_len, l_result_codes)
-        self.__init_events_client()
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -838,7 +848,6 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.subscribe_channel_params(self.handle, self.port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        self.__init_events_client()
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -883,39 +892,45 @@ class Device:
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
 
-    def get_event_data(self) -> EventData:
+    def __decode_event_data(self, ed: _EventDataRaw) -> EventData:
+        event_type = EventType(ed.Type)
+        idem_id = ed.ItemID.decode()
+        system_handle = ed.SystemHandle
+        board_index = ed.BoardIndex
+        channel_index = ed.ChannelIndex
+        if event_type in (EventType.KEEPALIVE, EventType.ALARM):
+            return EventData(event_type, idem_id, system_handle, board_index, channel_index)
+        value: Union[str, int, float]
+        if board_index == -1:
+            # System prop
+            prop_type = self.get_sys_prop_info(idem_id).type
+            value = _SYS_PROP_TYPE_EVENT_ARG[prop_type](ed.Value)
+        else:
+            if channel_index == -1:
+                # Board param
+                param_type = self.get_bd_param_prop(board_index, idem_id).type
+            else:
+                # Channel param
+                param_type = self.get_ch_param_prop(board_index, channel_index, idem_id).type
+            value = _PARAM_TYPE_EVENT_ARG[param_type](ed.Value)
+        return EventData(event_type, idem_id, system_handle, board_index, channel_index, value)
+
+    def get_event_data(self) -> Tuple[List[EventData], SystemStatus]:
         """
         Wrapper to CAENHV_GetEventData()
         """
-        if self.skt_client is None:
-            raise RuntimeWarning('Events not initialized.')
-        l_system_status = SystemStatusRaw()
-        g_event_data = lib.af(_event_data_p)
+        self.__init_events_client()
+        assert self.skt_client is not None
+        l_system_status = _SystemStatusRaw()
+        g_event_data = lib.auto_free(_event_data_p)
         l_data_number = ct.c_uint()
         with g_event_data as l_ed:
             lib.get_event_data(self.skt_client.fileno(), l_system_status, l_ed, l_data_number)
-            ed = l_ed.contents
-            event_type = EventType(ed.Type)
-            idem_id = ed.ItemID.decode()
-            system_handle = ed.SystemHandle
-            board_index = ed.BoardIndex
-            channel_index = ed.ChannelIndex
-            if event_type in (EventType.KEEPALIVE, EventType.ALARM):
-                return EventData(event_type, idem_id, system_handle, board_index, channel_index)
-            value: Union[str, int, float]
-            if board_index == -1:
-                # System prop
-                prop_type = self.get_sys_prop_info(idem_id).type
-                value = _PROP_TYPE_EVENT_ARG[prop_type](ed.Value)
-            else:
-                if channel_index == -1:
-                    # Board param
-                    param_type = self.get_bd_param_prop(board_index, idem_id).type
-                else:
-                    # Channel param
-                    param_type = self.get_ch_param_prop(board_index, channel_index, idem_id).type
-                value = _PARAM_TYPE_EVENT_ARG[param_type](ed.Value)
-            return EventData(event_type, idem_id, system_handle, board_index, channel_index, value)
+            events = [self.__decode_event_data(l_ed[i]) for i in range(l_data_number.value)]
+        system_status = EventStatus(l_system_status.System)
+        board_status = [EventStatus(i) for i in l_system_status.Board]
+        status = SystemStatus(system_status, board_status)
+        return events, status
 
     # Python utilities
 
