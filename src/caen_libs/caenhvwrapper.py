@@ -516,15 +516,19 @@ class Device:
     opened: bool = field(repr=False)
     system_type: SystemType = field(repr=False)
     link_type: LinkType = field(repr=False)
-    arg: Union[str] = field(repr=False)
+    arg: str = field(repr=False)
     username: str = field(repr=False)
     password: str = field(repr=False)
-    port: int = field(repr=False, default=0)
-    skt_server: Optional[socket.socket] = field(repr=False, default=None)
-    skt_client: Optional[socket.socket] = field(repr=False, default=None)
 
     # Constants
     MAX_PARAM_NAME = 10
+    FIRST_BIND_PORT = 10001  # This wrapper will bind TCP ports starting from this value
+
+    def __post_init__(self):
+        # Internal events related stuff
+        self.__port = 0
+        self.__skt_server = None
+        self.__skt_client = None
 
     def __del__(self) -> None:
         if self.opened:
@@ -562,7 +566,6 @@ class Device:
         """
         lib.deinit_system(self.handle)
         self.opened = False
-
 
     def get_crate_map(self) -> List[Board]:
         """
@@ -668,7 +671,7 @@ class Device:
         Wrapper to CAENHV_GetBdParam()
         """
         n_indexes = len(slot_list)
-        first_index = slot_list[0]  # Assuming all are equal
+        first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
@@ -683,7 +686,7 @@ class Device:
         Wrapper to CAENHV_SetBdParam()
         """
         n_indexes = len(slot_list)
-        first_index = slot_list[0]  # Assuming all are equal
+        first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value)
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
@@ -743,7 +746,7 @@ class Device:
         Wrapper to CAENHV_GetBdParam()
         """
         n_indexes = len(channel_list)
-        first_index = channel_list[0]  # Assuming all are equal
+        first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
@@ -758,7 +761,7 @@ class Device:
         Wrapper to CAENHV_SetBdParam()
         """
         n_indexes = len(channel_list)
-        first_index = channel_list[0]  # Assuming all are equal
+        first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value)
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
@@ -780,30 +783,33 @@ class Device:
         """
         lib.get_exec_comm_list(self.handle, name.encode())
 
+    def __new_events_format(self) -> bool:
+        return self.system_type in (SystemType.R6060.value,)
+
     def __init_events_server(self):
-        if self.skt_server is not None:
+        if self.__skt_server is not None:
             return
-        if self.system_type.value >= SystemType.R6060.value:
+        if self.__new_events_format():
             # Nothing to do, client socket initialized within the library. We store
             # an uninitialized value just as a reminder that a subscription has been
             # made, to be checked later in __init_events_client to be sure
             # EventDataSocket is meaningful
-            self.skt_server = socket.socket()
+            self.__skt_server = socket.socket()
             return
         skt = socket.socket()
-        port = 10001 + self.handle  # Should be unique
+        port = self.FIRST_BIND_PORT + self.handle  # Should be unique
         skt.bind(('', port))
         skt.listen(socket.SOMAXCONN)
-        self.port = port
-        self.skt_server = skt
+        self.__port = port
+        self.__skt_server = skt
 
     def __init_events_client(self):
-        if self.skt_client is not None:
+        if self.__skt_client is not None:
             return
-        if self.skt_server is None:
+        if self.__skt_server is None:
             # Initialization is done on first call to a subscribe function
             raise RuntimeError('No subscription done.')
-        if self.system_type.value >= SystemType.R6060.value:
+        if self.__new_events_format():
             # A socket has already been opened by the library: we must use the value
             # returned by the special system property EventDataSocket to get the fd.
             # Since self.get_sys_prop calls get_sys_prop_info to get the output type,
@@ -813,9 +819,9 @@ class Device:
             l_value = _socket()
             lib.get_sys_prop(self.handle, b'EventDataSocket', ct.byref(l_value))
             lib_socket = l_value.value if l_value.value is not None else 0
-            self.skt_client = socket.socket(fileno=lib_socket)
+            self.__skt_client = socket.socket(fileno=lib_socket)
         else:
-            self.skt_client = self.skt_server.accept()[0]
+            self.__skt_client = self.__skt_server.accept()[0]
 
     def subscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
@@ -825,7 +831,7 @@ class Device:
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_system_params(self.handle, self.port, l_param_name_list, param_list_len, l_result_codes)
+        lib.subscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -839,7 +845,7 @@ class Device:
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_board_params(self.handle, self.port, slot, l_param_name_list, param_list_len, l_result_codes)
+        lib.subscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -853,7 +859,7 @@ class Device:
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_channel_params(self.handle, self.port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        lib.subscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -866,7 +872,7 @@ class Device:
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_system_params(self.handle, self.port, l_param_name_list, param_list_len, l_result_codes)
+        lib.unsubscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(l_result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -879,7 +885,7 @@ class Device:
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_board_params(self.handle, self.port, slot, l_param_name_list, param_list_len, l_result_codes)
+        lib.unsubscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(l_result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -892,7 +898,7 @@ class Device:
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_channel_params(self.handle, self.port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        lib.unsubscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
@@ -926,12 +932,12 @@ class Device:
         Wrapper to CAENHV_GetEventData()
         """
         self.__init_events_client()
-        assert self.skt_client is not None
+        assert self.__skt_client is not None
         l_system_status = _SystemStatusRaw()
         g_event_data = lib.auto_ptr(_event_data_p)
         l_data_number = ct.c_uint()
         with g_event_data as l_ed:
-            lib.get_event_data(self.skt_client.fileno(), l_system_status, l_ed, l_data_number)
+            lib.get_event_data(self.__skt_client.fileno(), l_system_status, l_ed, l_data_number)
             events = [self.__decode_event_data(l_ed[i]) for i in range(l_data_number.value)]
         system_status = EventStatus(l_system_status.System)
         board_status = [EventStatus(i) for i in l_system_status.Board]
