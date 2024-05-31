@@ -3,8 +3,10 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'  # SPDX-License-Identifier
 
 import ctypes as ct
+from functools import lru_cache, wraps, _lru_cache_wrapper
 import sys
-from typing import Any
+from typing import Any, List, Optional
+from weakref import ref, ReferenceType
 
 
 class Lib:
@@ -52,7 +54,7 @@ class Lib:
                 'https://www.caen.it/. '
                 'Please install it and retry.'
             ) from ex
-        
+
     @property
     def name(self) -> str:
         """Name of the shared library"""
@@ -72,3 +74,94 @@ class Lib:
     def lib_variadic(self) -> Any:
         """ctypes object to shared library (for variadic functions)"""
         return self.__lib_variadic
+
+
+class CacheManager(List[_lru_cache_wrapper]):
+    """
+    A simple list of functions returned by `@lru_cache` decorator.
+
+    To be used with the optional parameter @p cache_manager of
+    lru_cache_method(), that will store a reference to the cached function
+    inside this list. This is a typing-safe way to call `cache_clear` and
+    `cache_info` of the internal cached functions, even if not exposed
+    directly by the inner function returned by lru_cache_method().
+    """
+    def clear_all(self) -> None:
+        """Invoke `cache_clear` on all functions in the list"""
+        for wrapper in self:
+            wrapper.cache_clear()
+
+
+# Typing support for decorators comes with Python 3.10.
+# Omitted because very verbose. See caen-felib for reference.
+
+
+def lru_cache_method(cache_manager: Optional[CacheManager] = None, maxsize: int = 128, typed: bool = False):
+    """
+    LRU cache decorator that keeps a weak reference to self.
+
+    To be used as decorator on methods that are known to return always
+    the same value. This can improve the performances of some methods
+    by a factor > 1000.
+    This wrapper using weak references is required: functools.lru_cache
+    holds a reference to all arguments: using directly on the methods it
+    would hold a reference to self, introducing subdle memory leaks.
+
+    @sa https://stackoverflow.com/a/68052994/3287591
+    """
+
+    def wrapper(method):
+
+        @lru_cache(maxsize, typed)
+        # ReferenceType is not subscriptable on Python <= 3.8
+        def cached_method(self_ref: ReferenceType, *args, **kwargs):
+            self = self_ref()
+            if self is not None:
+                return method(self, *args, **kwargs)
+            # self cannot be None: this function is always called by inner()
+            assert False, 'unreachable'
+
+        @wraps(method)
+        def inner(self, *args, **kwargs):
+            # Ignore MyPy type checks because of bugs on lru_cache support.
+            # See https://stackoverflow.com/a/73517689/3287591.
+            return cached_method(ref(self), *args, **kwargs)  # type: ignore
+
+        # Optionally store a reference to lru_cache decorated function to
+        # simplify cache management. See CacheManager documentation.
+        if cache_manager is not None:
+            cache_manager.append(cached_method)
+
+        return inner
+
+    return wrapper
+
+
+def lru_cache_clear(cache_manager: CacheManager):
+    """
+    LRU cache decorator that clear cache.
+
+    To be used as decorator on methods that are known to invalidate
+    the cache.
+    """
+
+    def wrapper(method):
+
+        # ReferenceType is not subscriptable on Python <= 3.8
+        def not_cached_method(self_ref: ReferenceType, *args, **kwargs):
+            self = self_ref()
+            if self is not None:
+                return method(self, *args, **kwargs)
+            # self cannot be None: this function is always called by inner()
+            assert False, 'unreachable'
+
+        @wraps(method)
+        def inner(self, *args, **kwargs):
+            # Ignore MyPy type checks because of bugs on lru_cache support.
+            # See https://stackoverflow.com/a/73517689/3287591.
+            cache_manager.clear_all()
+            return not_cached_method(ref(self), *args, **kwargs)  # type: ignore
+
+        return inner
+
+    return wrapper

@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, unique
 import socket
 import sys
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
 
@@ -520,6 +520,9 @@ class Device:
     username: str = field(repr=False)
     password: str = field(repr=False)
 
+    # Static private members
+    __node_cache_manager: ClassVar[_utils.CacheManager] = _utils.CacheManager()
+
     # Constants
     MAX_PARAM_NAME = 10
     FIRST_BIND_PORT = 10001  # This wrapper will bind TCP ports starting from this value
@@ -560,16 +563,23 @@ class Device:
         self.handle = l_handle.value
         self.opened = True
 
+    @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
     def close(self) -> None:
         """
         Wrapper to CAENHV_DeinitSystem()
+
+        This will also clear class cache.
         """
         lib.deinit_system(self.handle)
         self.opened = False
 
+    @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
     def get_crate_map(self) -> List[Board]:
         """
         Wrapper to CAENHV_GetCrateMap()
+
+        This will also clear class cache, since the functio
+        invalidates some internal stuctures of the C library.
         """
         l_nos = ct.c_ushort()
         g_nocl = lib.auto_ptr(_c_ushort_p)
@@ -584,6 +594,7 @@ class Device:
             dl = _str_list_from_char_p(l_dl, l_nos.value)
             return [Board(ml[i], dl[i], l_snl[i], l_nocl[i], (l_frmaxl[i], l_frminl[i])) for i in range(l_nos.value)]
 
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_sys_prop_list(self) -> List[str]:
         """
         Wrapper to CAENHV_GetSysPropList()
@@ -594,6 +605,7 @@ class Device:
             lib.get_sys_prop_list(self.handle, l_num_prop, l_pnl)
             return _str_list_from_char_p(l_pnl, l_num_prop.value)
 
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_sys_prop_info(self, name: str) -> SysProp:
         """
         Wrapper to CAENHV_GetSysPropInfo()
@@ -619,52 +631,6 @@ class Device:
         prop_type = self.get_sys_prop_info(name).type
         l_value = _SYS_PROP_TYPE_SET_ARG[prop_type](value)
         lib.set_sys_prop(self.handle, name.encode(), l_value)
-
-    def __get_param_prop(self, slot: int, name: str, channel: Optional[int] = None) -> ParamProp:
-        def _get(prop_name: str, prop_type: Type):
-            l_value = prop_type()
-            try:
-                if channel is None:
-                    lib.get_bd_param_prop(self.handle, slot, name.encode(), prop_name.encode(), ct.byref(l_value))
-                else:
-                    lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), prop_name.encode(), ct.byref(l_value))
-            except Error:
-                # Ignore errors
-                return None
-            return l_value
-        param_type = ParamType(_get('Type', ct.c_uint).value)
-        param_mode = ParamMode(_get('Mode', ct.c_uint).value)
-        if param_type is None or param_mode is None:
-            raise RuntimeError('Missing parameter property Type or Mode')
-        res = ParamProp(name, param_type, param_mode)
-        if param_type == ParamType.NUMERIC:
-            res.minval = _get('Minval', ct.c_float).value
-            res.maxval = _get('Maxval', ct.c_float).value
-            res.unit = ParamUnit(_get('Unit', ct.c_ushort).value)
-            res.minval = _get('Exp', ct.c_short).value
-        elif param_type == ParamType.ONOFF:
-            res.onstate = _get('Onstate', ct.c_char * 1024).value.decode()
-            res.offstate = _get('Offstate', ct.c_char * 1024).value.decode()
-        elif param_type == ParamType.ENUM:
-            res.minval = _get('Minval', ct.c_float).value
-            res.maxval = _get('Maxval', ct.c_float).value
-            if res.minval is not None and res.maxval is not None:
-                n_enum_value = int(res.maxval - res.minval)
-                max_string_size = 15  # From library documentation
-                l_value = _get('Enum', ct.c_char * max_string_size * 200)
-                enum = _str_list_from_char_fixed_size(l_value, max_string_size)
-                assert len(enum) == n_enum_value
-                res.enum = enum
-        return res
-    
-    def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
-        """Simplified version used internally to retrieve just param type"""
-        l_uint = ct.c_uint()
-        if channel is None:
-            lib.get_bd_param_prop(self.handle, slot, name.encode(), b'Type', ct.byref(l_uint))
-        else:
-            lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), b'Type', ct.byref(l_uint))
-        return ParamType(l_uint.value)
 
     def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[List[float], List[int], List[str]]:
         """
@@ -692,12 +658,14 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
 
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_bd_param_prop(self, slot: int, name: str) -> ParamProp:
         """
         Wrapper to CAENHV_GetBdParamProp()
         """
         return self.__get_param_prop(slot, name)
 
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_bd_param_info(self, slot: int) -> List[str]:
         """
         Wrapper to CAENHV_GetBdParamInfo()
@@ -723,12 +691,14 @@ class Device:
             description = l_d.contents.value.decode()
             return Board(model, description, l_ser_num.value, l_nr_of_ch.value, (l_fmw_rel_max.value, l_fmw_rel_min.value))
 
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def get_ch_param_prop(self, slot: int, channel: int, name: str) -> ParamProp:
         """
         Wrapper to CAENHV_GetChParamProp()
         """
         return self.__get_param_prop(slot, name, channel)
 
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def get_ch_param_info(self, slot: int, channel: int) -> List[str]:
         """
         Wrapper to CAENHV_GetChParamInfo()
@@ -766,7 +736,8 @@ class Device:
         l_data = _PARAM_TYPE_SET_ARG[param_type](value)
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data)
-    
+
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_exec_comm_list(self) -> List[str]:
         """
         Wrapper to CAENHV_GetExecCommList()
@@ -782,46 +753,6 @@ class Device:
         Wrapper to CAENHV_ExecComm()
         """
         lib.get_exec_comm_list(self.handle, name.encode())
-
-    def __new_events_format(self) -> bool:
-        return self.system_type in (SystemType.R6060.value,)
-
-    def __init_events_server(self):
-        if self.__skt_server is not None:
-            return
-        if self.__new_events_format():
-            # Nothing to do, client socket initialized within the library. We store
-            # an uninitialized value just as a reminder that a subscription has been
-            # made, to be checked later in __init_events_client to be sure
-            # EventDataSocket is meaningful
-            self.__skt_server = socket.socket()
-            return
-        skt = socket.socket()
-        port = self.FIRST_BIND_PORT + self.handle  # Should be unique
-        skt.bind(('', port))
-        skt.listen(socket.SOMAXCONN)
-        self.__port = port
-        self.__skt_server = skt
-
-    def __init_events_client(self):
-        if self.__skt_client is not None:
-            return
-        if self.__skt_server is None:
-            # Initialization is done on first call to a subscribe function
-            raise RuntimeError('No subscription done.')
-        if self.__new_events_format():
-            # A socket has already been opened by the library: we must use the value
-            # returned by the special system property EventDataSocket to get the fd.
-            # Since self.get_sys_prop calls get_sys_prop_info to get the output type,
-            # and since that function is not implemented for EventDataSocket being a
-            # library only property, that returns a socket object, we call directly
-            # the ctypes object.
-            l_value = _socket()
-            lib.get_sys_prop(self.handle, b'EventDataSocket', ct.byref(l_value))
-            lib_socket = l_value.value if l_value.value is not None else 0
-            self.__skt_client = socket.socket(fileno=lib_socket)
-        else:
-            self.__skt_client = self.__skt_server.accept()[0]
 
     def subscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
@@ -904,29 +835,6 @@ class Device:
             failed_params = [i for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
 
-    def __decode_event_data(self, ed: _EventDataRaw) -> EventData:
-        event_type = EventType(ed.Type)
-        idem_id = ed.ItemID.decode()
-        system_handle = ed.SystemHandle
-        board_index = ed.BoardIndex
-        channel_index = ed.ChannelIndex
-        if event_type in (EventType.KEEPALIVE, EventType.ALARM):
-            return EventData(event_type, idem_id, system_handle, board_index, channel_index)
-        value: Union[str, int, float]
-        if board_index == -1:
-            # System prop
-            prop_type = self.get_sys_prop_info(idem_id).type
-            value = _SYS_PROP_TYPE_EVENT_ARG[prop_type](ed.Value)
-        else:
-            if channel_index == -1:
-                # Board param
-                param_type = self.__get_param_type(board_index, idem_id)
-            else:
-                # Channel param
-                param_type = self.__get_param_type(board_index, idem_id, channel_index)
-            value = _PARAM_TYPE_EVENT_ARG[param_type](ed.Value)
-        return EventData(event_type, idem_id, system_handle, board_index, channel_index, value)
-
     def get_event_data(self) -> Tuple[List[EventData], SystemStatus]:
         """
         Wrapper to CAENHV_GetEventData()
@@ -950,6 +858,119 @@ class Device:
         """
         return lib.get_error(self.handle).decode()
 
+    # Private utilities
+
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    def __get_param_prop(self, slot: int, name: str, channel: Optional[int] = None) -> ParamProp:
+        def _get(prop_name: str, prop_type: Type):
+            l_value = prop_type()
+            try:
+                if channel is None:
+                    lib.get_bd_param_prop(self.handle, slot, name.encode(), prop_name.encode(), ct.byref(l_value))
+                else:
+                    lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), prop_name.encode(), ct.byref(l_value))
+            except Error:
+                # Ignore errors, return empty value
+                return prop_type()
+            return l_value
+        param_type = ParamType(_get('Type', ct.c_uint).value)
+        param_mode = ParamMode(_get('Mode', ct.c_uint).value)
+        if param_type is None or param_mode is None:
+            raise RuntimeError('Missing parameter property Type or Mode')
+        res = ParamProp(name, param_type, param_mode)
+        if param_type == ParamType.NUMERIC:
+            res.minval = _get('Minval', ct.c_float).value
+            res.maxval = _get('Maxval', ct.c_float).value
+            res.unit = ParamUnit(_get('Unit', ct.c_ushort).value)
+            res.minval = _get('Exp', ct.c_short).value
+        elif param_type == ParamType.ONOFF:
+            res.onstate = _get('Onstate', ct.c_char * 1024).value.decode()
+            res.offstate = _get('Offstate', ct.c_char * 1024).value.decode()
+        elif param_type == ParamType.ENUM:
+            res.minval = _get('Minval', ct.c_float).value
+            res.maxval = _get('Maxval', ct.c_float).value
+            if res.minval is not None and res.maxval is not None:
+                n_enum_value = int(res.maxval - res.minval)
+                max_string_size = 15  # From library documentation
+                l_value = _get('Enum', ct.c_char * max_string_size * 200)
+                enum = _str_list_from_char_fixed_size(l_value, max_string_size)
+                assert len(enum) == n_enum_value
+                res.enum = enum
+        return res
+
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
+        """Simplified version used internally to retrieve just param type"""
+        l_uint = ct.c_uint()
+        if channel is None:
+            lib.get_bd_param_prop(self.handle, slot, name.encode(), b'Type', ct.byref(l_uint))
+        else:
+            lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), b'Type', ct.byref(l_uint))
+        return ParamType(l_uint.value)
+
+    def __new_events_format(self) -> bool:
+        return self.system_type in (SystemType.R6060.value,)
+
+    def __init_events_server(self):
+        if self.__skt_server is not None:
+            return
+        if self.__new_events_format():
+            # Nothing to do, client socket initialized within the library. We store
+            # an uninitialized value just as a reminder that a subscription has been
+            # made, to be checked later in __init_events_client to be sure
+            # EventDataSocket is meaningful
+            self.__skt_server = socket.socket()
+            return
+        skt = socket.socket()
+        port = self.FIRST_BIND_PORT + self.handle  # Should be unique
+        skt.bind(('', port))
+        skt.listen(socket.SOMAXCONN)
+        self.__port = port
+        self.__skt_server = skt
+
+    def __init_events_client(self):
+        if self.__skt_client is not None:
+            return
+        if self.__skt_server is None:
+            # Initialization is done on first call to a subscribe function
+            raise RuntimeError('No subscription done.')
+        if self.__new_events_format():
+            # A socket has already been opened by the library: we must use the value
+            # returned by the special system property EventDataSocket to get the fd.
+            # Since self.get_sys_prop calls get_sys_prop_info to get the output type,
+            # and since that function is not implemented for EventDataSocket being a
+            # library only property, that returns a socket object, we call directly
+            # the ctypes object.
+            l_value = _socket()
+            lib.get_sys_prop(self.handle, b'EventDataSocket', ct.byref(l_value))
+            lib_socket = l_value.value if l_value.value is not None else 0
+            self.__skt_client = socket.socket(fileno=lib_socket)
+        else:
+            self.__skt_client = self.__skt_server.accept()[0]
+
+    def __decode_event_data(self, ed: _EventDataRaw) -> EventData:
+        event_type = EventType(ed.Type)
+        idem_id = ed.ItemID.decode()
+        system_handle = ed.SystemHandle
+        board_index = ed.BoardIndex
+        channel_index = ed.ChannelIndex
+        if event_type in (EventType.KEEPALIVE, EventType.ALARM):
+            return EventData(event_type, idem_id, system_handle, board_index, channel_index)
+        value: Union[str, int, float]
+        if board_index == -1:
+            # System prop
+            prop_type = self.get_sys_prop_info(idem_id).type
+            value = _SYS_PROP_TYPE_EVENT_ARG[prop_type](ed.Value)
+        else:
+            if channel_index == -1:
+                # Board param
+                param_type = self.__get_param_type(board_index, idem_id)
+            else:
+                # Channel param
+                param_type = self.__get_param_type(board_index, idem_id, channel_index)
+            value = _PARAM_TYPE_EVENT_ARG[param_type](ed.Value)
+        return EventData(event_type, idem_id, system_handle, board_index, channel_index, value)
+
     # Python utilities
 
     @contextmanager
@@ -969,3 +990,6 @@ class Device:
         """Called when exiting from `with` block"""
         if self.opened:
             self.close()
+
+    def __hash__(self) -> int:
+        return hash(self.handle)
