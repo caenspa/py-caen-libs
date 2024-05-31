@@ -125,28 +125,6 @@ class SystemStatus:
     board: List[EventStatus]
 
 
-class IdValueRaw(ct.Union):
-    """
-    Wrapper to ::IDValue_t
-    """
-    _fields_ = [
-        ('StringValue', ct.c_char * 1024),
-        ('FloatValue', ct.c_float),
-        ('IntValue', ct.c_int),
-    ]
-
-
-class _EventDataRaw(ct.Structure):
-    _fields_ = [
-        ('Type', ct.c_int),
-        ('SystemHandle', ct.c_int),
-        ('BoardIndex', ct.c_int),
-        ('ChannelIndex', ct.c_int),
-        ('ItemID', ct.c_char * 20),
-        ('Value', IdValueRaw),
-    ]
-
-
 @unique
 class EventType(IntEnum):
     """
@@ -156,6 +134,31 @@ class EventType(IntEnum):
     ALARM       = 1
     KEEPALIVE   = 2
     TRMODE      = 3
+
+
+class _IdValueRaw(ct.Union):
+    _fields_ = [
+        ('StringValue', ct.c_char * 1024),
+        ('FloatValue', ct.c_float),
+        ('IntValue', ct.c_int),
+    ]
+
+
+EventValue = Union[str, float, int]
+"""
+Wrapper to ::IDValue_t
+"""
+
+
+class _EventDataRaw(ct.Structure):
+    _fields_ = [
+        ('Type', ct.c_int),
+        ('SystemHandle', ct.c_int),
+        ('BoardIndex', ct.c_int),
+        ('ChannelIndex', ct.c_int),
+        ('ItemID', ct.c_char * 20),
+        ('Value', _IdValueRaw),
+    ]
 
 
 @dataclass
@@ -168,7 +171,7 @@ class EventData:
     system_handle: int = field(default=-1)
     board_index: int = field(default=-1)
     channel_index: int = field(default=-1)
-    value: Union[str, int, float] = field(default=-1)
+    value: EventValue = field(default=-1)
 
 
 @dataclass
@@ -274,6 +277,7 @@ class ParamProp:
     maxval: Optional[float] = field(default=None)
     unit: Optional[ParamUnit] = field(default=None)
     exp: Optional[int] = field(default=None)
+    decimal: Optional[int] = field(default=None)
     onstate: Optional[str] = field(default=None)
     offstate: Optional[str] = field(default=None)
     enum: Optional[List[str]] = field(default=None)
@@ -373,13 +377,13 @@ _SYS_PROP_TYPE_EVENT_ARG = {
 
 _PARAM_TYPE_EVENT_ARG = {
     ParamType.NUMERIC:  lambda v: v.FloatValue,
-    ParamType.ONOFF: lambda v: v.IntValue,
+    ParamType.ONOFF:    lambda v: v.IntValue,
     ParamType.CHSTATUS: lambda v: v.IntValue,
     ParamType.BDSTATUS: lambda v: v.IntValue,
-    ParamType.BINARY: lambda v: v.IntValue,
-    ParamType.STRING: lambda v: v.StringValue.decode(),
-    ParamType.ENUM: lambda v: v.IntValue,
-    ParamType.CMD: lambda v: v.IntValue,
+    ParamType.BINARY:   lambda v: v.IntValue,
+    ParamType.STRING:   lambda v: v.StringValue.decode(),
+    ParamType.ENUM:     lambda v: v.IntValue,
+    ParamType.CMD:      lambda v: v.IntValue,
 }
 
 class _Lib(_utils.Lib):
@@ -882,7 +886,8 @@ class Device:
             res.minval = _get('Minval', ct.c_float).value
             res.maxval = _get('Maxval', ct.c_float).value
             res.unit = ParamUnit(_get('Unit', ct.c_ushort).value)
-            res.minval = _get('Exp', ct.c_short).value
+            res.exp = _get('Exp', ct.c_short).value
+            res.decimal = _get('Decimal', ct.c_short).value
         elif param_type == ParamType.ONOFF:
             res.onstate = _get('Onstate', ct.c_char * 1024).value.decode()
             res.offstate = _get('Offstate', ct.c_char * 1024).value.decode()
