@@ -270,7 +270,6 @@ class ParamProp:
     """
     Type returned by ::CAENHV_GetBdParamProp
     """
-    name: str
     type: ParamType
     mode: ParamMode
     minval: Optional[float] = field(default=None)
@@ -346,7 +345,7 @@ _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
     ParamType.CHSTATUS: lambda n: (ct.c_int * n)(),
     ParamType.BDSTATUS: lambda n: (ct.c_int * n)(),
     ParamType.BINARY:   lambda n: (ct.c_int * n)(),
-    ParamType.STRING:   lambda n: (ct.c_char * 1024 * n)(),
+    ParamType.STRING:   lambda n: (ct.c_char * (1024 * n))(),
     ParamType.ENUM:     lambda n: (ct.c_int * n)(),
     ParamType.CMD:      lambda n: (ct.c_int * n)(),
 }
@@ -418,7 +417,7 @@ class _Lib(_utils.Lib):
         self.test_bd_presence = self.__get('TestBdPresence', ct.c_int, ct.c_ushort, _c_ushort_p, _c_char_p_p, _c_char_p_p, _c_ushort_p, _c_ubyte_p, _c_ubyte_p)
         self.get_ch_param_prop = self.__get('GetChParamProp', ct.c_int, ct.c_ushort, ct.c_ushort, _c_char_p, _c_char_p, ct.c_void_p)
         self.get_ch_param_info = self.__get('GetChParamInfo', ct.c_int, ct.c_ushort, ct.c_ushort, _c_char_p_p, _c_int_p)
-        self.get_ch_name = self.__get('GetChName', ct.c_int, ct.c_ushort, ct.c_ushort, _c_ushort_p, _c_char_p_p)
+        self.get_ch_name = self.__get('GetChName', ct.c_int, ct.c_ushort, ct.c_ushort, _c_ushort_p, _c_char_p)
         self.set_ch_name = self.__get('SetChName', ct.c_int, ct.c_ushort, ct.c_ushort, _c_ushort_p, _c_char_p)
         self.get_ch_param = self.__get('GetChParam', ct.c_int, ct.c_ushort, _c_char_p, ct.c_ushort, _c_ushort_p, ct.c_void_p)
         self.set_ch_param = self.__get('SetChParam', ct.c_int, ct.c_ushort, _c_char_p, ct.c_ushort, _c_ushort_p, ct.c_void_p)
@@ -481,24 +480,35 @@ lib: _Lib
 lib = _Lib('CAENHVWrapper')
 
 
-def _str_list_from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_string: int) -> List[str]:
-    """For ct.c_char and arrays of it"""
+def _str_list_from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_strings: int) -> List[str]:
+    """
+    Split a buffer into a list of N string.
+    Strings are separated by the null terminator.
+    For ct.c_char and arrays of it.
+    """
     res: List[str] = []
     offset = 0
-    for _ in range(n_string):
+    for _ in range(n_strings):
         value = ct.string_at(ct.addressof(data) + offset).decode()
         offset += len(value) + 1
         res.append(value)
     return res
 
 
-def _str_list_from_char_p(data: ct._Pointer, n_string: int) -> List[str]:
-    """For pointers to ct.c_char, to avoid dereferences in case of zero size"""
-    return _str_list_from_char(data.contents, n_string) if n_string != 0 else []
+def _str_list_from_char_p(data: ct._Pointer, n_strings: int) -> List[str]:
+    """
+    Same of _str_list_from_char.
+    For pointers to ct.c_char, to avoid dereferences in case of zero size.
+    """
+    return _str_list_from_char(data.contents, n_strings) if n_strings != 0 else []
 
 
-def _str_list_from_char_fixed_size(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int) -> List[str]:
-    """For ct.c_char and arrays of it"""
+def _str_list_from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int) -> List[str]:
+    """
+    Split a buffer of fixed size string.
+    Size is deduced by the first zero size string found.
+    For ct.c_char and arrays of it.
+    """
     res: List[str] = []
     offset = 0
     while True:
@@ -507,6 +517,29 @@ def _str_list_from_char_fixed_size(data: Union[ct.c_char, ct.Array[ct.c_char]], 
             return res
         offset += string_size
         res.append(value)
+
+
+def _str_list_from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int, n_strings: int) -> List[str]:
+    """
+    Split a buffer of fixed size string.
+    Size is passed as parameter.
+    For ct.c_char and arrays of it.
+    """
+    res: List[str] = []
+    offset = 0
+    for _ in range(n_strings):
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        offset += string_size
+        res.append(value)
+    return res
+
+
+def _str_list_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int) -> List[str]:
+    """
+    Same of _str_list_from_n_char_array.
+    For pointers to ct.c_char, to avoid dereferences in case of zero size.
+    """
+    return _str_list_from_n_char_array(data.contents, string_size, n_strings) if n_strings != 0 else []
 
 
 @dataclass
@@ -529,6 +562,7 @@ class Device:
 
     # Constants
     MAX_PARAM_NAME = 10
+    MAX_CH_NAME = 12
     FIRST_BIND_PORT = 10001  # This wrapper will bind TCP ports starting from this value
 
     def __post_init__(self):
@@ -677,7 +711,7 @@ class Device:
         g_value = lib.auto_ptr(_c_char_p)
         with g_value as l_value:
             lib.get_bd_param_info(self.handle, slot, l_value)
-            return _str_list_from_char_fixed_size(l_value.contents, self.MAX_PARAM_NAME)
+            return _str_list_from_char_array(l_value.contents, self.MAX_PARAM_NAME)
 
     def test_bd_presence(self, slot: int) -> Board:
         """
@@ -711,9 +745,27 @@ class Device:
         with g_value as l_value:
             l_size = ct.c_int()
             lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
-            res = _str_list_from_char_fixed_size(l_value.contents, self.MAX_PARAM_NAME)
-            assert l_size.value == len(res)  # only channel version return result size
+            res = _str_list_from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value)
             return res
+
+    def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> List[str]:
+        """
+        Wrapper to CAENHV_GetChName()
+        """
+        n_indexes = len(channel_list)
+        l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
+        n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
+        l_value = (ct.c_char * (self.MAX_CH_NAME * n_allocated_values))()
+        lib.get_ch_name(self.handle, slot, n_indexes, l_index_list, l_value)
+        return _str_list_from_n_char_array(l_value, self.MAX_CH_NAME, n_indexes)
+
+    def set_ch_name(self, slot: int, channel_list: Sequence[int], name: str) -> None:
+        """
+        Wrapper to CAENHV_SetChName()
+        """
+        n_indexes = len(channel_list)
+        l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
+        lib.set_ch_name(self.handle, slot, n_indexes, l_index_list, name.encode())
 
     def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[List[float], List[int], List[str]]:
         """
@@ -750,7 +802,7 @@ class Device:
         g_comm_name_list = lib.auto_ptr(_c_char_p)
         with g_comm_name_list as l_cnl:
             lib.get_exec_comm_list(self.handle, l_num_comm, l_cnl)
-            return _str_list_from_char(l_cnl.contents, l_num_comm.value)
+            return _str_list_from_char_p(l_cnl, l_num_comm.value)
 
     def exec_comm(self, name: str) -> None:
         """
@@ -881,7 +933,7 @@ class Device:
         param_mode = ParamMode(_get('Mode', ct.c_uint).value)
         if param_type is None or param_mode is None:
             raise RuntimeError('Missing parameter property Type or Mode')
-        res = ParamProp(name, param_type, param_mode)
+        res = ParamProp(param_type, param_mode)
         if param_type == ParamType.NUMERIC:
             res.minval = _get('Minval', ct.c_float).value
             res.maxval = _get('Maxval', ct.c_float).value
@@ -895,11 +947,11 @@ class Device:
             res.minval = _get('Minval', ct.c_float).value
             res.maxval = _get('Maxval', ct.c_float).value
             if res.minval is not None and res.maxval is not None:
-                n_enum_value = int(res.maxval - res.minval)
+                n_enums = int(res.maxval - res.minval)
                 max_string_size = 15  # From library documentation
-                l_value = _get('Enum', ct.c_char * max_string_size * 200)
-                enum = _str_list_from_char_fixed_size(l_value, max_string_size)
-                assert len(enum) == n_enum_value
+                n_allocated_values = n_enums + 1  # In case library tries to set an empty string after the last
+                l_value = _get('Enum', ct.c_char * (max_string_size * n_allocated_values))
+                enum = _str_list_from_n_char_array(l_value, max_string_size, n_enums)
                 res.enum = enum
         return res
 
@@ -961,7 +1013,6 @@ class Device:
         channel_index = ed.ChannelIndex
         if event_type in (EventType.KEEPALIVE, EventType.ALARM):
             return EventData(event_type, idem_id, system_handle, board_index, channel_index)
-        value: Union[str, int, float]
         if board_index == -1:
             # System prop
             prop_type = self.get_sys_prop_info(idem_id).type
@@ -972,7 +1023,12 @@ class Device:
                 param_type = self.__get_param_type(board_index, idem_id)
             else:
                 # Channel param
-                param_type = self.__get_param_type(board_index, idem_id, channel_index)
+                if idem_id == 'Name':
+                    # Workaround for Name: even if not being a real channel parameter, i.e.
+                    # get_ch_param_prop does not work, changes are sent as events of type PARAMETER.
+                    param_type = ParamType.STRING
+                else:
+                    param_type = self.__get_param_type(board_index, idem_id, channel_index)
             value = _PARAM_TYPE_EVENT_ARG[param_type](ed.Value)
         return EventData(event_type, idem_id, system_handle, board_index, channel_index, value)
 
