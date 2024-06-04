@@ -19,6 +19,7 @@ class ErrorCode(IntEnum):
     """
     Wrapper to ::CAENHVRESULT
     """
+    UNKNOWN                 = 0xFFFF  # Special value for Python wrapper
     OK                      = 0
     SYSERR                  = 1
     WRITEERR                = 2
@@ -57,6 +58,11 @@ class ErrorCode(IntEnum):
     LOGOUTFAILED            = 0x1000 + 5
     LINKNOTSUPPORTED        = 0x1000 + 6
     USERPASSFAILED          = 0x1000 + 7
+
+    @classmethod
+    def _missing_(cls, value):
+        """Sometimes library return values not contained in the enumerator"""
+        return cls.UNKNOWN
 
 
 @unique
@@ -791,7 +797,7 @@ class Device:
         param_type = self.__get_param_type(slot, name, first_index)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value)
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
-        lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data)
+        lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_exec_comm_list(self) -> List[str]:
@@ -977,13 +983,13 @@ class Device:
             # made, to be checked later in __init_events_client to be sure
             # EventDataSocket is meaningful
             self.__skt_server = socket.socket()
-            return
-        skt = socket.socket()
-        port = self.FIRST_BIND_PORT + self.handle  # Should be unique
-        skt.bind(('', port))
-        skt.listen(socket.SOMAXCONN)
-        self.__port = port
-        self.__skt_server = skt
+        else:
+            skt = socket.socket()
+            port = self.FIRST_BIND_PORT + self.handle  # Should be unique
+            skt.bind(('', port))
+            skt.listen(1)
+            self.__port = port
+            self.__skt_server = skt
 
     def __init_events_client(self):
         if self.__skt_client is not None:
@@ -1003,7 +1009,17 @@ class Device:
             lib_socket = l_value.value if l_value.value is not None else 0
             self.__skt_client = socket.socket(fileno=lib_socket)
         else:
-            self.__skt_client = self.__skt_server.accept()[0]
+            self.__skt_client, addr = self.__skt_server.accept()
+            if addr[0] == '127.0.0.1':
+                # If connecting to library polling thread, ignore the first string
+                # that should contain the string used as InitSystem argument.
+                arg = bytearray()
+                while True:
+                    char = self.__skt_client.recv(1)
+                    if char == b'\x00':
+                        break
+                    arg.extend(char)
+                assert self.arg == arg.decode()
 
     def __decode_event_data(self, ed: _EventDataRaw) -> EventData:
         event_type = EventType(ed.Type)
