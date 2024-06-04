@@ -19,7 +19,7 @@ class ErrorCode(IntEnum):
     """
     Wrapper to ::CAENHVRESULT
     """
-    UNKNOWN                 = 0xFFFF  # Special value for Python wrapper
+    UNKNOWN                 = 0xDEADFACE  # Special value for Python wrapper
     OK                      = 0
     SYSERR                  = 1
     WRITEERR                = 2
@@ -60,7 +60,7 @@ class ErrorCode(IntEnum):
     USERPASSFAILED          = 0x1000 + 7
 
     @classmethod
-    def _missing_(cls, value):
+    def _missing_(cls, _):
         """Sometimes library return values not contained in the enumerator"""
         return cls.UNKNOWN
 
@@ -702,7 +702,6 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_bd_param_prop(self, slot: int, name: str) -> ParamProp:
         """
         Wrapper to CAENHV_GetBdParamProp()
@@ -735,7 +734,6 @@ class Device:
             description = l_d.contents.value.decode()
             return Board(model, description, l_ser_num.value, l_nr_of_ch.value, (l_fmw_rel_max.value, l_fmw_rel_min.value))
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def get_ch_param_prop(self, slot: int, channel: int, name: str) -> ParamProp:
         """
         Wrapper to CAENHV_GetChParamProp()
@@ -922,8 +920,8 @@ class Device:
 
     # Private utilities
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_prop(self, slot: int, name: str, channel: Optional[int] = None) -> ParamProp:
+        # Cannot be cached since minval/maxval may depend on the value of other parameters
         def _get(prop_name: str, prop_type: Type):
             l_value = prop_type()
             try:
@@ -974,7 +972,7 @@ class Device:
     def __check_events_support(self) -> None:
         """SY1524/ST2527 have a legacy version of events not supported by this wrapper"""
         if self.system_type in (SystemType.SY1527, SystemType.SY2527):
-            raise RuntimeError('Events not supported by this wrapper.')
+            raise RuntimeError('Legacy events not supported by this wrapper.')
 
     def __library_event_thread(self) -> bool:
         """Devices with polling thread within library"""
@@ -992,13 +990,19 @@ class Device:
             # Nothing to do, client socket initialized within the library. We store
             # an uninitialized value just as a reminder that a subscription has been
             # made, to be checked later in __init_events_client to be sure
-            # EventDataSocket is meaningful
+            # EventDataSocket is meaningful. No need to set port value, it's ignored.
             self.__skt_server = socket.socket()
         else:
             skt = socket.socket()
-            port = self.FIRST_BIND_PORT + self.handle  # Should be unique
             bind_addr = '127.0.0.1' if self.__library_event_thread() else ''
-            skt.bind((bind_addr, port))
+            # Find first available port
+            port = self.FIRST_BIND_PORT
+            while True:
+                try:
+                    skt.bind((bind_addr, port))
+                    break
+                except OSError:
+                    port += 1
             skt.listen(1)  # Just one client
             self.__port = port
             self.__skt_server = skt
@@ -1022,10 +1026,11 @@ class Device:
             lib_socket = l_value.value if l_value.value is not None else 0
             self.__skt_client = socket.socket(fileno=lib_socket)
         else:
-            self.__skt_client = self.__skt_server.accept()[0]
+            self.__skt_client, addr_info = self.__skt_server.accept()
             if self.__library_event_thread():
                 # If connecting to library event thread, ignore the first string
                 # that should contain the string used as InitSystem argument.
+                assert addr_info[0] == '127.0.0.1'
                 arg = bytearray()
                 while True:
                     char = self.__skt_client.recv(1)
