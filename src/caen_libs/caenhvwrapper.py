@@ -971,12 +971,23 @@ class Device:
             lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), b'Type', ct.byref(l_uint))
         return ParamType(l_uint.value)
 
+    def __check_events_support(self) -> None:
+        """SY1524/ST2527 have a legacy version of events not supported by this wrapper"""
+        if self.system_type in (SystemType.SY1527, SystemType.SY2527):
+            raise RuntimeError('Events not supported by this wrapper.')
+
+    def __library_event_thread(self) -> bool:
+        """Devices with polling thread within library"""
+        return self.system_type not in (SystemType.SY4527, SystemType.SY5527, SystemType.R6060)
+
     def __new_events_format(self) -> bool:
-        return self.system_type in (SystemType.R6060.value,)
+        """Devices with new events format, with socket opened within the library"""
+        return self.system_type in (SystemType.R6060,)
 
     def __init_events_server(self):
         if self.__skt_server is not None:
             return
+        self.__check_events_support()
         if self.__new_events_format():
             # Nothing to do, client socket initialized within the library. We store
             # an uninitialized value just as a reminder that a subscription has been
@@ -986,14 +997,16 @@ class Device:
         else:
             skt = socket.socket()
             port = self.FIRST_BIND_PORT + self.handle  # Should be unique
-            skt.bind(('', port))
-            skt.listen(1)
+            bind_addr = '127.0.0.1' if self.__library_event_thread() else ''
+            skt.bind((bind_addr, port))
+            skt.listen(1)  # Just one client
             self.__port = port
             self.__skt_server = skt
 
     def __init_events_client(self):
         if self.__skt_client is not None:
             return
+        self.__check_events_support()
         if self.__skt_server is None:
             # Initialization is done on first call to a subscribe function
             raise RuntimeError('No subscription done.')
@@ -1009,9 +1022,9 @@ class Device:
             lib_socket = l_value.value if l_value.value is not None else 0
             self.__skt_client = socket.socket(fileno=lib_socket)
         else:
-            self.__skt_client, addr = self.__skt_server.accept()
-            if addr[0] == '127.0.0.1':
-                # If connecting to library polling thread, ignore the first string
+            self.__skt_client = self.__skt_server.accept()[0]
+            if self.__library_event_thread():
+                # If connecting to library event thread, ignore the first string
                 # that should contain the string used as InitSystem argument.
                 arg = bytearray()
                 while True:
