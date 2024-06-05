@@ -122,7 +122,7 @@ class _SystemStatusRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(frozen=True)
 class SystemStatus:
     """
     Wrapper to ::CAENHV_SYSTEMSTATUS_t
@@ -167,7 +167,7 @@ class _EventDataRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(frozen=True)
 class EventData:
     """
     Wrapper to ::CAENHVEVENT_TYPE_t
@@ -180,7 +180,7 @@ class EventData:
     value: EventValue = field(default=-1)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Board:
     """
     Type returned by ::CAENHV_GetCrateMap
@@ -216,7 +216,7 @@ class SysPropMode(IntEnum):
     RDWR    = 2
 
 
-@dataclass
+@dataclass(frozen=True)
 class SysProp:
     """
     Type returned by ::CAENHV_GetSysPropInfo
@@ -400,7 +400,7 @@ class _Lib(_utils.Lib):
     def __load_api(self) -> None:
         # Load API not related to devices
         self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_data_p_p, _c_uint_p)
-        self.free_event_data = self.__get('FreeEventData', _event_data_p_p)
+        self.__free_event_data = self.__get('FreeEventData', _event_data_p_p)
         self.__free = self.__get('Free', ct.c_void_p)
 
         # CAENHVLibSwRel has non conventional API
@@ -470,6 +470,15 @@ class _Lib(_utils.Lib):
             yield value
         finally:
             self.__free(value)
+
+    @contextmanager
+    def evt_data_auto_ptr(self, pointer_type: Type):
+        """Context manager to auto free event data on scope exit"""
+        value = pointer_type()
+        try:
+            yield value
+        finally:
+            self.__free_event_data(value)
 
     # Python utilities
 
@@ -902,7 +911,7 @@ class Device:
         self.__init_events_client()
         assert self.__skt_client is not None
         l_system_status = _SystemStatusRaw()
-        g_event_data = lib.auto_ptr(_event_data_p)
+        g_event_data = lib.evt_data_auto_ptr(_event_data_p)
         l_data_number = ct.c_uint()
         with g_event_data as l_ed:
             lib.get_event_data(self.__skt_client.fileno(), l_system_status, l_ed, l_data_number)
@@ -1045,7 +1054,7 @@ class Device:
         system_handle = ed.SystemHandle
         board_index = ed.BoardIndex
         channel_index = ed.ChannelIndex
-        if event_type in (EventType.KEEPALIVE, EventType.ALARM):
+        if event_type != EventType.PARAMETER:
             return EventData(event_type, idem_id, system_handle, board_index, channel_index)
         if board_index == -1:
             # System prop
