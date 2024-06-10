@@ -333,7 +333,7 @@ class Device:
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
-        lib.blt_read(self.handle, address, l_data, l_nw)
+        lib.blt_read(self.handle, address, l_data, blt_size, l_nw)
         return tuple(int(d) for d in l_data[:l_nw.value])
 
     def mblt_read(self, address: int, blt_size: int) -> Tuple[int, ...]:
@@ -342,7 +342,7 @@ class Device:
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
-        lib.mblt_read(self.handle, address, l_data, l_nw)
+        lib.mblt_read(self.handle, address, l_data, blt_size, l_nw)
         return tuple(int(d) for d in l_data[:l_nw.value])
 
     def irq_disable(self, mask: int) -> None:
