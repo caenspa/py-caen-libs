@@ -61,7 +61,10 @@ class ErrorCode(IntEnum):
 
     @classmethod
     def _missing_(cls, _):
-        """Sometimes library return values not contained in the enumerator"""
+        """
+        Sometimes library returns values not contained in the enumerator.
+        Yes, they are bugs.
+        """
         return cls.UNKNOWN
 
 
@@ -150,12 +153,6 @@ class _IdValueRaw(ct.Union):
     ]
 
 
-EventValue = Union[str, float, int]
-"""
-Wrapper to ::IDValue_t
-"""
-
-
 class _EventDataRaw(ct.Structure):
     _fields_ = [
         ('Type', ct.c_int),
@@ -174,10 +171,9 @@ class EventData:
     """
     type: EventType
     item_id: str
-    system_handle: int = field(default=-1)
     board_index: int = field(default=-1)
     channel_index: int = field(default=-1)
-    value: EventValue = field(default=-1)
+    value: Union[str, float, int] = field(default=-1)
 
 
 @dataclass(frozen=True)
@@ -323,7 +319,7 @@ else:
     _socket = ct.c_int
 
 
-_SYS_PROP_TYPE_GET_ARG = {
+_SYS_PROP_TYPE_GET_ARG: Dict[SysPropType, Callable] = {
     SysPropType.STR:        lambda v: v.value.decode(),
     SysPropType.REAL:       lambda v: ct.cast(v, _P(ct.c_float)).contents.value,
     SysPropType.UINT2:      lambda v: ct.cast(v, _P(ct.c_uint16)).contents.value,
@@ -334,7 +330,7 @@ _SYS_PROP_TYPE_GET_ARG = {
 }
 
 
-_SYS_PROP_TYPE_SET_ARG = {
+_SYS_PROP_TYPE_SET_ARG: Dict[SysPropType, Callable] = {
     SysPropType.STR:        lambda v: v.encode(),
     SysPropType.REAL:       lambda v: ct.pointer(ct.c_float(v)),
     SysPropType.UINT2:      lambda v: ct.pointer(ct.c_uint16(v)),
@@ -369,7 +365,7 @@ _PARAM_TYPE_SET_ARG: Dict[ParamType, Callable] = {
 }
 
 
-_SYS_PROP_TYPE_EVENT_ARG = {
+_SYS_PROP_TYPE_EVENT_ARG: Dict[SysPropType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
     SysPropType.STR:        lambda v: v.StringValue.decode(),
     SysPropType.REAL:       lambda v: v.FloatValue,
     SysPropType.UINT2:      lambda v: v.IntValue,
@@ -380,7 +376,7 @@ _SYS_PROP_TYPE_EVENT_ARG = {
 }
 
 
-_PARAM_TYPE_EVENT_ARG = {
+_PARAM_TYPE_EVENT_ARG: Dict[ParamType, Callable] = {
     ParamType.NUMERIC:  lambda v: v.FloatValue,
     ParamType.ONOFF:    lambda v: v.IntValue,
     ParamType.CHSTATUS: lambda v: v.IntValue,
@@ -685,7 +681,7 @@ class Device:
         l_value = _SYS_PROP_TYPE_SET_ARG[prop_type](value)
         lib.set_sys_prop(self.handle, name.encode(), l_value)
 
-    def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[List[float], List[int], List[str]]:
+    def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[List[str], List[float], List[int]]:
         """
         Wrapper to CAENHV_GetBdParam()
         """
@@ -700,7 +696,7 @@ class Device:
         else:
             return list(l_data)
 
-    def set_bd_param(self, slot_list: Sequence[int], name: str, value: Union[float, int, str]) -> None:
+    def set_bd_param(self, slot_list: Sequence[int], name: str, value: Union[str, float, int]) -> None:
         """
         Wrapper to CAENHV_SetBdParam()
         """
@@ -780,7 +776,7 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_name(self.handle, slot, n_indexes, l_index_list, name.encode())
 
-    def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[List[float], List[int], List[str]]:
+    def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[List[str], List[float], List[int]]:
         """
         Wrapper to CAENHV_GetBdParam()
         """
@@ -795,7 +791,7 @@ class Device:
         else:
             return list(l_data)
 
-    def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: Union[float, int, str]) -> None:
+    def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: Union[str, float, int]) -> None:
         """
         Wrapper to CAENHV_SetBdParam()
         """
@@ -1054,8 +1050,9 @@ class Device:
         system_handle = ed.SystemHandle
         board_index = ed.BoardIndex
         channel_index = ed.ChannelIndex
+        assert system_handle == self.handle  # should always be the same
         if event_type != EventType.PARAMETER:
-            return EventData(event_type, idem_id, system_handle, board_index, channel_index)
+            return EventData(event_type, idem_id, board_index, channel_index)
         if board_index == -1:
             # System prop
             prop_type = self.get_sys_prop_info(idem_id).type
@@ -1073,7 +1070,7 @@ class Device:
                 else:
                     param_type = self.__get_param_type(board_index, idem_id, channel_index)
             value = _PARAM_TYPE_EVENT_ARG[param_type](ed.Value)
-        return EventData(event_type, idem_id, system_handle, board_index, channel_index, value)
+        return EventData(event_type, idem_id, board_index, channel_index, value)
 
     # Python utilities
 
