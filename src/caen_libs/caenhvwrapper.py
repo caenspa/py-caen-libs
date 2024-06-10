@@ -627,7 +627,7 @@ class Device:
         """
         Wrapper to CAENHV_GetCrateMap()
 
-        This will also clear class cache, since the functio
+        This will also clear class cache, since the function
         invalidates some internal stuctures of the C library.
         """
         l_nos = ct.c_ushort()

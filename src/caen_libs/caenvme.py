@@ -663,7 +663,8 @@ class Device:
         """
         Wrapper to CAENVME_BLTReadCycle()
         """
-        l_data = (dw.ctypes * size)()
+        n_data = size // ct.sizeof(dw.ctypes)
+        l_data = (dw.ctypes * n_data)()
         l_count = ct.c_int()
         lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return tuple(int(d) for d in l_data[:l_count.value])
@@ -672,7 +673,8 @@ class Device:
         """
         Wrapper to CAENVME_FIFOBLTReadCycle()
         """
-        l_data = (dw.ctypes * size)()
+        n_data = size // ct.sizeof(dw.ctypes)
+        l_data = (dw.ctypes * n_data)()
         l_count = ct.c_int()
         lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return tuple(int(d) for d in l_data[:l_count.value])
@@ -701,7 +703,7 @@ class Device:
         """
         n_data = len(data)
         size = n_data * ct.sizeof(dw.ctypes)  # in bytes
-        l_data = (dw.ctypes * size)(*data[:n_data])
+        l_data = (dw.ctypes * n_data)(*data)
         l_count = ct.c_int()
         lib.blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_count.value
@@ -1167,7 +1169,8 @@ class Device:
         """
         Wrapper to CAENVME_BLTReadAsync()
         """
-        l_data = (dw.ctypes * size)()
+        n_data = size // ct.sizeof(dw.ctypes)
+        l_data = (dw.ctypes * n_data)()
         lib.blt_read_async(self.handle, address, l_data, size, am, dw)
         return tuple(int(d) for d in l_data)
 
