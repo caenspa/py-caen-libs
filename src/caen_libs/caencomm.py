@@ -5,7 +5,7 @@ __license__ = 'LGPL-3.0-or-later'  # SPDX-License-Identifier
 from contextlib import contextmanager
 import ctypes as ct
 from dataclasses import dataclass, field
-from enum import IntEnum, unique
+from enum import Flag, IntEnum, unique
 from typing import Callable, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
@@ -58,6 +58,19 @@ class Info(IntEnum):
     VMELIB_HANDLE = 5
 
 
+class IRQLevels(Flag):
+    """
+    Wrapper to ::IRQLevels
+    """
+    _1 = 0x01
+    _2 = 0x02
+    _3 = 0x04
+    _4 = 0x08
+    _5 = 0x10
+    _6 = 0x20
+    _7 = 0x40
+
+
 class Error(RuntimeError):
     """
     Raised when a wrapped C API function returns
@@ -107,10 +120,10 @@ class _Lib(_utils.Lib):
         self.info = self.__get('Info', ct.c_int, ct.c_int, ct.c_void_p)
 
         # Load API related to CAENVME wrappers
-        self.vme_irq_check = self.__get('VMEIRQCheck', ct.c_int32, ct.POINTER(ct.c_uint8))
-        self.vme_iack_cycle16 = self.__get('VMEIACKCycle16', ct.c_int32, ct.c_int, ct.POINTER(ct.c_int))
-        self.vme_iack_cycle32 = self.__get('VMEIACKCycle32', ct.c_int32, ct.c_int, ct.POINTER(ct.c_int))
-        self.vme_irq_wait = self.__get('VMEIRQWait', ct.c_int, ct.c_int, ct.c_int, ct.c_uint8, ct.c_uint32, ct.POINTER(ct.c_int32))
+        self.__vme_irq_check = self.__get('VMEIRQCheck', ct.c_int32, ct.POINTER(ct.c_uint8))
+        self.__vme_iack_cycle16 = self.__get('VMEIACKCycle16', ct.c_int32, ct.c_int, ct.POINTER(ct.c_int))
+        self.__vme_iack_cycle32 = self.__get('VMEIACKCycle32', ct.c_int32, ct.c_int, ct.POINTER(ct.c_int))
+        self.__vme_irq_wait = self.__get('VMEIRQWait', ct.c_int, ct.c_int, ct.c_int, ct.c_uint8, ct.c_uint32, ct.POINTER(ct.c_int32))
 
         # Load API available only on recent library versions
         self.__reboot_device = self.__get('RebootDevice', ct.c_int, ct.c_int, min_version=(1, 7, 0))
@@ -152,6 +165,38 @@ class _Lib(_utils.Lib):
         l_value = ct.create_string_buffer(16)
         self.__sw_release(l_value)
         return l_value.value.decode()
+
+    def vme_irq_check(self, vme_handle: int) -> IRQLevels:
+        """
+        Wrapper to CAENComm_VMEIRQCheck()
+        """
+        l_value = ct.c_ubyte()
+        self.__vme_irq_check(vme_handle, l_value)
+        return IRQLevels(l_value.value)
+
+    def vme_iack_cycle16(self, vme_handle: int, levels: IRQLevels) -> int:
+        """
+        Wrapper to CAENComm_VMEIACKCycle16()
+        """
+        l_value = ct.c_int()
+        self.__vme_iack_cycle16(vme_handle, levels)
+        return l_value.value
+
+    def vme_iack_cycle32(self, vme_handle: int, levels: IRQLevels) -> int:
+        """
+        Wrapper to CAENComm_VMEIACKCycle32()
+        """
+        l_value = ct.c_int()
+        self.__vme_iack_cycle32(vme_handle, levels)
+        return l_value.value
+
+    def vme_irq_wait(self, connection_type: ConnectionType, link_num: int, conet_node: int, irq_mask: IRQLevels, timeout: int) -> int:
+        """
+        Wrapper to CAENComm_VMEIRQWait()
+        """
+        l_value = ct.c_int32()
+        self.__vme_irq_wait(connection_type.value, link_num, conet_node, irq_mask.value, timeout, l_value)
+        return l_value.value
 
     def reboot_device(self, link_number: int, use_backup: bool) -> None:
         """
@@ -357,12 +402,12 @@ class Device:
         """
         lib.irq_enable(self.handle, mask)
 
-    def iack_cycle(self, levels: int) -> int:
+    def iack_cycle(self, levels: IRQLevels) -> int:
         """
         Wrapper to CAENComm_IACKCycle()
         """
         l_data = ct.c_int()
-        lib.iack_cycle(self.handle, levels, l_data)
+        lib.iack_cycle(self.handle, levels.value, l_data)
         return l_data.value
 
     def irq_wait(self, timeout: int) -> None:

@@ -5,7 +5,7 @@ __license__ = 'LGPL-3.0-or-later'  # SPDX-License-Identifier
 from contextlib import contextmanager
 import ctypes as ct
 from dataclasses import dataclass, field
-from enum import IntEnum, unique
+from enum import Flag, IntEnum, unique
 import sys
 from typing import Callable, Sequence, Tuple, Type, TypeVar, Union
 
@@ -102,12 +102,12 @@ class DataWidth(IntEnum):
     def ctypes(self) -> Type:
         """Get underlying ctypes type"""
         types = {
-            DataWidth.D8: ct.c_uint8,
-            DataWidth.D16: ct.c_uint16,
+            DataWidth.D8:       ct.c_uint8,
+            DataWidth.D16:      ct.c_uint16,
             DataWidth.D16_SWAP: ct.c_uint16,
-            DataWidth.D32: ct.c_uint32,
+            DataWidth.D32:      ct.c_uint32,
             DataWidth.D32_SWAP: ct.c_uint32,
-            DataWidth.D64: ct.c_uint64,
+            DataWidth.D64:      ct.c_uint64,
             DataWidth.D64_SWAP: ct.c_uint64,
         }
         return types[self]
@@ -235,28 +235,59 @@ else:
     _CAEN_BOOL = ct.c_int
 
 
-class Display(ct.Structure):
+class IRQLevels(Flag):
+    """
+    Wrapper to ::CVIRQLevels
+    """
+    _1 = 0x01
+    _2 = 0x02
+    _3 = 0x04
+    _4 = 0x08
+    _5 = 0x10
+    _6 = 0x20
+    _7 = 0x40
+
+
+class _DisplayRaw(ct.Structure):
+    _fields_ = [
+        ('Address', ct.c_long),
+        ('Data', ct.c_long),
+        ('AM', ct.c_long),
+        ('IRQ', ct.c_long),
+        ('DS0', _CAEN_BOOL),
+        ('DS1', _CAEN_BOOL),
+        ('AS', _CAEN_BOOL),
+        ('IACK', _CAEN_BOOL),
+        ('WRITE', _CAEN_BOOL),
+        ('LWORD', _CAEN_BOOL),
+        ('DTACK', _CAEN_BOOL),
+        ('BERR', _CAEN_BOOL),
+        ('SYSRES', _CAEN_BOOL),
+        ('BR', _CAEN_BOOL),
+        ('BG', _CAEN_BOOL),
+    ]
+
+
+@dataclass
+class Display:
     """
     Wrapper to ::CVDisplay
     """
-    _fields_ = [
-        ('Address', ct.c_long),     # VME Address
-        ('Data', ct.c_long),        # VME Data
-        ('AM', ct.c_long),          # Address modifier
-        ('IRQ', ct.c_long),         # IRQ levels
-        ('DS0', _CAEN_BOOL),        # Data Strobe 0 signal
-        ('DS1', _CAEN_BOOL),        # Data Strobe 1 signal
-        ('AS', _CAEN_BOOL),         # Address Strobe signal
-        ('IACK', _CAEN_BOOL),       # Interrupt Acknowledge signa
-        ('WRITE', _CAEN_BOOL),      # Write signal
-        ('LWORD', _CAEN_BOOL),      # Long Word signal
-        ('DTACK', _CAEN_BOOL),      # Data Acknowledge signal
-        ('BERR', _CAEN_BOOL),       # Bus Error signal
-        ('SYSRES', _CAEN_BOOL),     # System Reset signal
-        ('BR', _CAEN_BOOL),         # Bus Request signal
-        ('BG', _CAEN_BOOL),         # Bus Grant signal
-    ]
-
+    address: int            # VME Address
+    data: int               # VME Data
+    am: AddressModifiers    # Address modifier
+    irq: IRQLevels          # IRQ levels
+    ds0: bool               # Data Strobe 0 signal
+    ds1: bool               # Data Strobe 1 signal
+    as_: bool               # Address Strobe signal
+    iack: bool              # Interrupt Acknowledge signal
+    write: bool             # Write signal
+    lword: bool             # Long Word signal
+    dtack: bool             # Data Acknowledge signal
+    berr: bool              # Bus Error signal
+    sysres: bool            # System Reset signal
+    br: bool                # Bus Request signal
+    bg: bool                # Bus Grant signal
 
 @unique
 class ArbiterTypes(IntEnum):
@@ -747,39 +778,39 @@ class Device:
         """
         lib.adoh_cycle(self.handle, address, am)
 
-    def iack_cycle(self, levels: int, dw: DataWidth) -> int:
+    def iack_cycle(self, levels: IRQLevels, dw: DataWidth) -> int:
         """
         Wrapper to CAENVME_IACKCycle()
         """
         l_data = dw.ctypes()
-        lib.iack_cycle(self.handle, levels, l_data, dw)
+        lib.iack_cycle(self.handle, levels.value, l_data, dw)
         return l_data.value
 
-    def irq_check(self) -> int:
+    def irq_check(self) -> IRQLevels:
         """
         Wrapper to CAENVME_IRQCheck()
         """
         l_data = ct.c_ubyte()
         lib.irq_check(self.handle, l_data)
-        return l_data.value
+        return IRQLevels(l_data.value)
 
-    def irq_enable(self, mask: int) -> None:
+    def irq_enable(self, mask: IRQLevels) -> None:
         """
         Wrapper to CAENVME_IRQEnable()
         """
-        lib.irq_enable(self.handle, mask)
+        lib.irq_enable(self.handle, mask.value)
 
-    def irq_disable(self, mask: int) -> None:
+    def irq_disable(self, mask: IRQLevels) -> None:
         """
         Wrapper to CAENVME_IRQDisable()
         """
-        lib.irq_disable(self.handle, mask)
+        lib.irq_disable(self.handle, mask.value)
 
-    def irq_wait(self, mask: int, timeout: int) -> None:
+    def irq_wait(self, mask: IRQLevels, timeout: int) -> None:
         """
         Wrapper to CAENVME_IRQWait()
         """
-        lib.irq_wait(self.handle, mask, timeout)
+        lib.irq_wait(self.handle, mask.value, timeout)
 
     def set_pulser_conf(self, pul_sel: PulserSelect, period: int, width: int, unit: TimeUnits, pulse_no: int, start: IOSources, reset: IOSources) -> None:
         """
@@ -894,9 +925,9 @@ class Device:
         """
         Wrapper to CAENVME_ReadDisplay()
         """
-        l_value = Display()
-        lib.read_display(self.handle, l_value)
-        return l_value
+        l_d = _DisplayRaw()
+        lib.read_display(self.handle, l_d)
+        return Display(l_d.Address, l_d.Data, AddressModifiers(l_d.AM), IRQLevels(l_d.IRQ), l_d.DS0, l_d.DS1, l_d.AS, l_d.IACK, l_d.WRITE, l_d.LWORD, l_d.DTACK, l_d.BERR, l_d.SYSRES, l_d.BR, l_d.BG)
 
     def set_arbiter_type(self, value: ArbiterTypes) -> None:
         """
