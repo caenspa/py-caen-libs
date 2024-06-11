@@ -55,27 +55,7 @@ class FPGA(IntEnum):
     DELAY = 2
 
 
-class Error(RuntimeError):
-    """
-    Raised when a wrapped C API function returns
-    negative values.
-    """
-
-    code: ErrorCode  ## Error code as instance of ErrorCode
-    message: str  ## Message description
-    func: str  ## Name of failed function
-
-    def __init__(self, message: str, res: int, func: str) -> None:
-        self.code = ErrorCode(res)
-        self.message = message
-        self.func = func
-        super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
-
-
-class USBDevice(ct.Structure):
-    """
-    Wrapper to ::tUSBDevice
-    """
+class _USBDeviceRaw(ct.Structure):
     _fields_ = [
         ('id', ct.c_uint32),
         ('SN', ct.c_char * 64),
@@ -83,10 +63,17 @@ class USBDevice(ct.Structure):
     ]
 
 
-class BoardInfo(ct.Structure):
+@dataclass
+class USBDevice(ct.Structure):
     """
-    Wrapper to ::tBOARDInfo
+    Wrapper to ::tUSBDevice
     """
+    id: int
+    sn: str
+    desc: str
+
+
+class _BoardInfoRaw(ct.Structure):
     _fields_ = [
         ('checksum', ct.c_uint32),
         ('checksum_length2', ct.c_uint32),
@@ -114,6 +101,53 @@ class BoardInfo(ct.Structure):
     ]
 
 
+@dataclass
+class BoardInfo(ct.Structure):
+    """
+    Wrapper to ::tBOARDInfo
+    """
+    checksum: int
+    checksum_length2: int
+    checksum_length1: int
+    checksum_length0: int
+    checksum_constant2: int
+    checksum_constant1: int
+    checksum_constant0: int
+    c_code: int
+    r_code: int
+    oui2: int
+    oui1: int
+    oui0: int
+    version: int
+    board2: int
+    board1: int
+    board0: int
+    revis3: int
+    revis2: int
+    revis1: int
+    revis0: int
+    reserved: Tuple[int, ...]
+    sernum1: int
+    sernum0: int
+
+
+class Error(RuntimeError):
+    """
+    Raised when a wrapped C API function returns
+    negative values.
+    """
+
+    code: ErrorCode  ## Error code as instance of ErrorCode
+    message: str  ## Message description
+    func: str  ## Name of failed function
+
+    def __init__(self, message: str, res: int, func: str) -> None:
+        self.code = ErrorCode(res)
+        self.message = message
+        self.func = func
+        super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
+
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -122,7 +156,7 @@ class _Lib(_utils.Lib):
 
     def __load_api(self) -> None:
         # Load API not related to devices
-        self.__usb_enumerate = self.__get('USBEnumerate', ct.POINTER(USBDevice), ct.POINTER(ct.c_uint32))
+        self.__usb_enumerate = self.__get('USBEnumerate', ct.POINTER(_USBDeviceRaw), ct.POINTER(ct.c_uint32))
         self.__usb_enumerate_serial_number = self.__get('USBEnumerateSerialNumber', ct.POINTER(ct.c_uint), ct.c_char_p, ct.c_uint32)
 
         # Load API
@@ -144,7 +178,7 @@ class _Lib(_utils.Lib):
         self.delete_flash_sector = self.__get('DeleteFlashSector', ct.c_int, ct.c_int, ct.c_uint32)
         self.write_flash_data = self.__get('WriteFlashData', ct.c_int, ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32), ct.c_uint32)
         self.read_flash_data = self.__get('ReadFlashData', ct.c_int, ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32), ct.c_uint32)
-        self.get_info = self.__get('GetInfo', ct.c_int, ct.POINTER(BoardInfo))
+        self.get_info = self.__get('GetInfo', ct.c_int, ct.POINTER(_BoardInfoRaw))
         self.get_serial_number = self.__get('GetSerialNumber', ct.c_int, ct.c_char_p, ct.c_uint32)
         self.connection_status = self.__get('ConnectionStatus', ct.c_int, ct.POINTER(ct.c_int))
 
@@ -172,10 +206,10 @@ class _Lib(_utils.Lib):
         """
         Wrapper to CAEN_PLU_USBEnumerate()
         """
-        l_data = (USBDevice * 128)()
+        l_data = (_USBDeviceRaw * 128)()
         l_num_devs = ct.c_uint32()
         self.__usb_enumerate(l_data, l_num_devs)
-        return tuple(i for i in l_data[:l_num_devs.value])
+        return tuple(USBDevice(i.id, i.SN.value.decode(), i.DESC.value.decode()) for i in l_data[:l_num_devs.value])
 
     def usb_enumerate_serial_number(self) -> str:
         """
@@ -337,9 +371,33 @@ class Device:
         """
         Wrapper to CAEN_PLU_GetInfo()
         """
-        l_data = BoardInfo()
-        lib.get_info(self.handle, l_data)
-        return l_data
+        l_b = _BoardInfoRaw()
+        lib.get_info(self.handle, l_b)
+        return BoardInfo(
+            l_b.checksum,
+            l_b.checksum_length2,
+            l_b.checksum_length1,
+            l_b.checksum_length0,
+            l_b.checksum_constant2,
+            l_b.checksum_constant1,
+            l_b.checksum_constant0,
+            l_b.c_code,
+            l_b.r_code,
+            l_b.oui2,
+            l_b.oui1,
+            l_b.oui0,
+            l_b.version,
+            l_b.board2,
+            l_b.board1,
+            l_b.board0,
+            l_b.revis3,
+            l_b.revis2,
+            l_b.revis1,
+            l_b.revis0,
+            tuple(l_b.reserved),
+            l_b.sernum1,
+            l_b.sernum0,
+        )
 
     # Python utilities
 

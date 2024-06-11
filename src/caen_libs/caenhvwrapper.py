@@ -131,7 +131,7 @@ class SystemStatus:
     Wrapper to ::CAENHV_SYSTEMSTATUS_t
     """
     system: EventStatus
-    board: List[EventStatus]
+    board: Tuple[EventStatus, ...]
 
 
 @unique
@@ -913,7 +913,7 @@ class Device:
             lib.get_event_data(self.__skt_client.fileno(), l_system_status, l_ed, l_data_number)
             events = [self.__decode_event_data(l_ed[i]) for i in range(l_data_number.value)]
         system_status = EventStatus(l_system_status.System)
-        board_status = [EventStatus(i) for i in l_system_status.Board]
+        board_status = tuple(EventStatus(i) for i in l_system_status.Board)
         status = SystemStatus(system_status, board_status)
         return events, status
 

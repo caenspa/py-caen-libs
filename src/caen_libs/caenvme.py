@@ -273,21 +273,21 @@ class Display:
     """
     Wrapper to ::CVDisplay
     """
-    address: int            # VME Address
-    data: int               # VME Data
-    am: AddressModifiers    # Address modifier
-    irq: IRQLevels          # IRQ levels
-    ds0: bool               # Data Strobe 0 signal
-    ds1: bool               # Data Strobe 1 signal
-    as_: bool               # Address Strobe signal
-    iack: bool              # Interrupt Acknowledge signal
-    write: bool             # Write signal
-    lword: bool             # Long Word signal
-    dtack: bool             # Data Acknowledge signal
-    berr: bool              # Bus Error signal
-    sysres: bool            # System Reset signal
-    br: bool                # Bus Request signal
-    bg: bool                # Bus Grant signal
+    address: int          # VME Address
+    data: int             # VME Data
+    am: AddressModifiers  # Address modifier
+    irq: IRQLevels        # IRQ levels
+    ds0: bool             # Data Strobe 0 signal
+    ds1: bool             # Data Strobe 1 signal
+    as_: bool             # Address Strobe signal
+    iack: bool            # Interrupt Acknowledge signal
+    write: bool           # Write signal
+    lword: bool           # Long Word signal
+    dtack: bool           # Data Acknowledge signal
+    berr: bool            # Bus Error signal
+    sysres: bool          # System Reset signal
+    br: bool              # Bus Request signal
+    bg: bool              # Bus Grant signal
 
 @unique
 class ArbiterTypes(IntEnum):
@@ -443,7 +443,7 @@ class _Lib(_utils.Lib):
         self.set_output_register = self.__get('SetOutputRegister', ct.c_int32, ct.c_ushort)
         self.clear_output_register = self.__get('ClearOutputRegister', ct.c_int32, ct.c_ushort)
         self.pulse_output_register = self.__get('PulseOutputRegister', ct.c_int32, ct.c_ushort)
-        self.read_display = self.__get('ReadDisplay', ct.c_int32, ct.POINTER(ct.c_int))
+        self.read_display = self.__get('ReadDisplay', ct.c_int32, ct.POINTER(_DisplayRaw))
         self.set_arbiter_type = self.__get('SetArbiterType', ct.c_int32, ct.c_int)
         self.set_requester_type = self.__get('SetRequesterType', ct.c_int32, ct.c_int)
         self.set_release_type = self.__get('SetReleaseType', ct.c_int32, ct.c_int)
@@ -927,7 +927,23 @@ class Device:
         """
         l_d = _DisplayRaw()
         lib.read_display(self.handle, l_d)
-        return Display(l_d.Address, l_d.Data, AddressModifiers(l_d.AM), IRQLevels(l_d.IRQ), l_d.DS0, l_d.DS1, l_d.AS, l_d.IACK, l_d.WRITE, l_d.LWORD, l_d.DTACK, l_d.BERR, l_d.SYSRES, l_d.BR, l_d.BG)
+        return Display(
+            l_d.Address,
+            l_d.Data,
+            AddressModifiers(l_d.AM),
+            IRQLevels(l_d.IRQ),
+            bool(l_d.DS0),
+            bool(l_d.DS1),
+            bool(l_d.AS),
+            bool(l_d.IACK),
+            bool(l_d.WRITE),
+            bool(l_d.LWORD),
+            bool(l_d.DTACK),
+            bool(l_d.BERR),
+            bool(l_d.SYSRES),
+            bool(l_d.BR),
+            bool(l_d.BG),
+        )
 
     def set_arbiter_type(self, value: ArbiterTypes) -> None:
         """
