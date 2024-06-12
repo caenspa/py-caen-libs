@@ -55,7 +55,7 @@ class Info(IntEnum):
     VME_BRIDGE_SN = 2
     VME_BRIDGE_FW_REL_1 = 3
     VME_BRIDGE_FW_REL_2 = 4
-    VMELIB_HANDLE = 5
+    _VMELIB_HANDLE = 5  # Implemented on separated wrapper
 
 
 class IRQLevels(Flag):
@@ -154,7 +154,7 @@ class _Lib(_utils.Lib):
         """
         Wrapper to CAENComm_DecodeError()
         """
-        l_value = ct.create_string_buffer(256)
+        l_value = ct.create_string_buffer(256)  # Undocumented but, hopefully, long enough
         self.__decode_error(error_code, l_value)
         return l_value.value.decode()
 
@@ -162,7 +162,7 @@ class _Lib(_utils.Lib):
         """
         Wrapper to CAENComm_SWRelease()
         """
-        l_value = ct.create_string_buffer(16)
+        l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         self.__sw_release(l_value)
         return l_value.value.decode()
 
@@ -416,12 +416,22 @@ class Device:
         """
         lib.irq_wait(self.handle, timeout)
 
+    def info(self, info_type: Info) -> str:
+        """
+        Wrapper to CAENComm_Info()
+        """
+        if info_type == Info._VMELIB_HANDLE:
+            raise ValueError(f'Use vme_handle instead of info to get {info_type.name}.')
+        l_value = ct.create_string_buffer(30)  # MAX_INFO_LENGTH
+        lib.info(self.handle, info_type, ct.byref(l_value))
+        return l_value.value.decode()
+
     def vme_handle(self) -> int:
         """
         Wrapper to CAENComm_Info() with CAENComm_VMELIB_handle
         """
         l_value = ct.c_int32()
-        lib.info(self.handle, Info.VMELIB_HANDLE, ct.pointer(l_value))
+        lib.info(self.handle, Info._VMELIB_HANDLE, ct.byref(l_value))
         return l_value.value
 
     # Python utilities

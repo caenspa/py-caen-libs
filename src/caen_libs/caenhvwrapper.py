@@ -668,7 +668,7 @@ class Device:
         """
         Wrapper to CAENHV_GetSysProp()
         """
-        l_value = ct.create_string_buffer(1024)  # should be enough for all types
+        l_value = ct.create_string_buffer(1024)  # Should be enough for all types
         lib.get_sys_prop(self.handle, name.encode(), l_value)
         prop_type = self.get_sys_prop_info(name).type
         return _SYS_PROP_TYPE_GET_ARG[prop_type](l_value)

@@ -521,7 +521,7 @@ class _Lib(_utils.Lib):
         """
         Wrapper to CAENVME_SWRelease()
         """
-        l_value = ct.create_string_buffer(16)
+        l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         self.__sw_release(l_value)
         return l_value.value.decode()
 
@@ -618,7 +618,7 @@ class Device:
         """
         Wrapper to CAENVME_BoardFWRelease()
         """
-        l_value = ct.create_string_buffer(16)
+        l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.board_fw_release(self.handle, l_value)
         return l_value.value.decode()
 
@@ -626,7 +626,7 @@ class Device:
         """
         Wrapper to CAENVME_DriverRelease()
         """
-        l_value = ct.create_string_buffer(16)
+        l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.driver_release(self.handle, l_value)
         return l_value.value.decode()
 
@@ -641,7 +641,7 @@ class Device:
         Wrapper to CAENVME_ReadCycle()
         """
         l_value = dw.ctypes()
-        lib.read_cycle(self.handle, address, ct.pointer(l_value), am, dw)
+        lib.read_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
     def rmw_cycle(self, address: int, value: int, am: AddressModifiers, dw: DataWidth) -> int:
@@ -649,7 +649,7 @@ class Device:
         Wrapper to CAENVME_RMWCycle()
         """
         l_value = dw.ctypes(value)
-        lib.rmw_cycle(self.handle, address, ct.pointer(l_value), am, dw)
+        lib.rmw_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
     def write_cycle(self, address: int, value: int, am: AddressModifiers, dw: DataWidth) -> None:
@@ -657,7 +657,7 @@ class Device:
         Wrapper to CAENVME_WriteCycle()
         """
         l_value = dw.ctypes(value)
-        lib.write_cycle(self.handle, address, ct.pointer(l_value), am, dw)
+        lib.write_cycle(self.handle, address, ct.byref(l_value), am, dw)
 
     def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> Tuple[int, ...]:
         """

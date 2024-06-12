@@ -363,7 +363,7 @@ class Device:
         """
         Wrapper to CAEN_PLU_GetSerialNumber()
         """
-        l_value = ct.create_string_buffer(32)
+        l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.get_serial_number(self.handle, l_value, len(l_value))
         return l_value.value.decode()
 
