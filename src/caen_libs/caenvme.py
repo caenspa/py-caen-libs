@@ -7,7 +7,7 @@ import ctypes as ct
 from dataclasses import dataclass, field
 from enum import Flag, IntEnum, unique
 import sys
-from typing import Callable, Sequence, Tuple, Type, TypeVar, Union
+from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
 
@@ -525,21 +525,9 @@ class _Lib(_utils.Lib):
         self.__sw_release(l_value)
         return l_value.value.decode()
 
-    @staticmethod
-    def __ver_tuple(version: str) -> Tuple[int, ...]:
-        return tuple(map(int, version.split('.')))
-
     def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
         ver = self.sw_release()
-        return self.__ver_tuple(ver) >= target
-
-    # Python utilities
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.path})'
-
-    def __str__(self) -> str:
-        return self.path
+        return _utils.version_to_tuple(ver) >= target
 
 
 lib: _Lib
@@ -659,7 +647,7 @@ class Device:
         l_value = dw.ctypes(value)
         lib.write_cycle(self.handle, address, ct.byref(l_value), am, dw)
 
-    def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> Tuple[int, ...]:
+    def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> List[int]:
         """
         Wrapper to CAENVME_MultiRead()
         """
@@ -673,7 +661,7 @@ class Device:
         if any(l_ecs):
             failed_cycles = [i for i, ec in enumerate(l_ecs) if ec]
             raise RuntimeError(f'multi_read failed at cycles {failed_cycles}')
-        return tuple(int(d) for d in l_data)
+        return l_data[:]
 
     def multi_write(self, addrs: Sequence[int], data: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> None:
         """
@@ -690,7 +678,7 @@ class Device:
             failed_cycles = [i for i, ec in enumerate(l_ecs) if ec]
             raise RuntimeError(f'multi_write failed at cycles {failed_cycles}')
 
-    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> Tuple[int, ...]:
+    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:
         """
         Wrapper to CAENVME_BLTReadCycle()
         """
@@ -698,9 +686,9 @@ class Device:
         l_data = (dw.ctypes * n_data)()
         l_count = ct.c_int()
         lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return tuple(int(d) for d in l_data[:l_count.value])
+        return l_data[:l_count.value]
 
-    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> Tuple[int, ...]:
+    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:
         """
         Wrapper to CAENVME_FIFOBLTReadCycle()
         """
@@ -708,7 +696,7 @@ class Device:
         l_data = (dw.ctypes * n_data)()
         l_count = ct.c_int()
         lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return tuple(int(d) for d in l_data[:l_count.value])
+        return l_data[:l_count.value]
 
     def mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
@@ -1212,14 +1200,14 @@ class Device:
         """
         lib.set_scaler_sw_close_gate(self.handle)
 
-    def blt_read_async(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> Tuple[int, ...]:
+    def blt_read_async(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:
         """
         Wrapper to CAENVME_BLTReadAsync()
         """
         n_data = size // ct.sizeof(dw.ctypes)
         l_data = (dw.ctypes * n_data)()
         lib.blt_read_async(self.handle, address, l_data, size, am, dw)
-        return tuple(int(d) for d in l_data)
+        return l_data[:]
 
     def blt_read_wait(self) -> int:
         """

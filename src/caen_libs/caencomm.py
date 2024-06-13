@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import ctypes as ct
 from dataclasses import dataclass, field
 from enum import Flag, IntEnum, unique
-from typing import Callable, Sequence, Tuple, Type, TypeVar, Union
+from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
 
@@ -204,21 +204,9 @@ class _Lib(_utils.Lib):
         """
         self.__reboot_device(link_number, use_backup)
 
-    @staticmethod
-    def __ver_tuple(version: str) -> Tuple[int, ...]:
-        return tuple(map(int, version.split('.')))
-
     def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
         ver = self.sw_release()
-        return self.__ver_tuple(ver) >= target
-
-    # Python utilities
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.path})'
-
-    def __str__(self) -> str:
-        return self.path
+        return _utils.version_to_tuple(ver) >= target
 
 
 lib: _Lib
@@ -344,7 +332,7 @@ class Device:
             failed_cycles = [i for i, ec in enumerate(l_error_code) if ec]
             raise RuntimeError(f'multi_write16 failed at cycles {failed_cycles}')
 
-    def multi_read32(self, address: Sequence[int]) -> Tuple[int, ...]:
+    def multi_read32(self, address: Sequence[int]) -> List[int]:
         """
         Wrapper to CAENComm_MultiRead32()
         """
@@ -356,9 +344,9 @@ class Device:
         if any(l_error_code):
             failed_cycles = [i for i, ec in enumerate(l_error_code) if ec]
             raise RuntimeError(f'multi_read32 failed at cycles {failed_cycles}')
-        return tuple(int(d) for d in l_data)
+        return l_data[:]
 
-    def multi_read16(self, address: Sequence[int]) -> Tuple[int, ...]:
+    def multi_read16(self, address: Sequence[int]) -> List[int]:
         """
         Wrapper to CAENComm_MultiRead16()
         """
@@ -370,25 +358,25 @@ class Device:
         if any(l_error_code):
             failed_cycles = [i for i, ec in enumerate(l_error_code) if ec]
             raise RuntimeError(f'multi_read16 failed at cycles {failed_cycles}')
-        return tuple(int(d) for d in l_data)
+        return l_data[:]
 
-    def blt_read(self, address: int, blt_size: int) -> Tuple[int, ...]:
+    def blt_read(self, address: int, blt_size: int) -> List[int]:
         """
         Wrapper to CAENComm_BLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
         lib.blt_read(self.handle, address, l_data, blt_size, l_nw)
-        return tuple(int(d) for d in l_data[:l_nw.value])
+        return l_data[:l_nw.value]
 
-    def mblt_read(self, address: int, blt_size: int) -> Tuple[int, ...]:
+    def mblt_read(self, address: int, blt_size: int) -> List[int,]:
         """
         Wrapper to CAENComm_MBLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
         lib.mblt_read(self.handle, address, l_data, blt_size, l_nw)
-        return tuple(int(d) for d in l_data[:l_nw.value])
+        return l_data[:l_nw.value]
 
     def irq_disable(self, mask: int) -> None:
         """

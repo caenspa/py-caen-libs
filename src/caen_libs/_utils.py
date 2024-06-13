@@ -5,7 +5,7 @@ __license__ = 'LGPL-3.0-or-later'  # SPDX-License-Identifier
 import ctypes as ct
 from functools import lru_cache, wraps, _lru_cache_wrapper
 import sys
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 from weakref import ref, ReferenceType
 
 
@@ -74,6 +74,18 @@ class Lib:
     def lib_variadic(self) -> Any:
         """ctypes object to shared library (for variadic functions)"""
         return self.__lib_variadic
+
+    # Python utilities
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self.path})'
+
+    def __str__(self) -> str:
+        return self.path
+
+
+def version_to_tuple(version: str) -> Tuple[int, ...]:
+    return tuple(map(int, version.split('.')))
 
 
 class CacheManager(List[_lru_cache_wrapper]):

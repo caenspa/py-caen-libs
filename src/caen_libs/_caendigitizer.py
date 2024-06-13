@@ -248,21 +248,9 @@ class _Lib(_utils.Lib):
         self.__sw_release(l_value)
         return l_value.value.decode()
 
-    @staticmethod
-    def __ver_tuple(version: str) -> Tuple[int, ...]:
-        return tuple(map(int, version.split('.')))
-
     def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
         ver = self.sw_release()
-        return self.__ver_tuple(ver) >= target
-
-    # Python utilities
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.path})'
-
-    def __str__(self) -> str:
-        return self.path
+        return _utils.version_to_tuple(ver) >= target
 
 
 lib: _Lib

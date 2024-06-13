@@ -221,14 +221,6 @@ class _Lib(_utils.Lib):
         self.__usb_enumerate_serial_number(l_num_devs, l_device_sn, l_device_sn_length)
         return l_device_sn.value.decode()
 
-    # Python utilities
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.path})'
-
-    def __str__(self) -> str:
-        return self.path
-
 
 lib: _Lib
 

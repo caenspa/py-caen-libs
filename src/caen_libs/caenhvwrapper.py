@@ -476,14 +476,6 @@ class _Lib(_utils.Lib):
         finally:
             self.__free_event_data(value)
 
-    # Python utilities
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.path})'
-
-    def __str__(self) -> str:
-        return self.path
-
 
 lib: _Lib
 
