@@ -167,11 +167,11 @@ class OutputSelect(IntEnum):
     """
     Wrapper to ::CVOutputSelect
     """
-    _0 = 0  # Identifies the output line 0
-    _1 = 1  # Identifies the output line 1
-    _2 = 2  # Identifies the output line 2
-    _3 = 3  # Identifies the output line 3
-    _4 = 4  # Identifies the output line 4
+    O0 = 0  # Identifies the output line 0
+    O1 = 1  # Identifies the output line 1
+    O2 = 2  # Identifies the output line 2
+    O3 = 3  # Identifies the output line 3
+    O4 = 4  # Identifies the output line 4
 
 
 @unique
@@ -179,8 +179,8 @@ class InputSelect(IntEnum):
     """
     Wrapper to ::CVInputSelect
     """
-    _0 = 0  # Identifies the input line 0
-    _1 = 1  # Identifies the input line 1
+    I0 = 0  # Identifies the input line 0
+    I1 = 1  # Identifies the input line 1
 
 
 @unique
@@ -204,11 +204,11 @@ class TimeUnits(IntEnum):
     """
     Wrapper to ::CVTimeUnits
     """
-    _25_NS   = 0  # Time unit is 25 nanoseconds
-    _1600_NS = 1  # Time unit is 1.6 microseconds
-    _410_US  = 2  # Time unit is 410 microseconds
-    _104_MS  = 3  # Time unit is 104 milliseconds
-    _25_US   = 4  # Time unit is 25 microseconds
+    T25_NS   = 0  # Time unit is 25 nanoseconds
+    T1600_NS = 1  # Time unit is 1.6 microseconds
+    T410_US  = 2  # Time unit is 410 microseconds
+    T104_MS  = 3  # Time unit is 104 milliseconds
+    T25_US   = 4  # Time unit is 25 microseconds
 
 
 @unique
@@ -239,13 +239,13 @@ class IRQLevels(Flag):
     """
     Wrapper to ::CVIRQLevels
     """
-    _1 = 0x01
-    _2 = 0x02
-    _3 = 0x04
-    _4 = 0x08
-    _5 = 0x10
-    _6 = 0x20
-    _7 = 0x40
+    L1 = 0x01
+    L2 = 0x02
+    L3 = 0x04
+    L4 = 0x08
+    L5 = 0x10
+    L6 = 0x20
+    L7 = 0x40
 
 
 class _DisplayRaw(ct.Structure):
@@ -288,6 +288,7 @@ class Display:
     sysres: bool          # System Reset signal
     br: bool              # Bus Request signal
     bg: bool              # Bus Grant signal
+
 
 @unique
 class ArbiterTypes(IntEnum):

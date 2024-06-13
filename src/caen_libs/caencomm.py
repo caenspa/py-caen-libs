@@ -49,26 +49,27 @@ class ConnectionType(IntEnum):
 class Info(IntEnum):
     """
     Wrapper to ::CAENCOMM_INFO
+
+    ::CAENComm_VMELIB_handle missing, since implemented on separated wrapper.
     """
     PCI_BOARD_SN = 0
     PCI_BOARD_FW_REL = 1
     VME_BRIDGE_SN = 2
     VME_BRIDGE_FW_REL_1 = 3
     VME_BRIDGE_FW_REL_2 = 4
-    _VMELIB_HANDLE = 5  # Implemented on separated wrapper
 
 
 class IRQLevels(Flag):
     """
     Wrapper to ::IRQLevels
     """
-    _1 = 0x01
-    _2 = 0x02
-    _3 = 0x04
-    _4 = 0x08
-    _5 = 0x10
-    _6 = 0x20
-    _7 = 0x40
+    L1 = 0x01
+    L2 = 0x02
+    L3 = 0x04
+    L4 = 0x08
+    L5 = 0x10
+    L6 = 0x20
+    L7 = 0x40
 
 
 class Error(RuntimeError):
@@ -408,18 +409,16 @@ class Device:
         """
         Wrapper to CAENComm_Info()
         """
-        if info_type == Info._VMELIB_HANDLE:
-            raise ValueError(f'Use vme_handle instead of info to get {info_type.name}.')
         l_value = ct.create_string_buffer(30)  # MAX_INFO_LENGTH
         lib.info(self.handle, info_type, ct.byref(l_value))
         return l_value.value.decode()
 
     def vme_handle(self) -> int:
         """
-        Wrapper to CAENComm_Info() with CAENComm_VMELIB_handle
+        Wrapper to CAENComm_Info() with ::CAENComm_VMELIB_handle
         """
         l_value = ct.c_int32()
-        lib.info(self.handle, Info._VMELIB_HANDLE, ct.byref(l_value))
+        lib.info(self.handle, 5, ct.byref(l_value))  # CAENComm_VMELIB_handle is 5
         return l_value.value
 
     # Python utilities

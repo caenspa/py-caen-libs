@@ -1,10 +1,10 @@
 from caen_libs import caenhvwrapper as hv
 
 
-connection_type = hv.SystemType.SY4527
-link_type = hv.LinkType.TCPIP
+connection_type = hv.SystemType.N1470
+link_type = hv.LinkType.USB_VCP
 
-with hv.Device.open(connection_type, link_type, '10.105.254.5', 'admin', 'admin') as device:
+with hv.Device.open(connection_type, link_type, 'COM4_9600_8_1_0_0', '', '') as device:
 
     slots = device.get_crate_map()  # initialize internal stuff
 
@@ -18,7 +18,7 @@ with hv.Device.open(connection_type, link_type, '10.105.254.5', 'admin', 'admin'
         if prop_info.mode != hv.SysPropMode.WRONLY:
             prop_value = device.get_sys_prop(prop_name)
             print('VALUE', prop_value)
-    device.subscribe_system_params(sys_props)
+    #device.subscribe_system_params(sys_props)
 
     for slot, board in enumerate(slots):
         if board.model != '':
@@ -29,7 +29,7 @@ with hv.Device.open(connection_type, link_type, '10.105.254.5', 'admin', 'admin'
                 if param_prop.mode != hv.ParamMode.WRONLY:
                     param_value = device.get_bd_param([slot], param_name)
                     print('VALUE', param_value)
-            device.subscribe_board_params(slot, bd_params)
+            #device.subscribe_board_params(slot, bd_params)
             for ch in range(board.n_channel):
                 ch_params = device.get_ch_param_info(slot, ch)
                 for param_name in ch_params:
@@ -38,7 +38,7 @@ with hv.Device.open(connection_type, link_type, '10.105.254.5', 'admin', 'admin'
                     if param_prop.mode != hv.ParamMode.WRONLY:
                         param_value = device.get_ch_param(slot, [ch], param_name)
                         print('VALUE', param_value)
-                device.subscribe_channel_params(slot, ch, ch_params)
+                #device.subscribe_channel_params(slot, ch, ch_params)
 
     while True:
         evt_list, _ = device.get_event_data()

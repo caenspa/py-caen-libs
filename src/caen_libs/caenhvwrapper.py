@@ -815,6 +815,8 @@ class Device:
         """
         Wrapper to CAENHV_SubscribeSystemParams()
         """
+        if len(param_list) == 0:
+            return
         self.__init_events_server()
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
@@ -829,6 +831,8 @@ class Device:
         """
         Wrapper to CAENHV_SubscribeBoardParams()
         """
+        if len(param_list) == 0:
+            return
         self.__init_events_server()
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()
@@ -843,6 +847,8 @@ class Device:
         """
         Wrapper to CAENHV_SubscribeChannelParams()
         """
+        if len(param_list) == 0:
+            return
         self.__init_events_server()
         param_list_len = len(param_list)
         l_param_name_list = ':'.join(param_list).encode()

@@ -85,6 +85,7 @@ class Lib:
 
 
 def version_to_tuple(version: str) -> Tuple[int, ...]:
+    """Version string in the form N.N.N to tuple (N, N, N)"""
     return tuple(map(int, version.split('.')))
 
 
