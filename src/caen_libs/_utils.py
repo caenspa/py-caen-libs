@@ -9,6 +9,12 @@ from typing import Any, List, Optional, Tuple
 from weakref import ref, ReferenceType
 
 
+if sys.platform == 'win32':
+    _LibNotFoundClass = FileNotFoundError
+else:
+    _LibNotFoundClass = OSError
+
+
 class Lib:
     """
     This class loads the shared library and
@@ -45,7 +51,7 @@ class Lib:
         try:
             self.__lib = loader.LoadLibrary(path)
             self.__lib_variadic = loader_variadic.LoadLibrary(self.path)
-        except FileNotFoundError as ex:
+        except _LibNotFoundClass as ex:
             raise RuntimeError(
                 f'Library {self.name} not found. '
                 'This module requires the latest version of '
