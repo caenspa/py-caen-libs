@@ -1,6 +1,8 @@
 from caen_libs import caencomm as comm
 
 
+print(f'CAEN Comm wrapper loaded (lib version {comm.lib.sw_release()})')
+
 conn_type = comm.ConnectionType.USB
 link_number = 0
 conet_node = 0

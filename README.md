@@ -1,5 +1,5 @@
 # caen_libs
-Official Python wrapper for CAEN VMELib, CAEN Comm and CAEN PLU libraries.
+Official Python wrapper for CAEN VMELib, CAEN Comm, CAEN PLU and CAEN HV Wrapper libraries.
 
 ## Install
 You need to install the latest version of the libraries from [the CAEN website](https://www.caen.it/subfamilies/software-libraries/).
@@ -11,6 +11,9 @@ This example show the simplest way to read some registers using the CAEN Comm:
 
 ```python
 from caen_libs import caencomm as comm
+
+
+print(f'CAEN Comm wrapper loaded (lib version {comm.lib.sw_release()})')
 
 conn_type = comm.ConnectionType.USB
 link_number = 0

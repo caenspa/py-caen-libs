@@ -1,6 +1,8 @@
 from caen_libs import caenhvwrapper as hv
 
 
+print(f'CAEN Comm wrapper loaded (lib version {hv.lib.sw_release()})')
+
 connection_type = hv.SystemType.N1470
 link_type = hv.LinkType.USB_VCP
 
