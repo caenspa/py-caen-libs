@@ -148,21 +148,6 @@ class Error(RuntimeError):
         super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
 
 
-def _str_list_from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_strings: int) -> List[str]:
-    """
-    Split a buffer into a list of N string.
-    Strings are separated by the null terminator.
-    For ct.c_char and arrays of it.
-    """
-    res: List[str] = []
-    offset = 0
-    for _ in range(n_strings):
-        value = ct.string_at(ct.addressof(data) + offset).decode()
-        offset += len(value) + 1
-        res.append(value)
-    return res
-
-
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -234,10 +219,10 @@ class _Lib(_utils.Lib):
         if there is more than one board.
         """
         l_num_devs = ct.c_uint()
-        l_device_sn_length = 256
+        l_device_sn_length = 512  # Undocumented but, hopefully, long enough
         l_device_sn = ct.create_string_buffer(l_device_sn_length)
         self.__usb_enumerate_serial_number(l_num_devs, l_device_sn, l_device_sn_length)
-        return _str_list_from_char(l_device_sn, l_num_devs.value)
+        return _utils.str_list_from_char(l_device_sn, l_num_devs.value)
 
 
 # Library name is platform dependent

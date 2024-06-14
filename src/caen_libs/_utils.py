@@ -5,7 +5,7 @@ __license__ = 'LGPL-3.0-or-later'  # SPDX-License-Identifier
 import ctypes as ct
 from functools import lru_cache, wraps, _lru_cache_wrapper
 import sys
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 from weakref import ref, ReferenceType
 
 
@@ -184,3 +184,65 @@ def lru_cache_clear(cache_manager: CacheManager):
         return inner
 
     return wrapper
+
+
+def str_list_from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_strings: int) -> List[str]:
+    """
+    Split a buffer into a list of N string.
+    Strings are separated by the null terminator.
+    For ct.c_char and arrays of it.
+    """
+    res: List[str] = []
+    offset = 0
+    for _ in range(n_strings):
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        offset += len(value) + 1
+        res.append(value)
+    return res
+
+
+def str_list_from_char_p(data: ct._Pointer, n_strings: int) -> List[str]:
+    """
+    Same of _str_list_from_char.
+    For pointers to ct.c_char, to avoid dereferences in case of zero size.
+    """
+    return str_list_from_char(data.contents, n_strings) if n_strings != 0 else []
+
+
+def str_list_from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int) -> List[str]:
+    """
+    Split a buffer of fixed size string.
+    Size is deduced by the first zero size string found.
+    For ct.c_char and arrays of it.
+    """
+    res: List[str] = []
+    offset = 0
+    while True:
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        if len(value) == 0:
+            return res
+        offset += string_size
+        res.append(value)
+
+
+def str_list_from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int, n_strings: int) -> List[str]:
+    """
+    Split a buffer of fixed size string.
+    Size is passed as parameter.
+    For ct.c_char and arrays of it.
+    """
+    res: List[str] = []
+    offset = 0
+    for _ in range(n_strings):
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        offset += string_size
+        res.append(value)
+    return res
+
+
+def str_list_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int) -> List[str]:
+    """
+    Same of _str_list_from_n_char_array.
+    For pointers to ct.c_char, to avoid dereferences in case of zero size.
+    """
+    return str_list_from_n_char_array(data.contents, string_size, n_strings) if n_strings != 0 else []
