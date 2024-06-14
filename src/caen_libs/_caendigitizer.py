@@ -253,9 +253,6 @@ class _Lib(_utils.Lib):
         return _utils.version_to_tuple(ver) >= target
 
 
-lib: _Lib
-
-
 lib = _Lib('CAENDigitizer')
 
 

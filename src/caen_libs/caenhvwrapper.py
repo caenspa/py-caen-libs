@@ -387,6 +387,68 @@ _PARAM_TYPE_EVENT_ARG: Dict[ParamType, Callable] = {
     ParamType.CMD:      lambda v: v.IntValue,
 }
 
+
+def _str_list_from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_strings: int) -> List[str]:
+    """
+    Split a buffer into a list of N string.
+    Strings are separated by the null terminator.
+    For ct.c_char and arrays of it.
+    """
+    res: List[str] = []
+    offset = 0
+    for _ in range(n_strings):
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        offset += len(value) + 1
+        res.append(value)
+    return res
+
+
+def _str_list_from_char_p(data: ct._Pointer, n_strings: int) -> List[str]:
+    """
+    Same of _str_list_from_char.
+    For pointers to ct.c_char, to avoid dereferences in case of zero size.
+    """
+    return _str_list_from_char(data.contents, n_strings) if n_strings != 0 else []
+
+
+def _str_list_from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int) -> List[str]:
+    """
+    Split a buffer of fixed size string.
+    Size is deduced by the first zero size string found.
+    For ct.c_char and arrays of it.
+    """
+    res: List[str] = []
+    offset = 0
+    while True:
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        if len(value) == 0:
+            return res
+        offset += string_size
+        res.append(value)
+
+
+def _str_list_from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int, n_strings: int) -> List[str]:
+    """
+    Split a buffer of fixed size string.
+    Size is passed as parameter.
+    For ct.c_char and arrays of it.
+    """
+    res: List[str] = []
+    offset = 0
+    for _ in range(n_strings):
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        offset += string_size
+        res.append(value)
+    return res
+
+
+def _str_list_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int) -> List[str]:
+    """
+    Same of _str_list_from_n_char_array.
+    For pointers to ct.c_char, to avoid dereferences in case of zero size.
+    """
+    return _str_list_from_n_char_array(data.contents, string_size, n_strings) if n_strings != 0 else []
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -489,72 +551,7 @@ class _Lib(_utils.Lib):
             self.__free_event_data(value)
 
 
-lib: _Lib
-
-
 lib = _Lib('CAENHVWrapper')
-
-
-def _str_list_from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_strings: int) -> List[str]:
-    """
-    Split a buffer into a list of N string.
-    Strings are separated by the null terminator.
-    For ct.c_char and arrays of it.
-    """
-    res: List[str] = []
-    offset = 0
-    for _ in range(n_strings):
-        value = ct.string_at(ct.addressof(data) + offset).decode()
-        offset += len(value) + 1
-        res.append(value)
-    return res
-
-
-def _str_list_from_char_p(data: ct._Pointer, n_strings: int) -> List[str]:
-    """
-    Same of _str_list_from_char.
-    For pointers to ct.c_char, to avoid dereferences in case of zero size.
-    """
-    return _str_list_from_char(data.contents, n_strings) if n_strings != 0 else []
-
-
-def _str_list_from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int) -> List[str]:
-    """
-    Split a buffer of fixed size string.
-    Size is deduced by the first zero size string found.
-    For ct.c_char and arrays of it.
-    """
-    res: List[str] = []
-    offset = 0
-    while True:
-        value = ct.string_at(ct.addressof(data) + offset).decode()
-        if len(value) == 0:
-            return res
-        offset += string_size
-        res.append(value)
-
-
-def _str_list_from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int, n_strings: int) -> List[str]:
-    """
-    Split a buffer of fixed size string.
-    Size is passed as parameter.
-    For ct.c_char and arrays of it.
-    """
-    res: List[str] = []
-    offset = 0
-    for _ in range(n_strings):
-        value = ct.string_at(ct.addressof(data) + offset).decode()
-        offset += string_size
-        res.append(value)
-    return res
-
-
-def _str_list_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int) -> List[str]:
-    """
-    Same of _str_list_from_n_char_array.
-    For pointers to ct.c_char, to avoid dereferences in case of zero size.
-    """
-    return _str_list_from_n_char_array(data.contents, string_size, n_strings) if n_strings != 0 else []
 
 
 @dataclass

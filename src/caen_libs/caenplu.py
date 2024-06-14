@@ -7,7 +7,7 @@ import ctypes as ct
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 import sys
-from typing import Callable, Tuple, Type, TypeVar, Union
+from typing import Callable, List, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
 
@@ -148,6 +148,21 @@ class Error(RuntimeError):
         super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
 
 
+def _str_list_from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_strings: int) -> List[str]:
+    """
+    Split a buffer into a list of N string.
+    Strings are separated by the null terminator.
+    For ct.c_char and arrays of it.
+    """
+    res: List[str] = []
+    offset = 0
+    for _ in range(n_strings):
+        value = ct.string_at(ct.addressof(data) + offset).decode()
+        offset += len(value) + 1
+        res.append(value)
+    return res
+
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -211,24 +226,28 @@ class _Lib(_utils.Lib):
         self.__usb_enumerate(l_data, l_num_devs)
         return tuple(USBDevice(i.id, i.SN.value.decode(), i.DESC.value.decode()) for i in l_data[:l_num_devs.value])
 
-    def usb_enumerate_serial_number(self) -> str:
+    def usb_enumerate_serial_number(self) -> List[str]:
         """
         Wrapper to CAEN_PLU_USBEnumerateSerialNumber()
+
+        Note: the underlying library is bugged, as of version v1.3,
+        if there is more than one board.
         """
         l_num_devs = ct.c_uint()
         l_device_sn_length = 256
         l_device_sn = ct.create_string_buffer(l_device_sn_length)
         self.__usb_enumerate_serial_number(l_num_devs, l_device_sn, l_device_sn_length)
-        return l_device_sn.value.decode()
+        return _str_list_from_char(l_device_sn, l_num_devs.value)
 
-
-lib: _Lib
 
 # Library name is platform dependent
 if sys.platform == 'win32':
-    lib = _Lib('CAEN_PLULib')
+    _lib_name = 'CAEN_PLULib'
 else:
-    lib = _Lib('CAEN_PLU')
+    _lib_name = 'CAEN_PLU'
+
+
+lib = _Lib(_lib_name)
 
 
 def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):

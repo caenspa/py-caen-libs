@@ -531,14 +531,14 @@ class _Lib(_utils.Lib):
         return _utils.version_to_tuple(ver) >= target
 
 
-lib: _Lib
-
-
 # Library name is platform dependent
 if sys.platform == 'win32':
-    lib = _Lib('CAENVMElib')
+    _lib_name = 'CAENVMElib'
 else:
-    lib = _Lib('CAENVME')
+    _lib_name = 'CAENVME'
+
+
+lib = _Lib(_lib_name)
 
 
 def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
