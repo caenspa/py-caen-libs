@@ -460,8 +460,14 @@ class _Lib(_utils.Lib):
 
     @contextmanager
     def auto_ptr(self, pointer_type: Type):
-        """Context manager to auto free on scope exit"""
+        """
+        Context manager to auto free on scope exit.
+
+        The returned pointer is initialized to NULL to avoid error
+        when freeing, in case callee function does not set the pointer.
+        """
         value = pointer_type()
+        assert not value  # Must be NULL
         try:
             yield value
         finally:
@@ -469,8 +475,14 @@ class _Lib(_utils.Lib):
 
     @contextmanager
     def evt_data_auto_ptr(self, pointer_type: Type):
-        """Context manager to auto free event data on scope exit"""
+        """
+        Context manager to auto free event data on scope exit
+
+        The returned pointer is initialized to NULL to avoid error
+        when freeing, in case callee function does not set the pointer.
+        """
         value = pointer_type()
+        assert not value  # Must be NULL
         try:
             yield value
         finally:
