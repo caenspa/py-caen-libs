@@ -192,12 +192,12 @@ def str_list_from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_strings: i
     Strings are separated by the null terminator.
     For ct.c_char and arrays of it.
     """
-    res: List[str] = []
+    res: List[str] = [None] * n_strings  # type: ignore
     offset = 0
-    for _ in range(n_strings):
+    for i in range(n_strings):
         value = ct.string_at(ct.addressof(data) + offset).decode()
         offset += len(value) + 1
-        res.append(value)
+        res[i] = value
     return res
 
 
@@ -231,12 +231,12 @@ def str_list_from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], stri
     Size is passed as parameter.
     For ct.c_char and arrays of it.
     """
-    res: List[str] = []
+    res: List[str] = [None] * n_strings  # type: ignore
     offset = 0
-    for _ in range(n_strings):
+    for i in range(n_strings):
         value = ct.string_at(ct.addressof(data) + offset).decode()
         offset += string_size
-        res.append(value)
+        res[i] = value
     return res
 
 

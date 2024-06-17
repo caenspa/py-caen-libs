@@ -63,7 +63,7 @@ class _USBDeviceRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(frozen=True)
 class USBDevice(ct.Structure):
     """
     Wrapper to ::tUSBDevice
@@ -206,10 +206,18 @@ class _Lib(_utils.Lib):
         """
         Wrapper to CAEN_PLU_USBEnumerate()
         """
-        l_data = (_USBDeviceRaw * 128)()
+        l_data_size = 128  # Undocumented but, hopefully, long enough
+        l_data = (_USBDeviceRaw * l_data_size)()
         l_num_devs = ct.c_uint32()
         self.__usb_enumerate(l_data, l_num_devs)
-        return tuple(USBDevice(i.id, i.SN.value.decode(), i.DESC.value.decode()) for i in l_data[:l_num_devs.value])
+        assert l_data_size >= l_num_devs.value
+        return tuple(
+            USBDevice(
+                i.id,
+                i.SN.value.decode(),
+                i.DESC.value.decode(),
+            ) for i in l_data[:l_num_devs.value]
+        )
 
     def usb_enumerate_serial_number(self) -> List[str]:
         """

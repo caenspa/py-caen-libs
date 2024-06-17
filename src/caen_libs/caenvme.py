@@ -93,10 +93,10 @@ class DataWidth(IntEnum):
     D16      = 0x02          # 16 bit
     D32      = 0x04          # 32 bit
     D64      = 0x08          # 64 bit
-    DSWAP_   = 0x10          # Swapped mask
-    D16_SWAP = D16 | DSWAP_  # 16 bit, swapped
-    D32_SWAP = D32 | DSWAP_  # 32 bit, swapped
-    D64_SWAP = D64 | DSWAP_  # 64 bit, swapped
+    _DSWAP   = 0x10          # Swapped mask
+    D16_SWAP = D16 | _DSWAP  # 16 bit, swapped
+    D32_SWAP = D32 | _DSWAP  # 32 bit, swapped
+    D64_SWAP = D64 | _DSWAP  # 64 bit, swapped
 
     @property
     def ctypes(self) -> Type:
@@ -268,7 +268,7 @@ class _DisplayRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Display:
     """
     Wrapper to ::CVDisplay
@@ -333,8 +333,8 @@ class VMETimeouts(IntEnum):
     """
     Wrapper to ::CVVMETimeouts
     """
-    _50_US  = 0  # Timeout is 50 microseconds
-    _400_US = 1  # Timeout is 400 microseconds
+    T50_US  = 0  # Timeout is 50 microseconds
+    T400_US = 1  # Timeout is 400 microseconds
 
 
 @unique
