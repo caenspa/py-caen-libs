@@ -17,9 +17,9 @@ from caen_libs import _utils
 @unique
 class ErrorCode(IntEnum):
     """
-    Wrapper to ::CAENHVRESULT
+    Binding of ::CAENHVRESULT
     """
-    UNKNOWN                 = 0xDEADFACE  # Special value for Python wrapper
+    UNKNOWN                 = 0xDEADFACE  # Special value for Python binding
     OK                      = 0
     SYSERR                  = 1
     WRITEERR                = 2
@@ -71,7 +71,7 @@ class ErrorCode(IntEnum):
 @unique
 class SystemType(IntEnum):
     """
-    Wrapper to ::CAENHV_SYSTEM_TYPE_t
+    Binding of ::CAENHV_SYSTEM_TYPE_t
     """
     SY1527      = 0
     SY2527      = 1
@@ -95,7 +95,7 @@ class SystemType(IntEnum):
 @unique
 class LinkType(IntEnum):
     """
-    Wrapper to Link Types for InitSystem
+    Binding of Link Types for InitSystem
     """
     TCPIP   = 0
     RS232   = 1
@@ -110,7 +110,7 @@ class LinkType(IntEnum):
 @unique
 class EventStatus(IntEnum):
     """
-    Wrapper to ::CAENHV_EVT_STATUS_t
+    Binding of ::CAENHV_EVT_STATUS_t
     """
     SYNC        = 0
     ASYNC       = 1
@@ -128,7 +128,7 @@ class _SystemStatusRaw(ct.Structure):
 @dataclass(frozen=True)
 class SystemStatus:
     """
-    Wrapper to ::CAENHV_SYSTEMSTATUS_t
+    Binding of ::CAENHV_SYSTEMSTATUS_t
     """
     system: EventStatus
     board: Tuple[EventStatus, ...]
@@ -137,7 +137,7 @@ class SystemStatus:
 @unique
 class EventType(IntEnum):
     """
-    Wrapper to ::CAENHV_ID_TYPE_t
+    Binding of ::CAENHV_ID_TYPE_t
     """
     PARAMETER   = 0
     ALARM       = 1
@@ -167,7 +167,7 @@ class _EventDataRaw(ct.Structure):
 @dataclass(frozen=True)
 class EventData:
     """
-    Wrapper to ::CAENHVEVENT_TYPE_t
+    Binding of ::CAENHVEVENT_TYPE_t
     """
     type: EventType
     item_id: str
@@ -203,7 +203,7 @@ class Board:
 @unique
 class SysPropType(IntEnum):
     """
-    Wrapper to ::SYSPROP_TYPE_*
+    Binding of ::SYSPROP_TYPE_*
     """
     STR     = 0
     REAL    = 1
@@ -217,7 +217,7 @@ class SysPropType(IntEnum):
 @unique
 class SysPropMode(IntEnum):
     """
-    Wrapper to ::SYSPROP_MODE_*
+    Binding of ::SYSPROP_MODE_*
     """
     RDONLY  = 0
     WRONLY  = 1
@@ -237,7 +237,7 @@ class SysProp:
 @unique
 class ParamType(IntEnum):
     """
-    Wrapper to ::PARAM_TYPE_*
+    Binding of ::PARAM_TYPE_*
     """
     NUMERIC     = 0
     ONOFF       = 1
@@ -252,7 +252,7 @@ class ParamType(IntEnum):
 @unique
 class ParamMode(IntEnum):
     """
-    Wrapper to ::PARAM_MODE_*
+    Binding of ::PARAM_MODE_*
     """
     RDONLY  = 0
     WRONLY  = 1
@@ -262,7 +262,7 @@ class ParamMode(IntEnum):
 @unique
 class ParamUnit(IntEnum):
     """
-    Wrapper to ::PARAM_UN_*
+    Binding of ::PARAM_UN_*
     """
     NONE    = 0
     AMPERE  = 1
@@ -464,11 +464,11 @@ class _Lib(_utils.Lib):
         func.errcheck = self.__api_errcheck
         return func
 
-    # C API wrappers
+    # C API bindings
 
     def sw_release(self) -> str:
         """
-        Wrapper to CAENHVLibSwRel()
+        Binding of CAENHVLibSwRel()
         """
         return self.___sw_rel().decode()
 
@@ -480,8 +480,8 @@ class _Lib(_utils.Lib):
         The returned pointer is initialized to NULL to avoid error
         when freeing, in case callee function does not set the pointer.
         """
-        value = pointer_type()
-        assert not value  # Must be NULL
+        value = _P(pointer_type)()
+        assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -495,8 +495,8 @@ class _Lib(_utils.Lib):
         The returned pointer is initialized to NULL to avoid error
         when freeing, in case callee function does not set the pointer.
         """
-        value = pointer_type()
-        assert not value  # Must be NULL
+        value = _P(pointer_type)()
+        assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -527,7 +527,7 @@ class Device:
     # Constants
     MAX_PARAM_NAME = 10
     MAX_CH_NAME = 12
-    FIRST_BIND_PORT = 10001  # This wrapper will bind TCP ports starting from this value
+    FIRST_BIND_PORT = 10001  # This binding will bind TCP ports starting from this value
 
     def __post_init__(self):
         # Internal events related stuff
@@ -539,14 +539,14 @@ class Device:
         if self.opened:
             self.close()
 
-    # C API wrappers
+    # C API bindings
 
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
     def open(cls: Type[_T], system_type: SystemType, link_type: LinkType, arg: str, username: str = '', password: str = '') -> _T:
         """
-        Wrapper to CAENHV_InitSystem()
+        Binding of CAENHV_InitSystem()
         """
         l_handle = ct.c_int()
         lib.init_system(system_type.value, link_type.value, arg.encode(), username.encode(), password.encode(), l_handle)
@@ -554,7 +554,7 @@ class Device:
 
     def connect(self) -> None:
         """
-        Wrapper to CAENHV_InitSystem()
+        Binding of CAENHV_InitSystem()
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
@@ -568,7 +568,7 @@ class Device:
     @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
     def close(self) -> None:
         """
-        Wrapper to CAENHV_DeinitSystem()
+        Binding of CAENHV_DeinitSystem()
 
         This will also clear class cache.
         """
@@ -578,18 +578,18 @@ class Device:
     @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
     def get_crate_map(self) -> Tuple[Board, ...]:
         """
-        Wrapper to CAENHV_GetCrateMap()
+        Binding of CAENHV_GetCrateMap()
 
         This will also clear class cache, since the function
         invalidates some internal stuctures of the C library.
         """
         l_nos = ct.c_ushort()
-        g_nocl = lib.auto_ptr(_c_ushort_p)
-        g_ml = lib.auto_ptr(_c_char_p)
-        g_dl = lib.auto_ptr(_c_char_p)
-        g_snl = lib.auto_ptr(_c_ushort_p)
-        g_frminl = lib.auto_ptr(_c_ubyte_p)
-        g_frmaxl = lib.auto_ptr(_c_ubyte_p)
+        g_nocl = lib.auto_ptr(ct.c_ushort)
+        g_ml = lib.auto_ptr(ct.c_char)
+        g_dl = lib.auto_ptr(ct.c_char)
+        g_snl = lib.auto_ptr(ct.c_ushort)
+        g_frminl = lib.auto_ptr(ct.c_ubyte)
+        g_frmaxl = lib.auto_ptr(ct.c_ubyte)
         with g_nocl as l_nocl, g_ml as l_ml, g_dl as l_dl, g_snl as l_snl, g_frminl as l_frminl, g_frmaxl as l_frmaxl:
             lib.get_crate_map(self.handle, l_nos, l_nocl, l_ml, l_dl, l_snl, l_frminl, l_frmaxl)
             ml = _utils.str_list_from_char_p(l_ml, l_nos.value)
@@ -607,10 +607,10 @@ class Device:
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_sys_prop_list(self) -> List[str]:
         """
-        Wrapper to CAENHV_GetSysPropList()
+        Binding of CAENHV_GetSysPropList()
         """
         l_num_prop = ct.c_ushort()
-        g_prop_name_list = lib.auto_ptr(_c_char_p)
+        g_prop_name_list = lib.auto_ptr(ct.c_char)
         with g_prop_name_list as l_pnl:
             lib.get_sys_prop_list(self.handle, l_num_prop, l_pnl)
             return _utils.str_list_from_char_p(l_pnl, l_num_prop.value)
@@ -618,7 +618,7 @@ class Device:
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_sys_prop_info(self, name: str) -> SysProp:
         """
-        Wrapper to CAENHV_GetSysPropInfo()
+        Binding of CAENHV_GetSysPropInfo()
         """
         l_prop_mode = ct.c_uint()
         l_prop_type = ct.c_uint()
@@ -627,7 +627,7 @@ class Device:
 
     def get_sys_prop(self, name: str) -> Union[str, float, int, bool]:
         """
-        Wrapper to CAENHV_GetSysProp()
+        Binding of CAENHV_GetSysProp()
         """
         l_value = ct.create_string_buffer(1024)  # Should be enough for all types
         lib.get_sys_prop(self.handle, name.encode(), l_value)
@@ -636,7 +636,7 @@ class Device:
 
     def set_sys_prop(self, name: str, value: Union[str, float, int, bool]) -> None:
         """
-        Wrapper to CAENHV_SetSysProp()
+        Binding of CAENHV_SetSysProp()
         """
         prop_type = self.get_sys_prop_info(name).type
         l_value = _SYS_PROP_TYPE_SET_ARG[prop_type](value)
@@ -644,7 +644,7 @@ class Device:
 
     def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[List[str], List[float], List[int]]:
         """
-        Wrapper to CAENHV_GetBdParam()
+        Binding of CAENHV_GetBdParam()
         """
         n_indexes = len(slot_list)
         if n_indexes == 0:
@@ -662,9 +662,9 @@ class Device:
 
     def set_bd_param(self, slot_list: Sequence[int], name: str, value: Union[str, float, int]) -> None:
         """
-        Wrapper to CAENHV_SetBdParam()
+        Binding of CAENHV_SetBdParam()
 
-        The CAEN HVWrapper is not consistent, since it allows to pass an array of values as input, to
+        The CAEN HV Wrapper is not consistent, since it allows to pass an array of values as input, to
         be set respectively to the slots in the slot_list, but this is done only on some system
         types (notably, on ST4527 and R6060 it uses only the first value of the array for all channels
         in the slot_list). To make their behavior homogeneous, we to the same also for systems
@@ -682,27 +682,27 @@ class Device:
 
     def get_bd_param_prop(self, slot: int, name: str) -> ParamProp:
         """
-        Wrapper to CAENHV_GetBdParamProp()
+        Binding of CAENHV_GetBdParamProp()
         """
         return self.__get_param_prop(slot, name)
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_bd_param_info(self, slot: int) -> List[str]:
         """
-        Wrapper to CAENHV_GetBdParamInfo()
+        Binding of CAENHV_GetBdParamInfo()
         """
-        g_value = lib.auto_ptr(_c_char_p)
+        g_value = lib.auto_ptr(ct.c_char)
         with g_value as l_value:
             lib.get_bd_param_info(self.handle, slot, l_value)
             return _utils.str_list_from_char_array(l_value.contents, self.MAX_PARAM_NAME)
 
     def test_bd_presence(self, slot: int) -> Board:
         """
-        Wrapper to CAENHV_TestBdPresence()
+        Binding of CAENHV_TestBdPresence()
         """
         l_nr_of_ch = ct.c_ushort()
-        g_model = lib.auto_ptr(_c_char_p)
-        g_description = lib.auto_ptr(_c_char_p)
+        g_model = lib.auto_ptr(ct.c_char)
+        g_description = lib.auto_ptr(ct.c_char)
         l_ser_num = ct.c_ushort()
         l_fmw_rel_min = ct.c_ubyte()
         l_fmw_rel_max = ct.c_ubyte()
@@ -720,16 +720,16 @@ class Device:
 
     def get_ch_param_prop(self, slot: int, channel: int, name: str) -> ParamProp:
         """
-        Wrapper to CAENHV_GetChParamProp()
+        Binding of CAENHV_GetChParamProp()
         """
         return self.__get_param_prop(slot, name, channel)
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def get_ch_param_info(self, slot: int, channel: int) -> List[str]:
         """
-        Wrapper to CAENHV_GetChParamInfo()
+        Binding of CAENHV_GetChParamInfo()
         """
-        g_value = lib.auto_ptr(_c_char_p)
+        g_value = lib.auto_ptr(ct.c_char)
         with g_value as l_value:
             l_size = ct.c_int()
             lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
@@ -738,7 +738,7 @@ class Device:
 
     def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> List[str]:
         """
-        Wrapper to CAENHV_GetChName()
+        Binding of CAENHV_GetChName()
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
@@ -752,7 +752,7 @@ class Device:
 
     def set_ch_name(self, slot: int, channel_list: Sequence[int], name: str) -> None:
         """
-        Wrapper to CAENHV_SetChName()
+        Binding of CAENHV_SetChName()
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
@@ -762,7 +762,7 @@ class Device:
 
     def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[List[str], List[float], List[int]]:
         """
-        Wrapper to CAENHV_GetChParam()
+        Binding of CAENHV_GetChParam()
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
@@ -780,9 +780,9 @@ class Device:
 
     def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: Union[str, float, int]) -> None:
         """
-        Wrapper to CAENHV_SetChParam()
+        Binding of CAENHV_SetChParam()
 
-        The CAEN HVWrapper is not consistent, since it allows to pass an array of values as input, to
+        The CAEN HV Wrapper is not consistent, since it allows to pass an array of values as input, to
         be set respectively to the channels in the channel_list, but this is done only on some system
         types (notably, on ST4527 and R6060 it uses only the first value of the array for all channels
         in the channel_list). To make their behavior homogeneous, we to the same also for systems
@@ -801,23 +801,23 @@ class Device:
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_exec_comm_list(self) -> List[str]:
         """
-        Wrapper to CAENHV_GetExecCommList()
+        Binding of CAENHV_GetExecCommList()
         """
         l_num_comm = ct.c_ushort()
-        g_comm_name_list = lib.auto_ptr(_c_char_p)
+        g_comm_name_list = lib.auto_ptr(ct.c_char)
         with g_comm_name_list as l_cnl:
             lib.get_exec_comm_list(self.handle, l_num_comm, l_cnl)
             return _utils.str_list_from_char_p(l_cnl, l_num_comm.value)
 
     def exec_comm(self, name: str) -> None:
         """
-        Wrapper to CAENHV_ExecComm()
+        Binding of CAENHV_ExecComm()
         """
         lib.get_exec_comm_list(self.handle, name.encode())
 
     def subscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
-        Wrapper to CAENHV_SubscribeSystemParams()
+        Binding of CAENHV_SubscribeSystemParams()
         """
         param_list_len = len(param_list)
         if param_list_len == 0:
@@ -833,7 +833,7 @@ class Device:
 
     def subscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
         """
-        Wrapper to CAENHV_SubscribeBoardParams()
+        Binding of CAENHV_SubscribeBoardParams()
         """
         param_list_len = len(param_list)
         if param_list_len == 0:
@@ -849,7 +849,7 @@ class Device:
 
     def subscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
         """
-        Wrapper to CAENHV_SubscribeChannelParams()
+        Binding of CAENHV_SubscribeChannelParams()
         """
         param_list_len = len(param_list)
         if param_list_len == 0:
@@ -865,7 +865,7 @@ class Device:
 
     def unsubscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
-        Wrapper to CAENHV_UnSubscribeSystemParams()
+        Binding of CAENHV_UnSubscribeSystemParams()
         """
         param_list_len = len(param_list)
         if param_list_len == 0:
@@ -880,7 +880,7 @@ class Device:
 
     def unsubscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
         """
-        Wrapper to CAENHV_UnSubscribeBoardParams()
+        Binding of CAENHV_UnSubscribeBoardParams()
         """
         param_list_len = len(param_list)
         if param_list_len == 0:
@@ -895,7 +895,7 @@ class Device:
 
     def unsubscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
         """
-        Wrapper to CAENHV_SubscribeChannelParams()
+        Binding of CAENHV_SubscribeChannelParams()
         """
         param_list_len = len(param_list)
         if param_list_len == 0:
@@ -910,7 +910,7 @@ class Device:
 
     def get_event_data(self) -> Tuple[List[EventData], SystemStatus]:
         """
-        Wrapper to CAENHV_GetEventData()
+        Binding of CAENHV_GetEventData()
         """
         self.__init_events_client()
         assert self.__skt_client is not None
@@ -927,7 +927,7 @@ class Device:
 
     def get_error(self) -> str:
         """
-        Wrapper to CAENHV_GetError()
+        Binding of CAENHV_GetError()
         """
         return lib.get_error(self.handle).decode()
 
@@ -983,9 +983,9 @@ class Device:
         return ParamType(l_uint.value)
 
     def __check_events_support(self) -> None:
-        """SY1524/ST2527 have a legacy version of events not supported by this wrapper"""
+        """SY1524/ST2527 have a legacy version of events not supported by this binding"""
         if self.system_type in (SystemType.SY1527, SystemType.SY2527):
-            raise RuntimeError('Legacy events not supported by this wrapper.')
+            raise RuntimeError('Legacy events not supported by this binding.')
 
     def __library_event_thread(self) -> bool:
         """Devices with polling thread within library"""

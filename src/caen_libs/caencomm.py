@@ -14,7 +14,7 @@ from caen_libs import _utils
 @unique
 class ErrorCode(IntEnum):
     """
-    Wrapper to ::CAENComm_ErrorCode
+    Binding of ::CAENComm_ErrorCode
     """
     SUCCESS = 0
     VME_BUS_ERROR = -1
@@ -36,7 +36,7 @@ class ErrorCode(IntEnum):
 @unique
 class ConnectionType(IntEnum):
     """
-    Wrapper to ::CAEN_Comm_ConnectionType
+    Binding of ::CAEN_Comm_ConnectionType
     """
     USB = 0
     OPTICAL_LINK = 1
@@ -48,9 +48,9 @@ class ConnectionType(IntEnum):
 @unique
 class Info(IntEnum):
     """
-    Wrapper to ::CAENCOMM_INFO
+    Binding of ::CAENCOMM_INFO
 
-    ::CAENComm_VMELIB_handle missing, since implemented on separated wrapper.
+    ::CAENComm_VMELIB_handle missing, since implemented on separated binding.
     """
     PCI_BOARD_SN = 0
     PCI_BOARD_FW_REL = 1
@@ -61,7 +61,7 @@ class Info(IntEnum):
 
 class IRQLevels(Flag):
     """
-    Wrapper to ::IRQLevels
+    Binding of ::IRQLevels
     """
     L1 = 0x01
     L2 = 0x02
@@ -149,11 +149,11 @@ class _Lib(_utils.Lib):
         func.errcheck = self.__api_errcheck
         return func
 
-    # C API wrappers
+    # C API bindings
 
     def decode_error(self, error_code: int) -> str:
         """
-        Wrapper to CAENComm_DecodeError()
+        Binding of CAENComm_DecodeError()
         """
         l_value = ct.create_string_buffer(256)  # Undocumented but, hopefully, long enough
         self.__decode_error(error_code, l_value)
@@ -161,7 +161,7 @@ class _Lib(_utils.Lib):
 
     def sw_release(self) -> str:
         """
-        Wrapper to CAENComm_SWRelease()
+        Binding of CAENComm_SWRelease()
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         self.__sw_release(l_value)
@@ -169,7 +169,7 @@ class _Lib(_utils.Lib):
 
     def vme_irq_check(self, vme_handle: int) -> IRQLevels:
         """
-        Wrapper to CAENComm_VMEIRQCheck()
+        Binding of CAENComm_VMEIRQCheck()
         """
         l_value = ct.c_ubyte()
         self.__vme_irq_check(vme_handle, l_value)
@@ -177,7 +177,7 @@ class _Lib(_utils.Lib):
 
     def vme_iack_cycle16(self, vme_handle: int, levels: IRQLevels) -> int:
         """
-        Wrapper to CAENComm_VMEIACKCycle16()
+        Binding of CAENComm_VMEIACKCycle16()
         """
         l_value = ct.c_int()
         self.__vme_iack_cycle16(vme_handle, levels)
@@ -185,7 +185,7 @@ class _Lib(_utils.Lib):
 
     def vme_iack_cycle32(self, vme_handle: int, levels: IRQLevels) -> int:
         """
-        Wrapper to CAENComm_VMEIACKCycle32()
+        Binding of CAENComm_VMEIACKCycle32()
         """
         l_value = ct.c_int()
         self.__vme_iack_cycle32(vme_handle, levels)
@@ -193,7 +193,7 @@ class _Lib(_utils.Lib):
 
     def vme_irq_wait(self, connection_type: ConnectionType, link_num: int, conet_node: int, irq_mask: IRQLevels, timeout: int) -> int:
         """
-        Wrapper to CAENComm_VMEIRQWait()
+        Binding of CAENComm_VMEIRQWait()
         """
         l_value = ct.c_int32()
         self.__vme_irq_wait(connection_type.value, link_num, conet_node, irq_mask.value, timeout, l_value)
@@ -201,7 +201,7 @@ class _Lib(_utils.Lib):
 
     def reboot_device(self, link_number: int, use_backup: bool) -> None:
         """
-        Wrapper to CAENComm_RebootDevice()
+        Binding of CAENComm_RebootDevice()
         """
         self.__reboot_device(link_number, use_backup)
 
@@ -241,14 +241,14 @@ class Device:
         if self.opened:
             self.close()
 
-    # C API wrappers
+    # C API bindings
 
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
     def open(cls: Type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
         """
-        Wrapper to CAENComm_OpenDevice2()
+        Binding of CAENComm_OpenDevice2()
         """
         l_arg = _get_l_arg(connection_type, arg)
         l_handle = ct.c_int()
@@ -257,7 +257,7 @@ class Device:
 
     def connect(self) -> None:
         """
-        Wrapper to CAENComm_OpenDevice2()
+        Binding of CAENComm_OpenDevice2()
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
@@ -271,26 +271,26 @@ class Device:
 
     def close(self) -> None:
         """
-        Wrapper to CAENComm_CloseDevice()
+        Binding of CAENComm_CloseDevice()
         """
         lib.close_device(self.handle)
         self.opened = False
 
     def write32(self, address: int, value: int) -> None:
         """
-        Wrapper to CAENComm_Write32()
+        Binding of CAENComm_Write32()
         """
         lib.write32(self.handle, address, value)
 
     def write16(self, address: int, value: int) -> None:
         """
-        Wrapper to CAENComm_Write16()
+        Binding of CAENComm_Write16()
         """
         lib.write16(self.handle, address, value)
 
     def read32(self, address: int) -> int:
         """
-        Wrapper to CAENComm_Read32()
+        Binding of CAENComm_Read32()
         """
         l_value = ct.c_uint32()
         lib.read32(self.handle, address, l_value)
@@ -298,7 +298,7 @@ class Device:
 
     def read16(self, address: int) -> int:
         """
-        Wrapper to CAENComm_Read16()
+        Binding of CAENComm_Read16()
         """
         l_value = ct.c_uint16()
         lib.read16(self.handle, address, l_value)
@@ -306,7 +306,7 @@ class Device:
 
     def multi_write32(self, address: Sequence[int], data: Sequence[int]) -> None:
         """
-        Wrapper to CAENComm_MultiWrite32()
+        Binding of CAENComm_MultiWrite32()
         """
         n_cycles = len(address)
         l_address = (ct.c_uint32 * n_cycles)(*address)
@@ -319,7 +319,7 @@ class Device:
 
     def multi_write16(self, address: Sequence[int], data: Sequence[int]) -> None:
         """
-        Wrapper to CAENComm_MultiWrite16()
+        Binding of CAENComm_MultiWrite16()
         """
         n_cycles = len(address)
         l_address = (ct.c_uint32 * n_cycles)(*address)
@@ -332,7 +332,7 @@ class Device:
 
     def multi_read32(self, address: Sequence[int]) -> List[int]:
         """
-        Wrapper to CAENComm_MultiRead32()
+        Binding of CAENComm_MultiRead32()
         """
         n_cycles = len(address)
         l_address = (ct.c_uint32 * n_cycles)(*address)
@@ -346,7 +346,7 @@ class Device:
 
     def multi_read16(self, address: Sequence[int]) -> List[int]:
         """
-        Wrapper to CAENComm_MultiRead16()
+        Binding of CAENComm_MultiRead16()
         """
         n_cycles = len(address)
         l_address = (ct.c_uint32 * n_cycles)(*address)
@@ -360,7 +360,7 @@ class Device:
 
     def blt_read(self, address: int, blt_size: int) -> List[int]:
         """
-        Wrapper to CAENComm_BLTRead()
+        Binding of CAENComm_BLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
@@ -369,7 +369,7 @@ class Device:
 
     def mblt_read(self, address: int, blt_size: int) -> List[int,]:
         """
-        Wrapper to CAENComm_MBLTRead()
+        Binding of CAENComm_MBLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
@@ -378,19 +378,19 @@ class Device:
 
     def irq_disable(self, mask: int) -> None:
         """
-        Wrapper to CAENComm_IRQDisable()
+        Binding of CAENComm_IRQDisable()
         """
         lib.irq_disable(self.handle, mask)
 
     def irq_enable(self, mask: int) -> None:
         """
-        Wrapper to CAENComm_IRQEnable()
+        Binding of CAENComm_IRQEnable()
         """
         lib.irq_enable(self.handle, mask)
 
     def iack_cycle(self, levels: IRQLevels) -> int:
         """
-        Wrapper to CAENComm_IACKCycle()
+        Binding of CAENComm_IACKCycle()
         """
         l_data = ct.c_int()
         lib.iack_cycle(self.handle, levels.value, l_data)
@@ -398,13 +398,13 @@ class Device:
 
     def irq_wait(self, timeout: int) -> None:
         """
-        Wrapper to CAENComm_IRQWait()
+        Binding of CAENComm_IRQWait()
         """
         lib.irq_wait(self.handle, timeout)
 
     def info(self, info_type: Info) -> str:
         """
-        Wrapper to CAENComm_Info()
+        Binding of CAENComm_Info()
         """
         l_value = ct.create_string_buffer(30)  # MAX_INFO_LENGTH
         lib.info(self.handle, info_type, ct.byref(l_value))
@@ -412,7 +412,7 @@ class Device:
 
     def vme_handle(self) -> int:
         """
-        Wrapper to CAENComm_Info() with ::CAENComm_VMELIB_handle
+        Binding of CAENComm_Info() with ::CAENComm_VMELIB_handle
         """
         l_value = ct.c_int32()
         lib.info(self.handle, 5, ct.byref(l_value))  # CAENComm_VMELIB_handle is 5

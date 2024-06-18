@@ -15,7 +15,7 @@ from caen_libs import _utils
 @unique
 class ErrorCode(IntEnum):
     """
-    Wrapper to ::CAEN_PLU_ERROR_CODE
+    Binding of ::CAEN_PLU_ERROR_CODE
     """
     OK = 0
     GENERIC = -1
@@ -34,7 +34,7 @@ class ErrorCode(IntEnum):
 @unique
 class ConnectionModes(IntEnum):
     """
-    Wrapper to ::t_ConnectionModes
+    Binding of ::t_ConnectionModes
     """
     DIRECT_USB = 0
     DIRECT_ETH = 1
@@ -48,7 +48,7 @@ class ConnectionModes(IntEnum):
 @unique
 class FPGA(IntEnum):
     """
-    Wrapper to ::t_FPGA_V2495
+    Binding of ::t_FPGA_V2495
     """
     MAIN = 0
     USER = 1
@@ -66,7 +66,7 @@ class _USBDeviceRaw(ct.Structure):
 @dataclass(frozen=True)
 class USBDevice(ct.Structure):
     """
-    Wrapper to ::tUSBDevice
+    Binding of ::tUSBDevice
     """
     id: int
     sn: str
@@ -104,7 +104,7 @@ class _BoardInfoRaw(ct.Structure):
 @dataclass
 class BoardInfo(ct.Structure):
     """
-    Wrapper to ::tBOARDInfo
+    Binding of ::tBOARDInfo
     """
     checksum: int
     checksum_length2: int
@@ -194,7 +194,7 @@ class _Lib(_utils.Lib):
         func.errcheck = self.__api_errcheck
         return func
 
-    # C API wrappers
+    # C API bindings
 
     def decode_error(self, error_code: int) -> str:
         """
@@ -204,7 +204,7 @@ class _Lib(_utils.Lib):
 
     def usb_enumerate(self) -> Tuple[USBDevice, ...]:
         """
-        Wrapper to CAEN_PLU_USBEnumerate()
+        Binding of CAEN_PLU_USBEnumerate()
         """
         l_data_size = 128  # Undocumented but, hopefully, long enough
         l_data = (_USBDeviceRaw * l_data_size)()
@@ -221,7 +221,7 @@ class _Lib(_utils.Lib):
 
     def usb_enumerate_serial_number(self) -> List[str]:
         """
-        Wrapper to CAEN_PLU_USBEnumerateSerialNumber()
+        Binding of CAEN_PLU_USBEnumerateSerialNumber()
 
         Note: the underlying library is bugged, as of version v1.3,
         if there is more than one board.
@@ -275,14 +275,14 @@ class Device:
         if self.opened:
             self.close()
 
-    # C API wrappers
+    # C API bindings
 
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
     def open(cls: Type[_T], connection_mode: ConnectionModes, arg: Union[int, str], conet_node: int, vme_base_address: Union[int, str]) -> _T:
         """
-        Wrapper to CAEN_PLU_OpenDevice2()
+        Binding of CAEN_PLU_OpenDevice2()
         """
         l_arg = _get_l_arg(connection_mode, arg)
         l_handle = ct.c_int()
@@ -293,7 +293,7 @@ class Device:
 
     def connect(self) -> None:
         """
-        Wrapper to CAEN_PLU_OpenDevice2()
+        Binding of CAEN_PLU_OpenDevice2()
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
@@ -308,20 +308,20 @@ class Device:
 
     def close(self) -> None:
         """
-        Wrapper to CAEN_PLU_CloseDevice()
+        Binding of CAEN_PLU_CloseDevice()
         """
         lib.close_device(self.handle)
         self.opened = False
 
     def write_reg(self, address: int, value: int) -> None:
         """
-        Wrapper to CAEN_PLU_WriteReg()
+        Binding of CAEN_PLU_WriteReg()
         """
         lib.write_reg(self.handle, address, value)
 
     def read_reg(self, address: int) -> int:
         """
-        Wrapper to CAEN_PLU_ReadReg()
+        Binding of CAEN_PLU_ReadReg()
         """
         l_value = ct.c_uint32()
         lib.read_reg(self.handle, address, l_value)
@@ -329,25 +329,25 @@ class Device:
 
     def enable_flash_access(self, fpga: FPGA) -> None:
         """
-        Wrapper to CAEN_PLU_EnableFlashAccess()
+        Binding of CAEN_PLU_EnableFlashAccess()
         """
         lib.enable_flash_access(self.handle, fpga.value)
 
     def disable_flash_access(self, fpga: FPGA) -> None:
         """
-        Wrapper to CAEN_PLU_DisableFlashAccess()
+        Binding of CAEN_PLU_DisableFlashAccess()
         """
         lib.disable_flash_access(self.handle, fpga.value)
 
     def delete_flash_sector(self, fpga: FPGA, sector: int) -> None:
         """
-        Wrapper to CAEN_PLU_DeleteFlashSector()
+        Binding of CAEN_PLU_DeleteFlashSector()
         """
         lib.delete_flash_sector(self.handle, fpga.value, sector)
 
     def write_flash_data(self, fpga: FPGA, address: int, data: bytes) -> None:
         """
-        Wrapper to CAEN_PLU_WriteFlashData()
+        Binding of CAEN_PLU_WriteFlashData()
         """
         length = len(data)
         l_data_length = length // ct.sizeof(ct.c_uint32)
@@ -356,7 +356,7 @@ class Device:
 
     def read_flash_data(self, fpga: FPGA, address: int, length: int) -> bytes:
         """
-        Wrapper to CAEN_PLU_ReadFlashData()
+        Binding of CAEN_PLU_ReadFlashData()
         """
         l_data_length = length // ct.sizeof(ct.c_uint32)
         l_data = (ct.c_uint32 * l_data_length)()
@@ -365,7 +365,7 @@ class Device:
 
     def get_serial_number(self) -> str:
         """
-        Wrapper to CAEN_PLU_GetSerialNumber()
+        Binding of CAEN_PLU_GetSerialNumber()
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.get_serial_number(self.handle, l_value, len(l_value))
@@ -373,7 +373,7 @@ class Device:
 
     def get_info(self) -> BoardInfo:
         """
-        Wrapper to CAEN_PLU_GetInfo()
+        Binding of CAEN_PLU_GetInfo()
         """
         l_b = _BoardInfoRaw()
         lib.get_info(self.handle, l_b)

@@ -3,7 +3,7 @@ name = "caen_libs"
 authors = [
 	{ name="Giovanni Cerretani" },
 ]
-description = "Official Python wrapper for CAEN VMELib, CAEN Comm, CAEN PLU and CAEN HV Wrapper libraries."
+description = "Official Python binding for CAEN VMELib, CAEN Comm, CAEN PLU and CAEN HV Wrapper libraries."
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [

@@ -1,7 +1,7 @@
 from caen_libs import caenvme as vme
 
 
-print(f'CAEN VMELib wrapper loaded (lib version {vme.lib.sw_release()})')
+print(f'CAEN VMELib binding loaded (lib version {vme.lib.sw_release()})')
 
 board_type = vme.BoardType.USB_V4718
 link_number = 0

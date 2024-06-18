@@ -15,7 +15,7 @@ from caen_libs import _utils
 @unique
 class ErrorCode(IntEnum):
     """
-    Wrapper to ::CVErrorCodes
+    Binding of ::CVErrorCodes
     """
     SUCCESS = 0
     BUS_ERROR = -1
@@ -31,7 +31,7 @@ class ErrorCode(IntEnum):
 @unique
 class BoardType(IntEnum):
     """
-    Wrapper to ::CVBoardTypes
+    Binding of ::CVBoardTypes
     """
     # V1718
     V1718 = 0
@@ -87,7 +87,7 @@ class BoardType(IntEnum):
 @unique
 class DataWidth(IntEnum):
     """
-    Wrapper to ::CVDataWidth
+    Binding of ::CVDataWidth
     """
     D8       = 0x01          # 8 bit
     D16      = 0x02          # 16 bit
@@ -116,7 +116,7 @@ class DataWidth(IntEnum):
 @unique
 class AddressModifiers(IntEnum):
     """
-    Wrapper to ::CVAddressModifier
+    Binding of ::CVAddressModifier
     """
     A16_S        = 0x2D  # A16 supervisory access
     A16_U        = 0x29  # A16 non-privileged
@@ -156,7 +156,7 @@ class AddressModifiers(IntEnum):
 @unique
 class PulserSelect(IntEnum):
     """
-    Wrapper to ::CVPulserSelect
+    Binding of ::CVPulserSelect
     """
     A = 0
     B = 1
@@ -165,7 +165,7 @@ class PulserSelect(IntEnum):
 @unique
 class OutputSelect(IntEnum):
     """
-    Wrapper to ::CVOutputSelect
+    Binding of ::CVOutputSelect
     """
     O0 = 0  # Identifies the output line 0
     O1 = 1  # Identifies the output line 1
@@ -177,7 +177,7 @@ class OutputSelect(IntEnum):
 @unique
 class InputSelect(IntEnum):
     """
-    Wrapper to ::CVInputSelect
+    Binding of ::CVInputSelect
     """
     I0 = 0  # Identifies the input line 0
     I1 = 1  # Identifies the input line 1
@@ -186,7 +186,7 @@ class InputSelect(IntEnum):
 @unique
 class IOSources(IntEnum):
     """
-    Wrapper to ::CVIOSources
+    Binding of ::CVIOSources
     """
     MANUAL_SW     = 0  # Manual (button) or software controlled
     INPUT_SRC_0   = 1  # Input line 0
@@ -202,7 +202,7 @@ class IOSources(IntEnum):
 @unique
 class TimeUnits(IntEnum):
     """
-    Wrapper to ::CVTimeUnits
+    Binding of ::CVTimeUnits
     """
     T25_NS   = 0  # Time unit is 25 nanoseconds
     T1600_NS = 1  # Time unit is 1.6 microseconds
@@ -214,7 +214,7 @@ class TimeUnits(IntEnum):
 @unique
 class LEDPolarity(IntEnum):
     """
-    Wrapper to ::CVLEDPolarity
+    Binding of ::CVLEDPolarity
     """
     ACTIVE_HIGH = 0  # LED emits on signal high level
     ACTIVE_LOW  = 1  # LED emits on signal low level
@@ -223,7 +223,7 @@ class LEDPolarity(IntEnum):
 @unique
 class IOPolarity(IntEnum):
     """
-    Wrapper to ::CVIOPolarity
+    Binding of ::CVIOPolarity
     """
     DIRECT   = 0  # Normal polarity
     INVERTED = 1  # Inverted polarity
@@ -237,7 +237,7 @@ else:
 
 class IRQLevels(Flag):
     """
-    Wrapper to ::CVIRQLevels
+    Binding of ::CVIRQLevels
     """
     L1 = 0x01
     L2 = 0x02
@@ -271,7 +271,7 @@ class _DisplayRaw(ct.Structure):
 @dataclass(frozen=True)
 class Display:
     """
-    Wrapper to ::CVDisplay
+    Binding of ::CVDisplay
     """
     address: int          # VME Address
     data: int             # VME Data
@@ -293,7 +293,7 @@ class Display:
 @unique
 class ArbiterTypes(IntEnum):
     """
-    Wrapper to ::CVArbiterTypes
+    Binding of ::CVArbiterTypes
     """
     PRIORIZED  = 0  # Priority Arbiter
     ROUNDROBIN = 1  # Round-Robin Arbiter
@@ -302,7 +302,7 @@ class ArbiterTypes(IntEnum):
 @unique
 class RequesterTypes(IntEnum):
     """
-    Wrapper to ::CVRequesterTypes
+    Binding of ::CVRequesterTypes
     """
     FAIR   = 0  # Fair bus requester
     DEMAND = 1  # On demand bus requester
@@ -311,7 +311,7 @@ class RequesterTypes(IntEnum):
 @unique
 class ReleaseTypes(IntEnum):
     """
-    Wrapper to ::CVReleaseTypes
+    Binding of ::CVReleaseTypes
     """
     RWD = 0  # Release When Done
     ROR = 1  # Release On Request
@@ -320,7 +320,7 @@ class ReleaseTypes(IntEnum):
 @unique
 class BusReqLevels(IntEnum):
     """
-    Wrapper to ::CVBusReqLevels
+    Binding of ::CVBusReqLevels
     """
     BR0 = 0  # Bus request level 0
     BR1 = 1  # Bus request level 1
@@ -331,7 +331,7 @@ class BusReqLevels(IntEnum):
 @unique
 class VMETimeouts(IntEnum):
     """
-    Wrapper to ::CVVMETimeouts
+    Binding of ::CVVMETimeouts
     """
     T50_US  = 0  # Timeout is 50 microseconds
     T400_US = 1  # Timeout is 400 microseconds
@@ -340,7 +340,7 @@ class VMETimeouts(IntEnum):
 @unique
 class ScalerSource(IntEnum):
     """
-    Wrapper to ::CVScalerSource
+    Binding of ::CVScalerSource
     """
     IN0       = 0x0002
     IN1       = 0x0003
@@ -357,7 +357,7 @@ class ScalerSource(IntEnum):
 @unique
 class ScalerMode(IntEnum):
     """
-    Wrapper to ::CVScalerMode
+    Binding of ::CVScalerMode
     """
     GATE_MODE       = 0
     DWELL_TIME_MODE = 1
@@ -367,7 +367,7 @@ class ScalerMode(IntEnum):
 @unique
 class ContinuosRun(IntEnum):
     """
-    Wrapper to ::CVContinuosRun
+    Binding of ::CVContinuosRun
     """
     OFF = 1
     ON  = 0
@@ -516,11 +516,11 @@ class _Lib(_utils.Lib):
         func.errcheck = self.__api_errcheck
         return func
 
-    # C API wrappers
+    # C API bindings
 
     def sw_release(self) -> str:
         """
-        Wrapper to CAENVME_SWRelease()
+        Binding of CAENVME_SWRelease()
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         self.__sw_release(l_value)
@@ -568,14 +568,14 @@ class Device:
         if self.opened:
             self.close()
 
-    # C API wrappers
+    # C API bindings
 
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
     def open(cls: Type[_T], board_type: BoardType, arg: Union[int, str], conet_node: int = 0) -> _T:
         """
-        Wrapper to CAENVME_Init2()
+        Binding of CAENVME_Init2()
         """
         l_arg = _get_l_arg(board_type, arg)
         l_handle = ct.c_int32()
@@ -584,7 +584,7 @@ class Device:
 
     def connect(self) -> None:
         """
-        Wrapper to CAENVME_Init2()
+        Binding of CAENVME_Init2()
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
@@ -598,14 +598,14 @@ class Device:
 
     def close(self) -> None:
         """
-        Wrapper to CAENVME_End()
+        Binding of CAENVME_End()
         """
         lib.end(self.handle)
         self.opened = False
 
     def board_fw_release(self) -> str:
         """
-        Wrapper to CAENVME_BoardFWRelease()
+        Binding of CAENVME_BoardFWRelease()
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.board_fw_release(self.handle, l_value)
@@ -613,7 +613,7 @@ class Device:
 
     def driver_release(self) -> str:
         """
-        Wrapper to CAENVME_DriverRelease()
+        Binding of CAENVME_DriverRelease()
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.driver_release(self.handle, l_value)
@@ -621,13 +621,13 @@ class Device:
 
     def device_reset(self) -> None:
         """
-        Wrapper to CAENVME_DeviceReset()
+        Binding of CAENVME_DeviceReset()
         """
         lib.device_reset(self.handle)
 
     def read_cycle(self, address: int, am: AddressModifiers, dw: DataWidth) -> int:
         """
-        Wrapper to CAENVME_ReadCycle()
+        Binding of CAENVME_ReadCycle()
         """
         l_value = dw.ctypes()
         lib.read_cycle(self.handle, address, ct.byref(l_value), am, dw)
@@ -635,7 +635,7 @@ class Device:
 
     def rmw_cycle(self, address: int, value: int, am: AddressModifiers, dw: DataWidth) -> int:
         """
-        Wrapper to CAENVME_RMWCycle()
+        Binding of CAENVME_RMWCycle()
         """
         l_value = dw.ctypes(value)
         lib.rmw_cycle(self.handle, address, ct.byref(l_value), am, dw)
@@ -643,14 +643,14 @@ class Device:
 
     def write_cycle(self, address: int, value: int, am: AddressModifiers, dw: DataWidth) -> None:
         """
-        Wrapper to CAENVME_WriteCycle()
+        Binding of CAENVME_WriteCycle()
         """
         l_value = dw.ctypes(value)
         lib.write_cycle(self.handle, address, ct.byref(l_value), am, dw)
 
     def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> List[int]:
         """
-        Wrapper to CAENVME_MultiRead()
+        Binding of CAENVME_MultiRead()
         """
         n_cycles = len(addrs)
         l_addrs = (ct.c_uint32 * n_cycles)(*addrs)
@@ -666,7 +666,7 @@ class Device:
 
     def multi_write(self, addrs: Sequence[int], data: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> None:
         """
-        Wrapper to CAENVME_MultiWrite()
+        Binding of CAENVME_MultiWrite()
         """
         n_cycles = len(addrs)
         l_addrs = (ct.c_uint32 * n_cycles)(*addrs)
@@ -681,7 +681,7 @@ class Device:
 
     def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:
         """
-        Wrapper to CAENVME_BLTReadCycle()
+        Binding of CAENVME_BLTReadCycle()
         """
         n_data = size // ct.sizeof(dw.ctypes)
         l_data = (dw.ctypes * n_data)()
@@ -691,7 +691,7 @@ class Device:
 
     def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:
         """
-        Wrapper to CAENVME_FIFOBLTReadCycle()
+        Binding of CAENVME_FIFOBLTReadCycle()
         """
         n_data = size // ct.sizeof(dw.ctypes)
         l_data = (dw.ctypes * n_data)()
@@ -701,7 +701,7 @@ class Device:
 
     def mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
-        Wrapper to CAENVME_MBLTReadCycle()
+        Binding of CAENVME_MBLTReadCycle()
         """
         l_data = (ct.c_ubyte * size)()
         l_count = ct.c_int()
@@ -710,7 +710,7 @@ class Device:
 
     def fifo_mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
-        Wrapper to CAENVME_FIFOMBLTReadCycle()
+        Binding of CAENVME_FIFOMBLTReadCycle()
         """
         l_data = (ct.c_ubyte * size)()
         l_count = ct.c_int()
@@ -719,7 +719,7 @@ class Device:
 
     def blt_write_cycle(self, address: int, data: Sequence[int], am: AddressModifiers, dw: DataWidth) -> int:
         """
-        Wrapper to CAENVME_BLTWriteCycle()
+        Binding of CAENVME_BLTWriteCycle()
         """
         n_data = len(data)
         size = n_data * ct.sizeof(dw.ctypes)  # in bytes
@@ -730,7 +730,7 @@ class Device:
 
     def fifo_blt_write_cycle(self, address: int, data: Sequence[int], am: AddressModifiers, dw: DataWidth) -> int:
         """
-        Wrapper to CAENVME_FIFOBLTWriteCycle()
+        Binding of CAENVME_FIFOBLTWriteCycle()
         """
         n_data = len(data)
         size = n_data * ct.sizeof(dw.ctypes)  # in bytes
@@ -741,7 +741,7 @@ class Device:
 
     def mblt_write_cycle(self, address: int, data: bytes, am: AddressModifiers) -> int:
         """
-        Wrapper to CAENVME_MBLTWriteCycle()
+        Binding of CAENVME_MBLTWriteCycle()
         """
         l_count = ct.c_int()
         lib.mblt_write_cycle(self.handle, address, data, len(data), am, l_count)
@@ -749,7 +749,7 @@ class Device:
 
     def fifo_mblt_write_cycle(self, address: int, data: bytes, am: AddressModifiers) -> int:
         """
-        Wrapper to CAENVME_FIFOMBLTWriteCycle()
+        Binding of CAENVME_FIFOMBLTWriteCycle()
         """
         l_count = ct.c_int()
         lib.fifo_mblt_write_cycle(self.handle, address, data, len(data), am, l_count)
@@ -757,19 +757,19 @@ class Device:
 
     def ado_cycle(self, address: int, am: AddressModifiers) -> None:
         """
-        Wrapper to CAENVME_ADOCycle()
+        Binding of CAENVME_ADOCycle()
         """
         lib.ado_cycle(self.handle, address, am)
 
     def adoh_cycle(self, address: int, am: AddressModifiers) -> None:
         """
-        Wrapper to CAENVME_ADOHCycle()
+        Binding of CAENVME_ADOHCycle()
         """
         lib.adoh_cycle(self.handle, address, am)
 
     def iack_cycle(self, levels: IRQLevels, dw: DataWidth) -> int:
         """
-        Wrapper to CAENVME_IACKCycle()
+        Binding of CAENVME_IACKCycle()
         """
         l_data = dw.ctypes()
         lib.iack_cycle(self.handle, levels.value, l_data, dw)
@@ -777,7 +777,7 @@ class Device:
 
     def irq_check(self) -> IRQLevels:
         """
-        Wrapper to CAENVME_IRQCheck()
+        Binding of CAENVME_IRQCheck()
         """
         l_data = ct.c_ubyte()
         lib.irq_check(self.handle, l_data)
@@ -785,49 +785,49 @@ class Device:
 
     def irq_enable(self, mask: IRQLevels) -> None:
         """
-        Wrapper to CAENVME_IRQEnable()
+        Binding of CAENVME_IRQEnable()
         """
         lib.irq_enable(self.handle, mask.value)
 
     def irq_disable(self, mask: IRQLevels) -> None:
         """
-        Wrapper to CAENVME_IRQDisable()
+        Binding of CAENVME_IRQDisable()
         """
         lib.irq_disable(self.handle, mask.value)
 
     def irq_wait(self, mask: IRQLevels, timeout: int) -> None:
         """
-        Wrapper to CAENVME_IRQWait()
+        Binding of CAENVME_IRQWait()
         """
         lib.irq_wait(self.handle, mask.value, timeout)
 
     def set_pulser_conf(self, pul_sel: PulserSelect, period: int, width: int, unit: TimeUnits, pulse_no: int, start: IOSources, reset: IOSources) -> None:
         """
-        Wrapper to CAENVME_SetPulserConf()
+        Binding of CAENVME_SetPulserConf()
         """
         lib.set_pulser_conf(self.handle, pul_sel, period, width, unit, pulse_no, start, reset)
 
     def set_scaler_conf(self, limit: int, auto_reset: int, hit: IOSources, gate: IOSources, reset: IOSources) -> None:
         """
-        Wrapper to CAENVME_SetScalerConf()
+        Binding of CAENVME_SetScalerConf()
         """
         lib.set_scaler_conf(self.handle, limit, auto_reset, hit, gate, reset)
 
     def set_output_conf(self, out_sel: OutputSelect, out_pol: IOPolarity, led_pol: LEDPolarity, source: IOSources) -> None:
         """
-        Wrapper to CAENVME_SetOutputConf()
+        Binding of CAENVME_SetOutputConf()
         """
         lib.set_output_conf(self.handle, out_sel, out_pol, led_pol, source)
 
     def set_input_conf(self, in_sel: InputSelect, in_pol: IOPolarity, led_pol: LEDPolarity) -> None:
         """
-        Wrapper to CAENVME_SetInputConf()
+        Binding of CAENVME_SetInputConf()
         """
         lib.set_input_conf(self.handle, in_sel, in_pol, led_pol)
 
     def get_pulser_conf(self, pul_sel: PulserSelect) -> Tuple[int, int, TimeUnits, int, IOSources, IOSources]:
         """
-        Wrapper to CAENVME_GetPulserConf()
+        Binding of CAENVME_GetPulserConf()
         """
         l_period = ct.c_ubyte()
         l_width = ct.c_ubyte()
@@ -840,7 +840,7 @@ class Device:
 
     def get_scaler_conf(self) -> Tuple[int, int, IOSources, IOSources, IOSources]:
         """
-        Wrapper to CAENVME_GetScalerConf()
+        Binding of CAENVME_GetScalerConf()
         """
         l_limit = ct.c_short()
         l_auto_reset = ct.c_short()
@@ -852,7 +852,7 @@ class Device:
 
     def get_output_conf(self, out_sel: OutputSelect) -> Tuple[IOPolarity, LEDPolarity, IOSources]:
         """
-        Wrapper to CAENVME_GetOutputConf()
+        Binding of CAENVME_GetOutputConf()
         """
         l_out_pol = ct.c_int()
         l_led_pol = ct.c_int()
@@ -862,7 +862,7 @@ class Device:
 
     def get_input_conf(self, in_sel: InputSelect) -> Tuple[IOPolarity, LEDPolarity]:
         """
-        Wrapper to CAENVME_GetInputConf()
+        Binding of CAENVME_GetInputConf()
         """
         l_in_pol = ct.c_int()
         l_led_pol = ct.c_int()
@@ -871,7 +871,7 @@ class Device:
 
     def read_register(self, address: int) -> int:
         """
-        Wrapper to CAENVME_ReadRegister()
+        Binding of CAENVME_ReadRegister()
         """
         l_value = ct.c_uint()
         lib.read_register(self.handle, address, l_value)
@@ -879,13 +879,13 @@ class Device:
 
     def write_register(self, address: int, value: int) -> None:
         """
-        Wrapper to CAENVME_WriteRegister()
+        Binding of CAENVME_WriteRegister()
         """
         lib.write_register(self.handle, address, value)
 
     def write_flash_page(self, page_num: int, data: bytes) -> None:
         """
-        Wrapper to CAENVME_WriteFlashPage()
+        Binding of CAENVME_WriteFlashPage()
         """
         # Size could be either 264 or 256
         size = len(data)
@@ -894,25 +894,25 @@ class Device:
 
     def set_output_register(self, mask: int) -> None:
         """
-        Wrapper to CAENVME_SetOutputRegister()
+        Binding of CAENVME_SetOutputRegister()
         """
         lib.set_output_register(self.handle, mask)
 
     def clear_output_register(self, mask: int) -> None:
         """
-        Wrapper to CAENVME_ClearOutputRegister()
+        Binding of CAENVME_ClearOutputRegister()
         """
         lib.clear_output_register(self.handle, mask)
 
     def pulse_output_register(self, mask: int) -> None:
         """
-        Wrapper to CAENVME_PulseOutputRegister()
+        Binding of CAENVME_PulseOutputRegister()
         """
         lib.pulse_output_register(self.handle, mask)
 
     def read_display(self) -> Display:
         """
-        Wrapper to CAENVME_ReadDisplay()
+        Binding of CAENVME_ReadDisplay()
         """
         l_d = _DisplayRaw()
         lib.read_display(self.handle, l_d)
@@ -936,49 +936,49 @@ class Device:
 
     def set_arbiter_type(self, value: ArbiterTypes) -> None:
         """
-        Wrapper to CAENVME_SetArbiterType()
+        Binding of CAENVME_SetArbiterType()
         """
         lib.set_arbiter_type(self.handle, value)
 
     def set_requester_type(self, value: RequesterTypes) -> None:
         """
-        Wrapper to CAENVME_SetRequesterType()
+        Binding of CAENVME_SetRequesterType()
         """
         lib.set_requester_type(self.handle, value)
 
     def set_release_type(self, value: ReleaseTypes) -> None:
         """
-        Wrapper to CAENVME_SetReleaseType()
+        Binding of CAENVME_SetReleaseType()
         """
         lib.set_release_type(self.handle, value)
 
     def set_bus_req_level(self, value: BusReqLevels) -> None:
         """
-        Wrapper to CAENVME_SetBusReqLevel()
+        Binding of CAENVME_SetBusReqLevel()
         """
         lib.set_bus_req_level(self.handle, value)
 
     def set_timeout(self, value: VMETimeouts) -> None:
         """
-        Wrapper to CAENVME_SetTimeout()
+        Binding of CAENVME_SetTimeout()
         """
         lib.set_timeout(self.handle, value)
 
     def set_location_monitor(self, addr: int, am: AddressModifiers, write: int, lword: int, iack: int) -> None:
         """
-        Wrapper to CAENVME_SetLocationMonitor()
+        Binding of CAENVME_SetLocationMonitor()
         """
         lib.set_location_monitor(self.handle, addr, am, write, lword, iack)
 
     def set_fifo_mode(self, value: int) -> None:
         """
-        Wrapper to CAENVME_SetFIFOMode()
+        Binding of CAENVME_SetFIFOMode()
         """
         lib.set_fifo_mode(self.handle, value)
 
     def get_arbiter_type(self) -> ArbiterTypes:
         """
-        Wrapper to CAENVME_GetArbiterType()
+        Binding of CAENVME_GetArbiterType()
         """
         l_value = ct.c_int()
         lib.get_arbiter_type(self.handle, l_value)
@@ -986,7 +986,7 @@ class Device:
 
     def get_requester_type(self) -> RequesterTypes:
         """
-        Wrapper to CAENVME_GetRequesterType()
+        Binding of CAENVME_GetRequesterType()
         """
         l_value = ct.c_int()
         lib.get_requester_type(self.handle, l_value)
@@ -994,7 +994,7 @@ class Device:
 
     def get_release_type(self, value: ReleaseTypes) -> ReleaseTypes:
         """
-        Wrapper to CAENVME_GetReleaseType()
+        Binding of CAENVME_GetReleaseType()
         """
         l_value = ct.c_int()
         lib.get_release_type(self.handle, value)
@@ -1002,7 +1002,7 @@ class Device:
 
     def get_bus_req_level(self) -> BusReqLevels:
         """
-        Wrapper to CAENVME_GetBusReqLevel()
+        Binding of CAENVME_GetBusReqLevel()
         """
         l_value = ct.c_int()
         lib.get_bus_req_level(self.handle, l_value)
@@ -1010,7 +1010,7 @@ class Device:
 
     def get_timeout(self) -> VMETimeouts:
         """
-        Wrapper to CAENVME_GetTimeout()
+        Binding of CAENVME_GetTimeout()
         """
         l_value = ct.c_int()
         lib.get_timeout(self.handle, l_value)
@@ -1018,43 +1018,43 @@ class Device:
 
     def system_reset(self) -> None:
         """
-        Wrapper to CAENVME_SystemReset()
+        Binding of CAENVME_SystemReset()
         """
         lib.system_reset(self.handle)
 
     def reset_scaler_count(self) -> None:
         """
-        Wrapper to CAENVME_ResetScalerCount()
+        Binding of CAENVME_ResetScalerCount()
         """
         lib.reset_scaler_count(self.handle)
 
     def enable_scaler_gate(self) -> None:
         """
-        Wrapper to CAENVME_EnableScalerGate()
+        Binding of CAENVME_EnableScalerGate()
         """
         lib.enable_scaler_gate(self.handle)
 
     def disable_scaler_gate(self) -> None:
         """
-        Wrapper to CAENVME_DisableScalerGate()
+        Binding of CAENVME_DisableScalerGate()
         """
         lib.disable_scaler_gate(self.handle)
 
     def start_pulser(self, pulsel: PulserSelect) -> None:
         """
-        Wrapper to CAENVME_StartPulser()
+        Binding of CAENVME_StartPulser()
         """
         lib.start_pulser(self.handle, pulsel)
 
     def stop_pulser(self, pulsel: PulserSelect) -> None:
         """
-        Wrapper to CAENVME_StopPulser()
+        Binding of CAENVME_StopPulser()
         """
         lib.stop_pulser(self.handle, pulsel)
 
     def read_flash_page(self, page_num: int) -> bytes:
         """
-        Wrapper to CAENVME_ReadFlashPage()
+        Binding of CAENVME_ReadFlashPage()
         """
         # Allocate maximum size, there is no way to get the read size from API
         l_data = (ct.c_ubyte * 264)()
@@ -1063,19 +1063,19 @@ class Device:
 
     def erase_flash_page(self, page_num: int) -> None:
         """
-        Wrapper to CAENVME_EraseFlashPage()
+        Binding of CAENVME_EraseFlashPage()
         """
         lib.erase_flash_page(self.handle, page_num)
 
     def set_scaler_input_source(self, source: ScalerSource) -> None:
         """
-        Wrapper to CAENVME_SetScaler_InputSource()
+        Binding of CAENVME_SetScaler_InputSource()
         """
         lib.set_scaler_input_source(self.handle, source)
 
     def get_scaler_input_source(self) -> ScalerSource:
         """
-        Wrapper to CAENVME_GetScaler_InputSource()
+        Binding of CAENVME_GetScaler_InputSource()
         """
         l_value = ct.c_int()
         lib.get_scaler_input_source(self.handle, l_value)
@@ -1083,13 +1083,13 @@ class Device:
 
     def set_scaler_gate_source(self, source: ScalerSource) -> None:
         """
-        Wrapper to CAENVME_SetScaler_GateSource()
+        Binding of CAENVME_SetScaler_GateSource()
         """
         lib.set_scaler_gate_source(self.handle, source)
 
     def get_scaler_gate_source(self) -> ScalerSource:
         """
-        Wrapper to CAENVME_GetScaler_GateSource()
+        Binding of CAENVME_GetScaler_GateSource()
         """
         l_value = ct.c_int()
         lib.get_scaler_gate_source(self.handle, l_value)
@@ -1097,13 +1097,13 @@ class Device:
 
     def set_scaler_mode(self, mode: ScalerMode) -> None:
         """
-        Wrapper to CAENVME_SetScaler_Mode()
+        Binding of CAENVME_SetScaler_Mode()
         """
         lib.set_scaler_mode(self.handle, mode)
 
     def get_scaler_mode(self) -> ScalerMode:
         """
-        Wrapper to CAENVME_GetScaler_Mode()
+        Binding of CAENVME_GetScaler_Mode()
         """
         l_value = ct.c_int()
         lib.get_scaler_mode(self.handle, l_value)
@@ -1111,19 +1111,19 @@ class Device:
 
     def set_scaler_clear_source(self, source: ScalerSource) -> None:
         """
-        Wrapper to CAENVME_SetScaler_ClearSource()
+        Binding of CAENVME_SetScaler_ClearSource()
         """
         lib.set_scaler_clear_source(self.handle, source)
 
     def set_scaler_start_source(self, source: ScalerSource) -> None:
         """
-        Wrapper to CAENVME_SetScaler_StartSource()
+        Binding of CAENVME_SetScaler_StartSource()
         """
         lib.set_scaler_start_source(self.handle, source)
 
     def get_scaler_start_source(self) -> ScalerSource:
         """
-        Wrapper to CAENVME_GetScaler_StartSource()
+        Binding of CAENVME_GetScaler_StartSource()
         """
         l_value = ct.c_int()
         lib.get_scaler_start_source(self.handle, l_value)
@@ -1131,13 +1131,13 @@ class Device:
 
     def set_scaler_continuous_run(self, value: ContinuosRun) -> None:
         """
-        Wrapper to CAENVME_SetScaler_ContinuousRun()
+        Binding of CAENVME_SetScaler_ContinuousRun()
         """
         lib.set_scaler_continuous_run(self.handle, value)
 
     def get_scaler_continuous_run(self) -> ContinuosRun:
         """
-        Wrapper to CAENVME_GetScaler_ContinuousRun()
+        Binding of CAENVME_GetScaler_ContinuousRun()
         """
         l_value = ct.c_int()
         lib.get_scaler_continuous_run(self.handle, l_value)
@@ -1145,13 +1145,13 @@ class Device:
 
     def set_scaler_max_hits(self, value: int) -> None:
         """
-        Wrapper to CAENVME_SetScaler_MaxHits()
+        Binding of CAENVME_SetScaler_MaxHits()
         """
         lib.set_scaler_max_hits(self.handle, value)
 
     def get_scaler_max_hits(self) -> int:
         """
-        Wrapper to CAENVME_GetScaler_MaxHits()
+        Binding of CAENVME_GetScaler_MaxHits()
         """
         l_value = ct.c_uint16()
         lib.get_scaler_max_hits(self.handle, l_value)
@@ -1159,13 +1159,13 @@ class Device:
 
     def set_scaler_dwell_time(self, value: int) -> None:
         """
-        Wrapper to CAENVME_SetScaler_DWellTime()
+        Binding of CAENVME_SetScaler_DWellTime()
         """
         lib.set_scaler_dwell_time(self.handle, value)
 
     def get_scaler_dwell_time(self) -> int:
         """
-        Wrapper to CAENVME_GetScaler_DWellTime()
+        Binding of CAENVME_GetScaler_DWellTime()
         """
         l_value = ct.c_uint16()
         lib.get_scaler_dwell_time(self.handle, l_value)
@@ -1173,37 +1173,37 @@ class Device:
 
     def set_scaler_sw_start(self) -> None:
         """
-        Wrapper to CAENVME_SetScaler_SWStart()
+        Binding of CAENVME_SetScaler_SWStart()
         """
         lib.set_scaler_sw_start(self.handle)
 
     def set_scaler_sw_stop(self) -> None:
         """
-        Wrapper to CAENVME_SetScaler_SWStop()
+        Binding of CAENVME_SetScaler_SWStop()
         """
         lib.set_scaler_sw_stop(self.handle)
 
     def set_scaler_sw_reset(self) -> None:
         """
-        Wrapper to CAENVME_SetScaler_SWReset()
+        Binding of CAENVME_SetScaler_SWReset()
         """
         lib.set_scaler_sw_reset(self.handle)
 
     def set_scaler_sw_open_gate(self) -> None:
         """
-        Wrapper to CAENVME_SetScaler_SWOpenGate()
+        Binding of CAENVME_SetScaler_SWOpenGate()
         """
         lib.set_scaler_sw_open_gate(self.handle)
 
     def set_scaler_sw_close_gate(self) -> None:
         """
-        Wrapper to CAENVME_SetScaler_SWCloseGate()
+        Binding of CAENVME_SetScaler_SWCloseGate()
         """
         lib.set_scaler_sw_close_gate(self.handle)
 
     def blt_read_async(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:
         """
-        Wrapper to CAENVME_BLTReadAsync()
+        Binding of CAENVME_BLTReadAsync()
         """
         n_data = size // ct.sizeof(dw.ctypes)
         l_data = (dw.ctypes * n_data)()
@@ -1212,7 +1212,7 @@ class Device:
 
     def blt_read_wait(self) -> int:
         """
-        Wrapper to CAENVME_BLTReadWait()
+        Binding of CAENVME_BLTReadWait()
         """
         l_value = ct.c_int()
         lib.blt_read_wait(self.handle, l_value)

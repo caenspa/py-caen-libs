@@ -1,7 +1,7 @@
-from caen_libs import caenhvwrapper as hv
+from caen_libs import caenhvbinding as hv
 
 
-print(f'CAEN HV Wrapper wrapper loaded (lib version {hv.lib.sw_release()})')
+print(f'CAEN HV Wrapper binding loaded (lib version {hv.lib.sw_release()})')
 
 connection_type = hv.SystemType.N1470
 link_type = hv.LinkType.USB_VCP

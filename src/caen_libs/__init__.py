@@ -1,6 +1,6 @@
 """
 @defgroup Python Python
-@brief Python wrapper
+@brief Python binding
 
 @pre This module requires CAEN libraries to be installed in the system.
 """

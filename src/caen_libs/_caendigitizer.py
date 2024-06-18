@@ -14,7 +14,7 @@ from caen_libs import _utils
 @unique
 class ErrorCode(IntEnum):
     """
-    Wrapper to ::CAEN_DGTZ_ErrorCode
+    Binding of ::CAEN_DGTZ_ErrorCode
     """
     SUCCESS                         = 0
     COMM_ERROR                      = -1
@@ -56,7 +56,7 @@ class ErrorCode(IntEnum):
 @unique
 class ConnectionType(IntEnum):
     """
-    Wrapper to ::CAEN_DGTZ_ConnectionType
+    Binding of ::CAEN_DGTZ_ConnectionType
     """
     USB = 0
     OPTICAL_LINK = 1
@@ -67,7 +67,7 @@ class ConnectionType(IntEnum):
 
 class BoardInfo(ct.Structure):
     """
-    Wrapper to ::CAEN_DGTZ_BoardInfo_t
+    Binding of ::CAEN_DGTZ_BoardInfo_t
     """
     _fields_ = [
         ('model_name', ct.c_char * 12),
@@ -91,7 +91,7 @@ class BoardInfo(ct.Structure):
 @unique
 class EnaDis(IntEnum):
     """
-    Wrapper to ::CAEN_DGTZ_EnaDis_t
+    Binding of ::CAEN_DGTZ_EnaDis_t
     """
     ENABLE  = 1
     DISABLE = 0
@@ -100,7 +100,7 @@ class EnaDis(IntEnum):
 @unique
 class IRQMode(IntEnum):
     """
-    Wrapper to ::CAEN_DGTZ_IRQMode_t
+    Binding of ::CAEN_DGTZ_IRQMode_t
     """
     RORA = 0
     ROAK = 1
@@ -109,7 +109,7 @@ class IRQMode(IntEnum):
 @unique
 class TriggerMode(IntEnum):
     """
-    Wrapper to ::CAEN_DGTZ_TriggerMode_t
+    Binding of ::CAEN_DGTZ_TriggerMode_t
     """
     DISABLED         = 0
     EXTOUT_ONLY      = 2
@@ -238,11 +238,11 @@ class _Lib(_utils.Lib):
         func.errcheck = self.__api_errcheck
         return func
 
-    # C API wrappers
+    # C API bindings
 
     def sw_release(self) -> str:
         """
-        Wrapper to CAEN_DGTZ_SWRelease()
+        Binding of CAEN_DGTZ_SWRelease()
         """
         l_value = ct.create_string_buffer(16)
         self.__sw_release(l_value)
@@ -284,14 +284,14 @@ class Device:
         if self.opened:
             self.close()
 
-    # C API wrappers
+    # C API bindings
 
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
     def open(cls: Type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
         """
-        Wrapper to CAEN_DGTZ_OpenDigitizer2()
+        Binding of CAEN_DGTZ_OpenDigitizer2()
         """
         l_arg = _get_l_arg(connection_type, arg)
         l_handle = ct.c_int()
@@ -300,7 +300,7 @@ class Device:
 
     def connect(self) -> None:
         """
-        Wrapper to CAENComm_OpenDevice2()
+        Binding of CAENComm_OpenDevice2()
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
@@ -314,20 +314,20 @@ class Device:
 
     def close(self) -> None:
         """
-        Wrapper to CAEN_DGTZ_CloseDigitizer()
+        Binding of CAEN_DGTZ_CloseDigitizer()
         """
         lib.close_digitizer(self.handle)
         self.opened = False
 
     def write_register(self, address: int, value: int) -> None:
         """
-        Wrapper to CAEN_DGTZ_WriteRegister()
+        Binding of CAEN_DGTZ_WriteRegister()
         """
         lib.write_register(self.handle, address, value)
 
     def read_register(self, address: int) -> int:
         """
-        Wrapper to CAEN_DGTZ_ReadRegister()
+        Binding of CAEN_DGTZ_ReadRegister()
         """
         l_value = ct.c_uint32()
         lib.read_register(self.handle, address, l_value)
@@ -335,7 +335,7 @@ class Device:
 
     def get_info(self) -> BoardInfo:
         """
-        Wrapper to CAEN_DGTZ_GetInfo()
+        Binding of CAEN_DGTZ_GetInfo()
         """
         l_data = BoardInfo()
         lib.get_info(self.handle, l_data)
@@ -343,43 +343,43 @@ class Device:
 
     def reset(self) -> None:
         """
-        Wrapper to CAEN_DGTZ_Reset()
+        Binding of CAEN_DGTZ_Reset()
         """
         lib.reset(self.handle)
 
     def clear_data(self) -> None:
         """
-        Wrapper to CAEN_DGTZ_ClearData()
+        Binding of CAEN_DGTZ_ClearData()
         """
         lib.clear_data(self.handle)
 
     def send_sw_trigger(self) -> None:
         """
-        Wrapper to CAEN_DGTZ_SendSWtrigger()
+        Binding of CAEN_DGTZ_SendSWtrigger()
         """
         lib.send_sw_trigger(self.handle)
 
     def sw_start_acquisition(self) -> None:
         """
-        Wrapper to CAEN_DGTZ_SWStartAcquisition()
+        Binding of CAEN_DGTZ_SWStartAcquisition()
         """
         lib.sw_start_acquisition(self.handle)
 
     def sw_stop_acquisition(self) -> None:
         """
-        Wrapper to CAEN_DGTZ_SWStopAcquisition()
+        Binding of CAEN_DGTZ_SWStopAcquisition()
         """
         lib.sw_stop_acquisition(self.handle)
 
     def set_interrupt_config(self, state: EnaDis, level: int, status_id: int, event_number: int, mode: IRQMode) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetInterruptConfig()
+        Binding of CAEN_DGTZ_SetInterruptConfig()
         """
         lib.set_interrupt_config(self.handle, state.value, level, status_id, event_number, mode.value)
 
     def get_interrupt_config(self) -> Tuple[EnaDis, int, int, int, IRQMode]:
         """
-        Wrapper to CAEN_DGTZ_GetInterruptConfig()
+        Binding of CAEN_DGTZ_GetInterruptConfig()
         """
         l_state = ct.c_int()
         l_level = ct.c_uint8()
@@ -391,19 +391,19 @@ class Device:
 
     def irq_wait(self, timeout: int) -> None:
         """
-        Wrapper to CAEN_DGTZ_IRQWait()
+        Binding of CAEN_DGTZ_IRQWait()
         """
         lib.irq_wait(self.handle, timeout)
 
     def set_des_mode(self, value: int) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetDESMode()
+        Binding of CAEN_DGTZ_SetDESMode()
         """
         lib.set_des_mode(self.handle, value)
 
     def get_des_mode(self) -> int:
         """
-        Wrapper to CAEN_DGTZ_GetDESMode()
+        Binding of CAEN_DGTZ_GetDESMode()
         """
         l_value = ct.c_int()
         lib.get_des_mode(self.handle, l_value)
@@ -411,7 +411,7 @@ class Device:
 
     def set_record_length(self, value: int, channel: Optional[int] = None) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetRecordLength()
+        Binding of CAEN_DGTZ_SetRecordLength()
         """
         if channel is None:
             lib.set_record_length(self.handle, value)
@@ -421,7 +421,7 @@ class Device:
 
     def get_record_length(self, channel: Optional[int] = None) -> int:
         """
-        Wrapper to CAEN_DGTZ_GetRecordLength()
+        Binding of CAEN_DGTZ_GetRecordLength()
         """
         l_value = ct.c_uint32()
         if channel is None:
@@ -433,13 +433,13 @@ class Device:
 
     def set_channel_enable_mask(self, value: int) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetChannelEnableMask()
+        Binding of CAEN_DGTZ_SetChannelEnableMask()
         """
         lib.set_channel_enable_mask(self.handle, value)
 
     def get_channel_enable_mask(self) -> int:
         """
-        Wrapper to CAEN_DGTZ_GetChannelEnableMask()
+        Binding of CAEN_DGTZ_GetChannelEnableMask()
         """
         l_value = ct.c_uint32()
         lib.get_channel_enable_mask(self.handle, l_value)
@@ -447,13 +447,13 @@ class Device:
 
     def set_group_enable_mask(self, value: int) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetGroupEnableMask()
+        Binding of CAEN_DGTZ_SetGroupEnableMask()
         """
         lib.set_group_enable_mask(self.handle, value)
 
     def get_group_enable_mask(self) -> int:
         """
-        Wrapper to CAEN_DGTZ_GetGroupEnableMask()
+        Binding of CAEN_DGTZ_GetGroupEnableMask()
         """
         l_value = ct.c_uint32()
         lib.get_group_enable_mask(self.handle, l_value)
@@ -461,13 +461,13 @@ class Device:
 
     def set_sw_trigger_mode(self, value: TriggerMode) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetSWTriggerMode()
+        Binding of CAEN_DGTZ_SetSWTriggerMode()
         """
         lib.set_sw_trigger_mode(self.handle, value.value)
 
     def get_sw_trigger_mode(self) -> TriggerMode:
         """
-        Wrapper to CAEN_DGTZ_GetSWTriggerMode()
+        Binding of CAEN_DGTZ_GetSWTriggerMode()
         """
         l_value = ct.c_int()
         lib.get_sw_trigger_mode(self.handle, l_value)
@@ -475,13 +475,13 @@ class Device:
 
     def set_ext_trigger_input_mode(self, value: TriggerMode) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetExtTriggerInputMode()
+        Binding of CAEN_DGTZ_SetExtTriggerInputMode()
         """
         lib.set_ext_trigger_input_mode(self.handle, value.value)
 
     def get_ext_trigger_input_mode(self) -> TriggerMode:
         """
-        Wrapper to CAEN_DGTZ_GetExtTriggerInputMode()
+        Binding of CAEN_DGTZ_GetExtTriggerInputMode()
         """
         l_value = ct.c_int()
         lib.get_ext_trigger_input_mode(self.handle, l_value)
@@ -489,13 +489,13 @@ class Device:
 
     def set_channel_self_trigger(self, mode: TriggerMode, channel_mask: int) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetChannelSelfTrigger()
+        Binding of CAEN_DGTZ_SetChannelSelfTrigger()
         """
         lib.set_channel_self_trigger(self.handle, mode.value, channel_mask)
 
     def get_channel_self_trigger(self, channel: int) -> TriggerMode:
         """
-        Wrapper to CAEN_DGTZ_GetChannelSelfTrigger()
+        Binding of CAEN_DGTZ_GetChannelSelfTrigger()
         """
         l_value = ct.c_int()
         lib.get_channel_self_trigger(self.handle, channel, l_value)
@@ -503,13 +503,13 @@ class Device:
 
     def set_group_self_trigger(self, mode: TriggerMode, group_mask: int) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetGroupSelfTrigger()
+        Binding of CAEN_DGTZ_SetGroupSelfTrigger()
         """
         lib.set_group_self_trigger(self.handle, mode.value, group_mask)
 
     def get_group_self_trigger(self, group: int) -> TriggerMode:
         """
-        Wrapper to CAEN_DGTZ_GetGroupSelfTrigger()
+        Binding of CAEN_DGTZ_GetGroupSelfTrigger()
         """
         l_value = ct.c_int()
         lib.get_group_self_trigger(self.handle, group, l_value)
@@ -517,13 +517,13 @@ class Device:
 
     def set_post_trigger_size(self, value: int) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetPostTriggerSize()
+        Binding of CAEN_DGTZ_SetPostTriggerSize()
         """
         lib.set_post_trigger_size(self.handle, value)
 
     def get_post_trigger_size(self) -> int:
         """
-        Wrapper to CAEN_DGTZ_GetPostTriggerSize()
+        Binding of CAEN_DGTZ_GetPostTriggerSize()
         """
         l_value = ct.c_uint32()
         lib.get_post_trigger_size(self.handle, l_value)
@@ -531,13 +531,13 @@ class Device:
 
     def set_dpp_pre_trigger_size(self, channel: int, value: int) -> None:
         """
-        Wrapper to CAEN_DGTZ_SetDPPPreTriggerSize()
+        Binding of CAEN_DGTZ_SetDPPPreTriggerSize()
         """
         lib.set_dpp_pre_trigger_size(self.handle, channel, value)
 
     def get_dpp_pre_trigger_size(self, channel: int) -> int:
         """
-        Wrapper to CAEN_DGTZ_GetDPPPreTriggerSize()
+        Binding of CAEN_DGTZ_GetDPPPreTriggerSize()
         """
         l_value = ct.c_uint32()
         lib.get_dpp_pre_trigger_size(self.handle, channel, l_value)
