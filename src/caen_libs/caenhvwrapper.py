@@ -177,6 +177,18 @@ class EventData:
 
 
 @dataclass(frozen=True)
+class FwVersion:
+    """
+    Firmware version
+    """
+    major: int
+    minor: int
+
+    def __str__(self) -> str:
+        return f'{self.major}.{self.minor}'
+
+
+@dataclass(frozen=True)
 class Board:
     """
     Type returned by ::CAENHV_GetCrateMap
@@ -185,7 +197,7 @@ class Board:
     description: str
     serial_number: int
     n_channel: int
-    fw_version: Tuple[int, ...]
+    fw_version: FwVersion
 
 
 @unique
@@ -342,6 +354,7 @@ _SYS_PROP_TYPE_SET_ARG: Dict[SysPropType, Callable] = {
 
 
 _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
+    # c_int should be c_uint on some systems, but should be the same.
     ParamType.NUMERIC:  lambda n: (ct.c_float * n)(),
     ParamType.ONOFF:    lambda n: (ct.c_int * n)(),
     ParamType.CHSTATUS: lambda n: (ct.c_int * n)(),
@@ -349,19 +362,20 @@ _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
     ParamType.BINARY:   lambda n: (ct.c_int * n)(),
     ParamType.STRING:   lambda n: (ct.c_char * (1024 * n))(),
     ParamType.ENUM:     lambda n: (ct.c_int * n)(),
-    ParamType.CMD:      lambda n: (ct.c_int * n)(),
+    # ParamType.CMD is never found on readable parameters
 }
 
 
 _PARAM_TYPE_SET_ARG: Dict[ParamType, Callable] = {
-    ParamType.NUMERIC:  ct.c_float,
-    ParamType.ONOFF:    ct.c_int,
-    ParamType.CHSTATUS: ct.c_int,
-    ParamType.BDSTATUS: ct.c_int,
-    ParamType.BINARY:   ct.c_int,
+    # c_int should be c_uint on some systems, but should be the same.
+    ParamType.NUMERIC:  lambda v: (ct.c_float * len(v))(*v),
+    ParamType.ONOFF:    lambda v: (ct.c_int * len(v))(*v),
+    ParamType.CHSTATUS: lambda v: (ct.c_int * len(v))(*v),
+    ParamType.BDSTATUS: lambda v: (ct.c_int * len(v))(*v),
+    ParamType.BINARY:   lambda v: (ct.c_int * len(v))(*v),
     ParamType.STRING:   lambda v: v.encode(),
-    ParamType.ENUM:     ct.c_int,
-    ParamType.CMD:      ct.c_int,
+    ParamType.ENUM:     lambda v: (ct.c_int * len(v))(*v),
+    ParamType.CMD:      lambda v: ct.c_void_p(),  # value ignored, return a null pointer
 }
 
 
@@ -562,7 +576,7 @@ class Device:
         self.opened = False
 
     @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
-    def get_crate_map(self) -> List[Board]:
+    def get_crate_map(self) -> Tuple[Board, ...]:
         """
         Wrapper to CAENHV_GetCrateMap()
 
@@ -580,7 +594,15 @@ class Device:
             lib.get_crate_map(self.handle, l_nos, l_nocl, l_ml, l_dl, l_snl, l_frminl, l_frmaxl)
             ml = _utils.str_list_from_char_p(l_ml, l_nos.value)
             dl = _utils.str_list_from_char_p(l_dl, l_nos.value)
-            return [Board(ml[i], dl[i], l_snl[i], l_nocl[i], (l_frmaxl[i], l_frminl[i])) for i in range(l_nos.value)]
+            return tuple(
+                Board(
+                    ml[i],
+                    dl[i],
+                    l_snl[i],
+                    l_nocl[i],
+                    FwVersion(l_frmaxl[i], l_frminl[i]),
+                ) for i in range(l_nos.value)
+            )
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_sys_prop_list(self) -> List[str]:
@@ -641,13 +663,20 @@ class Device:
     def set_bd_param(self, slot_list: Sequence[int], name: str, value: Union[str, float, int]) -> None:
         """
         Wrapper to CAENHV_SetBdParam()
+
+        The CAEN HVWrapper is not consistent, since it allows to pass an array of values as input, to
+        be set respectively to the slots in the slot_list, but this is done only on some system
+        types (notably, on ST4527 and R6060 it uses only the first value of the array for all channels
+        in the slot_list). To make their behavior homogeneous, we to the same also for systems
+        supporting different values, setting the same value on all slots.
         """
         n_indexes = len(slot_list)
         if n_indexes == 0:
             return
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name)
-        l_data = _PARAM_TYPE_SET_ARG[param_type](value)
+        fake_value_list = [value] * n_indexes  # Trick, see docstring
+        l_data = _PARAM_TYPE_SET_ARG[param_type](fake_value_list)
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
 
@@ -681,7 +710,13 @@ class Device:
             lib.test_bd_presence(self.handle, slot, l_nr_of_ch, l_m, l_d, l_ser_num, l_fmw_rel_min, l_fmw_rel_max)
             model = l_m.contents.value.decode()
             description = l_d.contents.value.decode()
-            return Board(model, description, l_ser_num.value, l_nr_of_ch.value, (l_fmw_rel_max.value, l_fmw_rel_min.value))
+            return Board(
+                model,
+                description,
+                l_ser_num.value,
+                l_nr_of_ch.value,
+                FwVersion(l_fmw_rel_max.value, l_fmw_rel_min.value),
+            )
 
     def get_ch_param_prop(self, slot: int, channel: int, name: str) -> ParamProp:
         """
@@ -727,7 +762,7 @@ class Device:
 
     def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[List[str], List[float], List[int]]:
         """
-        Wrapper to CAENHV_GetBdParam()
+        Wrapper to CAENHV_GetChParam()
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
@@ -745,14 +780,21 @@ class Device:
 
     def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: Union[str, float, int]) -> None:
         """
-        Wrapper to CAENHV_SetBdParam()
+        Wrapper to CAENHV_SetChParam()
+
+        The CAEN HVWrapper is not consistent, since it allows to pass an array of values as input, to
+        be set respectively to the channels in the channel_list, but this is done only on some system
+        types (notably, on ST4527 and R6060 it uses only the first value of the array for all channels
+        in the channel_list). To make their behavior homogeneous, we to the same also for systems
+        supporting different values, setting the same value on all channels.
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
             return
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
-        l_data = _PARAM_TYPE_SET_ARG[param_type](value)
+        fake_value_list = [value] * n_indexes  # Trick, see docstring
+        l_data = _PARAM_TYPE_SET_ARG[param_type](fake_value_list)
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 
