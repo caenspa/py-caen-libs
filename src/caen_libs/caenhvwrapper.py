@@ -934,11 +934,15 @@ class Device:
         self.__init_events_client()
         assert self.__skt_client is not None
         l_system_status = _SystemStatusRaw()
-        g_event_data = lib.evt_data_auto_ptr(_event_data_p)
+        g_event_data = lib.evt_data_auto_ptr(_EventDataRaw)
         l_data_number = ct.c_uint()
         with g_event_data as l_ed:
             lib.get_event_data(self.__skt_client.fileno(), l_system_status, l_ed, l_data_number)
-            events = [self.__decode_event_data(l_ed[i]) for i in range(l_data_number.value)]
+            events = []
+            for i in range(l_data_number.value):
+                event = self.__decode_event_data(l_ed[i])
+                if event is not None:
+                    events.append(event)
         system_status = EventStatus(l_system_status.System)
         board_status = tuple(EventStatus(i) for i in l_system_status.Board)
         status = SystemStatus(system_status, board_status)
@@ -1069,7 +1073,8 @@ class Device:
             self.__skt_client, addr_info = self.__skt_server.accept()
             if self.__library_event_thread():
                 # If connecting to library event thread, ignore the first string
-                # that should contain the string used as InitSystem argument.
+                # that should contain the string used as InitSystem argument,
+                # except when connecting using TCPIP.
                 assert addr_info[0] == '127.0.0.1'
                 arg = bytearray()
                 while True:
@@ -1077,35 +1082,39 @@ class Device:
                     if char == b'\x00':
                         break
                     arg.extend(char)
-                assert self.arg == arg.decode()
+                if self.link_type != LinkType.TCPIP:
+                    assert self.arg == arg.decode()
 
-    def __decode_event_data(self, ed: _EventDataRaw) -> EventData:
+    def __decode_event_data(self, ed: _EventDataRaw) -> Optional[EventData]:
+        item_id = ed.ItemID.decode()
+        if not item_id and self.__library_event_thread():
+            # There could be empty events, expecially from library event thread, to be ignored
+            return None
         event_type = EventType(ed.Type)
-        idem_id = ed.ItemID.decode()
         system_handle = ed.SystemHandle
         board_index = ed.BoardIndex
         channel_index = ed.ChannelIndex
         assert system_handle == self.handle  # should always be the same
         if event_type != EventType.PARAMETER:
-            return EventData(event_type, idem_id, board_index, channel_index)
+            return EventData(event_type, item_id, board_index, channel_index)
         if board_index == -1:
             # System prop
-            prop_type = self.get_sys_prop_info(idem_id).type
+            prop_type = self.get_sys_prop_info(item_id).type
             value = _SYS_PROP_TYPE_EVENT_ARG[prop_type](ed.Value)
         else:
             if channel_index == -1:
                 # Board param
-                param_type = self.__get_param_type(board_index, idem_id)
+                param_type = self.__get_param_type(board_index, item_id)
             else:
                 # Channel param
-                if idem_id == 'Name':
+                if item_id == 'Name':
                     # Workaround for Name: even if not being a real channel parameter, i.e.
                     # get_ch_param_prop does not work, changes are sent as events of type PARAMETER.
                     param_type = ParamType.STRING
                 else:
-                    param_type = self.__get_param_type(board_index, idem_id, channel_index)
+                    param_type = self.__get_param_type(board_index, item_id, channel_index)
             value = _PARAM_TYPE_EVENT_ARG[param_type](ed.Value)
-        return EventData(event_type, idem_id, board_index, channel_index, value)
+        return EventData(event_type, item_id, board_index, channel_index, value)
 
     # Python utilities
 
