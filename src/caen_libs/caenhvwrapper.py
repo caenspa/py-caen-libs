@@ -353,6 +353,9 @@ _SYS_PROP_TYPE_SET_ARG: Dict[SysPropType, Callable] = {
 }
 
 
+_STR_SIZE = 1024  # Undocumented but, hopefully, long enough
+
+
 _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
     # c_int is replaced by c_uint on some systems, but should be the same.
     ParamType.NUMERIC:  lambda n: (ct.c_float * n)(),
@@ -360,7 +363,7 @@ _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
     ParamType.CHSTATUS: lambda n: (ct.c_int * n)(),
     ParamType.BDSTATUS: lambda n: (ct.c_int * n)(),
     ParamType.BINARY:   lambda n: (ct.c_int * n)(),
-    ParamType.STRING:   lambda n: (ct.c_char * (1024 * n))(),
+    ParamType.STRING:   lambda n: (ct.c_char * (_STR_SIZE * n))(),
     ParamType.ENUM:     lambda n: (ct.c_int * n)(),
     # ParamType.CMD is never found on readable parameters
 }
@@ -650,15 +653,24 @@ class Device:
         """
         n_indexes = len(slot_list)
         if n_indexes == 0:
-            res: List = []
-            return res
+            return []  # type: ignore
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
+        if param_type == ParamType.STRING and self.__weird_string_bd_param_arg():
+            # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
+            p_begin = ct.addressof(l_data)
+            p_end = p_begin + ct.sizeof(l_data)
+            l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_end, _STR_SIZE))
+        else:
+            l_data_proxy = l_data
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
-        lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
+        lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data_proxy)
         if param_type == ParamType.STRING:
-            return _utils.str_list_from_char(l_data, n_indexes)
+            if self.__weird_string_bd_param_arg():
+                return _utils.str_list_from_n_char_array(l_data, _STR_SIZE, n_indexes)
+            else:
+                return _utils.str_list_from_char(l_data, n_indexes)
         else:
             return list(l_data)
 
@@ -746,8 +758,7 @@ class Device:
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
-            res: List = []
-            return res
+            return []  # type: ignore
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
         l_value = (ct.c_char * (self.MAX_CH_NAME * n_allocated_values))()
@@ -770,15 +781,24 @@ class Device:
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
-            res: List = []
-            return res
+            return []  # type: ignore
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
+        if param_type == ParamType.STRING and self.__weird_string_ch_param_arg():
+            # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
+            p_begin = ct.addressof(l_data)
+            p_end = p_begin + ct.sizeof(l_data)
+            l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_end, _STR_SIZE))
+        else:
+            l_data_proxy = l_data
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
-        lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data)
+        lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data_proxy)
         if param_type == ParamType.STRING:
-            return _utils.str_list_from_char(l_data, n_indexes)
+            if self.__weird_string_ch_param_arg():
+                return _utils.str_list_from_n_char_array(l_data, _STR_SIZE, n_indexes)
+            else:
+                return _utils.str_list_from_char(l_data, n_indexes)
         else:
             return list(l_data)
 
@@ -993,6 +1013,14 @@ class Device:
     def __new_events_format(self) -> bool:
         """Devices with new events format, with socket opened within the library"""
         return self.system_type in (SystemType.R6060,)
+
+    def __weird_string_bd_param_arg(self) -> bool:
+        """Devices that requires a char** as argument of get_bd_param"""
+        return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E)
+
+    def __weird_string_ch_param_arg(self) -> bool:
+        """Devices that requires a char** as argument of get_ch_param"""
+        return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100)
 
     def __init_events_server(self):
         if self.__skt_server is not None:
