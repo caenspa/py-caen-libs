@@ -981,8 +981,8 @@ class Device:
             res.exp = _get('Exp', ct.c_short).value
             res.decimal = _get('Decimal', ct.c_short).value
         elif param_type == ParamType.ONOFF:
-            res.onstate = _get('Onstate', ct.c_char * 1024).value.decode()
-            res.offstate = _get('Offstate', ct.c_char * 1024).value.decode()
+            res.onstate = _get('Onstate', ct.c_char * _STR_SIZE).value.decode()
+            res.offstate = _get('Offstate', ct.c_char * _STR_SIZE).value.decode()
         elif param_type == ParamType.ENUM:
             res.minval = _get('Minval', ct.c_float).value
             res.maxval = _get('Maxval', ct.c_float).value
@@ -1082,13 +1082,12 @@ class Device:
                     if char == b'\x00':
                         break
                     arg.extend(char)
-                if self.link_type != LinkType.TCPIP:
-                    assert self.arg == arg.decode()
+                assert self.arg == arg.decode()
 
     def __decode_event_data(self, ed: _EventDataRaw) -> Optional[EventData]:
         item_id = ed.ItemID.decode()
         if not item_id and self.__library_event_thread():
-            # There could be empty events, expecially from library event thread, to be ignored
+            # There could be empty events, expecially from library event thread, to be ignored.
             return None
         event_type = EventType(ed.Type)
         system_handle = ed.SystemHandle
