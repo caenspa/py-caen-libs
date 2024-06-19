@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, unique
 import socket
 import sys
-from typing import Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
 
@@ -369,7 +369,7 @@ _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
 }
 
 
-_PARAM_TYPE_SET_ARG: Dict[ParamType, Callable] = {
+_PARAM_TYPE_SET_ARG: Dict[ParamType, Callable[[Any, int], Any]] = {
     # We generate an array with the same value for the reason described
     # in the caller docstring.
     # c_int is replaced by c_uint on some systems, but should be the same.
@@ -520,9 +520,9 @@ class Device:
     # Public members
     handle: int
     opened: bool = field(repr=False)
-    system_type: SystemType = field(repr=False)
-    link_type: LinkType = field(repr=False)
-    arg: str = field(repr=False)
+    system_type: SystemType
+    link_type: LinkType
+    arg: str
     username: str = field(repr=False)
     password: str = field(repr=False)
 
@@ -692,7 +692,7 @@ class Device:
             return
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name)
-        l_data = _PARAM_TYPE_SET_ARG[param_type](value)
+        l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
 
@@ -813,7 +813,7 @@ class Device:
             return
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
-        l_data = _PARAM_TYPE_SET_ARG[param_type](value)
+        l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 

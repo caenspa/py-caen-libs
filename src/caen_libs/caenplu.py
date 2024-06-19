@@ -266,10 +266,10 @@ class Device:
     # Public members
     handle: int
     opened: bool = field(repr=False)
-    connection_mode: ConnectionModes = field(repr=False)
-    arg: Union[int, str] = field(repr=False)
-    conet_node: int = field(repr=False)
-    vme_base_address: str = field(repr=False)
+    connection_mode: ConnectionModes
+    arg: Union[int, str]
+    conet_node: int
+    vme_base_address: str
 
     def __del__(self) -> None:
         if self.opened:

@@ -560,9 +560,9 @@ class Device:
     # Public members
     handle: int
     opened: bool = field(repr=False)
-    board_type: BoardType = field(repr=False)
-    arg: Union[int, str] = field(repr=False)
-    conet_node: int = field(repr=False)
+    board_type: BoardType
+    arg: Union[int, str]
+    conet_node: int
 
     def __del__(self) -> None:
         if self.opened:
