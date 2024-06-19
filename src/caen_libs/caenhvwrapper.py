@@ -354,7 +354,7 @@ _SYS_PROP_TYPE_SET_ARG: Dict[SysPropType, Callable] = {
 
 
 _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
-    # c_int should be c_uint on some systems, but should be the same.
+    # c_int is replaced by c_uint on some systems, but should be the same.
     ParamType.NUMERIC:  lambda n: (ct.c_float * n)(),
     ParamType.ONOFF:    lambda n: (ct.c_int * n)(),
     ParamType.CHSTATUS: lambda n: (ct.c_int * n)(),
@@ -367,15 +367,17 @@ _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
 
 
 _PARAM_TYPE_SET_ARG: Dict[ParamType, Callable] = {
-    # c_int should be c_uint on some systems, but should be the same.
-    ParamType.NUMERIC:  lambda v: (ct.c_float * len(v))(*v),
-    ParamType.ONOFF:    lambda v: (ct.c_int * len(v))(*v),
-    ParamType.CHSTATUS: lambda v: (ct.c_int * len(v))(*v),
-    ParamType.BDSTATUS: lambda v: (ct.c_int * len(v))(*v),
-    ParamType.BINARY:   lambda v: (ct.c_int * len(v))(*v),
-    ParamType.STRING:   lambda v: v.encode(),
-    ParamType.ENUM:     lambda v: (ct.c_int * len(v))(*v),
-    ParamType.CMD:      lambda v: ct.c_void_p(),  # value ignored, return a null pointer
+    # We generate an array with the same value for the reason described
+    # in the caller docstring.
+    # c_int is replaced by c_uint on some systems, but should be the same.
+    ParamType.NUMERIC:  lambda v, n: (ct.c_float * n)(*[v]*n),
+    ParamType.ONOFF:    lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.CHSTATUS: lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.BDSTATUS: lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.BINARY:   lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.STRING:   lambda v, _: v.encode(),  # no array here, only first value is used
+    ParamType.ENUM:     lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.CMD:      lambda v, n: ct.c_void_p(),  # value ignored, return a null pointer
 }
 
 
@@ -660,7 +662,7 @@ class Device:
         else:
             return list(l_data)
 
-    def set_bd_param(self, slot_list: Sequence[int], name: str, value: Union[str, float, int]) -> None:
+    def set_bd_param(self, slot_list: Sequence[int], name: str, value: Optional[Union[str, float, int]]) -> None:
         """
         Binding of CAENHV_SetBdParam()
 
@@ -669,14 +671,16 @@ class Device:
         types (notably, on ST4527 and R6060 it uses only the first value of the array for all channels
         in the slot_list). To make their behavior homogeneous, we to the same also for systems
         supporting different values, setting the same value on all slots.
+        The trick is not done on parameters of STRING type because the systems that accept an array
+        as input do not have any writable parameter of that type. The trick is not done on CMD type
+        because the input value is ignored.
         """
         n_indexes = len(slot_list)
         if n_indexes == 0:
             return
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name)
-        fake_value_list = [value] * n_indexes  # Trick, see docstring
-        l_data = _PARAM_TYPE_SET_ARG[param_type](fake_value_list)
+        l_data = _PARAM_TYPE_SET_ARG[param_type](value)
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
 
@@ -782,19 +786,14 @@ class Device:
         """
         Binding of CAENHV_SetChParam()
 
-        The CAEN HV Wrapper is not consistent, since it allows to pass an array of values as input, to
-        be set respectively to the channels in the channel_list, but this is done only on some system
-        types (notably, on ST4527 and R6060 it uses only the first value of the array for all channels
-        in the channel_list). To make their behavior homogeneous, we to the same also for systems
-        supporting different values, setting the same value on all channels.
+        See comment on set_bd_param() for additional information.
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
             return
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
-        fake_value_list = [value] * n_indexes  # Trick, see docstring
-        l_data = _PARAM_TYPE_SET_ARG[param_type](fake_value_list)
+        l_data = _PARAM_TYPE_SET_ARG[param_type](value)
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 
