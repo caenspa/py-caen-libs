@@ -7,6 +7,7 @@ import ctypes as ct
 import ctypes.wintypes as ctw
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
+import os
 import socket
 import sys
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
@@ -528,11 +529,11 @@ class Device:
 
     # Static private members
     __node_cache_manager: ClassVar[_utils.CacheManager] = _utils.CacheManager()
+    __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
 
     # Constants
     MAX_PARAM_NAME = 10
     MAX_CH_NAME = 12
-    FIRST_BIND_PORT = 10001  # This binding will bind TCP ports starting from this value
 
     def __post_init__(self):
         # Internal events related stuff
@@ -657,7 +658,7 @@ class Device:
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
-        if param_type == ParamType.STRING and self.__weird_string_bd_param_arg():
+        if param_type == ParamType.STRING and self.__char_p_p_str_bd_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_end = p_begin + ct.sizeof(l_data)
@@ -667,7 +668,7 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data_proxy)
         if param_type == ParamType.STRING:
-            if self.__weird_string_bd_param_arg():
+            if self.__char_p_p_str_bd_param_arg():
                 return _utils.str_list_from_n_char_array(l_data, _STR_SIZE, n_indexes)
             else:
                 return _utils.str_list_from_char(l_data, n_indexes)
@@ -785,7 +786,7 @@ class Device:
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
-        if param_type == ParamType.STRING and self.__weird_string_ch_param_arg():
+        if param_type == ParamType.STRING and self.__char_p_p_str_ch_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_end = p_begin + ct.sizeof(l_data)
@@ -795,7 +796,7 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data_proxy)
         if param_type == ParamType.STRING:
-            if self.__weird_string_ch_param_arg():
+            if self.__char_p_p_str_ch_param_arg():
                 return _utils.str_list_from_n_char_array(l_data, _STR_SIZE, n_indexes)
             else:
                 return _utils.str_list_from_char(l_data, n_indexes)
@@ -1018,12 +1019,12 @@ class Device:
         """Devices with new events format, with socket opened within the library"""
         return self.system_type in (SystemType.R6060,)
 
-    def __weird_string_bd_param_arg(self) -> bool:
-        """Devices that requires a char** as argument of get_bd_param"""
+    def __char_p_p_str_bd_param_arg(self) -> bool:
+        """Devices that requires a char** as argument of get_bd_param of type STRING"""
         return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E)
 
-    def __weird_string_ch_param_arg(self) -> bool:
-        """Devices that requires a char** as argument of get_ch_param"""
+    def __char_p_p_str_ch_param_arg(self) -> bool:
+        """Devices that requires a char** as argument of get_ch_param of type STRING"""
         return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100)
 
     def __init_events_server(self):
@@ -1040,7 +1041,7 @@ class Device:
             skt = socket.socket()
             bind_addr = '127.0.0.1' if self.__library_event_thread() else ''
             # Find first available port
-            port = self.FIRST_BIND_PORT
+            port = self.__first_bind_port
             while True:
                 try:
                     skt.bind((bind_addr, port))
