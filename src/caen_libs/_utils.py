@@ -186,11 +186,13 @@ def lru_cache_clear(cache_manager: CacheManager):
     return wrapper
 
 
-def str_list_from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_strings: int) -> List[str]:
+def str_list_from_char(data: Union[ct.c_char, ct.Array], n_strings: int) -> List[str]:
     """
     Split a buffer into a list of N string.
     Strings are separated by the null terminator.
     For ct.c_char and arrays of it.
+
+    Note: ct.Array is not subscriptable on Python 3.8, could be ct.Array[ct.c_char]
     """
     res: List[str] = [None] * n_strings  # type: ignore
     offset = 0
@@ -209,7 +211,7 @@ def str_list_from_char_p(data: ct._Pointer, n_strings: int) -> List[str]:
     return str_list_from_char(data.contents, n_strings) if n_strings != 0 else []
 
 
-def str_list_from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int) -> List[str]:
+def str_list_from_char_array(data: Union[ct.c_char, ct.Array], string_size: int) -> List[str]:
     """
     Split a buffer of fixed size string.
     Size is deduced by the first zero size string found.
@@ -225,7 +227,7 @@ def str_list_from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string
         res.append(value)
 
 
-def str_list_from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], string_size: int, n_strings: int) -> List[str]:
+def str_list_from_n_char_array(data: Union[ct.c_char, ct.Array], string_size: int, n_strings: int) -> List[str]:
     """
     Split a buffer of fixed size string.
     Size is passed as parameter.

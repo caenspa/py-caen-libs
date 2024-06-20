@@ -359,13 +359,13 @@ _STR_SIZE = 1024  # Undocumented but, hopefully, long enough
 
 _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
     # c_int is replaced by c_uint on some systems, but should be the same.
-    ParamType.NUMERIC:  lambda n: (ct.c_float * n)(),
-    ParamType.ONOFF:    lambda n: (ct.c_int * n)(),
-    ParamType.CHSTATUS: lambda n: (ct.c_int * n)(),
-    ParamType.BDSTATUS: lambda n: (ct.c_int * n)(),
-    ParamType.BINARY:   lambda n: (ct.c_int * n)(),
-    ParamType.STRING:   lambda n: (ct.c_char * (_STR_SIZE * n))(),
-    ParamType.ENUM:     lambda n: (ct.c_int * n)(),
+    ParamType.NUMERIC:      lambda n: (ct.c_float * n)(),
+    ParamType.ONOFF:        lambda n: (ct.c_int * n)(),
+    ParamType.CHSTATUS:     lambda n: (ct.c_int * n)(),
+    ParamType.BDSTATUS:     lambda n: (ct.c_int * n)(),
+    ParamType.BINARY:       lambda n: (ct.c_int * n)(),
+    ParamType.STRING:       lambda n: (ct.c_char * (_STR_SIZE * n))(),
+    ParamType.ENUM:         lambda n: (ct.c_int * n)(),
     # ParamType.CMD is never found on readable parameters
 }
 
@@ -374,14 +374,14 @@ _PARAM_TYPE_SET_ARG: Dict[ParamType, Callable[[Any, int], Any]] = {
     # We generate an array with the same value for the reason described
     # in the caller docstring.
     # c_int is replaced by c_uint on some systems, but should be the same.
-    ParamType.NUMERIC:  lambda v, n: (ct.c_float * n)(*[v]*n),
-    ParamType.ONOFF:    lambda v, n: (ct.c_int * n)(*[v]*n),
-    ParamType.CHSTATUS: lambda v, n: (ct.c_int * n)(*[v]*n),
-    ParamType.BDSTATUS: lambda v, n: (ct.c_int * n)(*[v]*n),
-    ParamType.BINARY:   lambda v, n: (ct.c_int * n)(*[v]*n),
-    ParamType.STRING:   lambda v, _: v.encode(),  # no array here, only first value is used
-    ParamType.ENUM:     lambda v, n: (ct.c_int * n)(*[v]*n),
-    ParamType.CMD:      lambda v, n: ct.c_void_p(),  # value ignored, return a null pointer
+    ParamType.NUMERIC:      lambda v, n: (ct.c_float * n)(*[v]*n),
+    ParamType.ONOFF:        lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.CHSTATUS:     lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.BDSTATUS:     lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.BINARY:       lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.STRING:       lambda v, n: v.encode(),  # no array here, only first value is used
+    ParamType.ENUM:         lambda v, n: (ct.c_int * n)(*[v]*n),
+    ParamType.CMD:          lambda v, n: ct.c_void_p(),  # value ignored, return a null pointer
 }
 
 
@@ -397,14 +397,14 @@ _SYS_PROP_TYPE_EVENT_ARG: Dict[SysPropType, Callable[[_IdValueRaw], Union[str, f
 
 
 _PARAM_TYPE_EVENT_ARG: Dict[ParamType, Callable] = {
-    ParamType.NUMERIC:  lambda v: v.FloatValue,
-    ParamType.ONOFF:    lambda v: v.IntValue,
-    ParamType.CHSTATUS: lambda v: v.IntValue,
-    ParamType.BDSTATUS: lambda v: v.IntValue,
-    ParamType.BINARY:   lambda v: v.IntValue,
-    ParamType.STRING:   lambda v: v.StringValue.decode(),
-    ParamType.ENUM:     lambda v: v.IntValue,
-    ParamType.CMD:      lambda v: v.IntValue,
+    ParamType.NUMERIC:      lambda v: v.FloatValue,
+    ParamType.ONOFF:        lambda v: v.IntValue,
+    ParamType.CHSTATUS:     lambda v: v.IntValue,
+    ParamType.BDSTATUS:     lambda v: v.IntValue,
+    ParamType.BINARY:       lambda v: v.IntValue,
+    ParamType.STRING:       lambda v: v.StringValue.decode(),
+    ParamType.ENUM:         lambda v: v.IntValue,
+    ParamType.CMD:          lambda v: v.IntValue,
 }
 
 class _Lib(_utils.Lib):

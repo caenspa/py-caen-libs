@@ -2,7 +2,7 @@
 @tableofcontents
 
 # Description
-This is the official Python binding for CAEN VMELib, CAEN Comm and CAEN PLU libraries.
+This is the official Python binding for CAEN VMELib, CAEN Comm, CAEN PLU and CAEN HV Wrapper libraries.
 
 # Installation
 Latest version of this module can found on [pypi.org](https://pypi.org/project/caen-libs/)
