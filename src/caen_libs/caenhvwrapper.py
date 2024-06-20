@@ -583,7 +583,7 @@ class Device:
         self.opened = False
 
     @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
-    def get_crate_map(self) -> Tuple[Board, ...]:
+    def get_crate_map(self) -> Tuple[Optional[Board], ...]:
         """
         Binding of CAENHV_GetCrateMap()
 
@@ -608,7 +608,7 @@ class Device:
                     l_snl[i],
                     l_nocl[i],
                     FwVersion(l_frmaxl[i], l_frminl[i]),
-                ) for i in range(l_nos.value)
+                ) if l_nocl[i] != 0 else None for i in range(l_nos.value)
             )
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
