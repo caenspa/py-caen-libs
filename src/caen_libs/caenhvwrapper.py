@@ -527,13 +527,14 @@ class Device:
     username: str = field(repr=False)
     password: str = field(repr=False)
 
+    # Constants
+    MAX_PARAM_NAME: ClassVar[int] = 10  # From CAENHVWrapper.h
+    MAX_CH_NAME: ClassVar[int] = 12  # From CAENHVWrapper.h
+    MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
+
     # Static private members
     __node_cache_manager: ClassVar[_utils.CacheManager] = _utils.CacheManager()
     __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
-
-    # Constants
-    MAX_PARAM_NAME = 10
-    MAX_CH_NAME = 12
 
     def __post_init__(self):
         # Internal events related stuff
@@ -661,8 +662,9 @@ class Device:
         if param_type == ParamType.STRING and self.__char_p_p_str_bd_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
-            p_end = p_begin + ct.sizeof(l_data)
-            l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_end, _STR_SIZE))
+            p_size = ct.sizeof(l_data)
+            assert p_size % _STR_SIZE == 0
+            l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
         else:
             l_data_proxy = l_data
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
@@ -789,8 +791,9 @@ class Device:
         if param_type == ParamType.STRING and self.__char_p_p_str_ch_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
-            p_end = p_begin + ct.sizeof(l_data)
-            l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_end, _STR_SIZE))
+            p_size = ct.sizeof(l_data)
+            assert p_size % _STR_SIZE == 0
+            l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
         else:
             l_data_proxy = l_data
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
@@ -803,7 +806,7 @@ class Device:
         else:
             return list(l_data)
 
-    def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: Union[str, float, int]) -> None:
+    def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: Optional[Union[str, float, int]]) -> None:
         """
         Binding of CAENHV_SetChParam()
 
@@ -989,10 +992,9 @@ class Device:
             res.maxval = _get('Maxval', ct.c_float).value
             if res.minval is not None and res.maxval is not None:
                 n_enums = int(res.maxval - res.minval)
-                max_string_size = 15  # From library documentation
                 n_allocated_values = n_enums + 1  # In case library tries to set an empty string after the last
-                l_value = _get('Enum', ct.c_char * (max_string_size * n_allocated_values))
-                enum = _utils.str_list_from_n_char_array(l_value, max_string_size, n_enums)
+                l_value = _get('Enum', ct.c_char * (self.MAX_ENUM_NAME * n_allocated_values))
+                enum = _utils.str_list_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums)
                 res.enum = enum
         return res
 
