@@ -7,7 +7,7 @@ description = "Official Python binding for CAEN VMELib, CAEN Comm, CAEN PLU and 
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
-	"Development Status :: 4 - Beta",
+	"Development Status :: 5 - Production/Stable",
 	"Intended Audience :: Science/Research",
 	"License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
 	"Natural Language :: English",
