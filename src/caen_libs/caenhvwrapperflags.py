@@ -1,3 +1,7 @@
+"""
+Tools to decode encoded values of CAEN HV Wrapper
+"""
+
 __author__ = 'Giovanni Cerretani'
 __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
@@ -10,7 +14,7 @@ from typing import Dict, Type
 from caen_libs import caenhvwrapper as hv
 
 
-class _BdStatus_Default(Flag):
+class _BdStatusDefault(Flag):
     """
     Values of ParamType.BDSTATUS, from library documentation
     """
@@ -22,7 +26,7 @@ class _BdStatus_Default(Flag):
     OV_TEMP     = 0x00000020
 
 
-class _BdStatus_N1470(Flag):
+class _BdStatusN1470(Flag):
     """
     Values of ParamType.BDSTATUS for N1470
     """
@@ -35,14 +39,14 @@ class _BdStatus_N1470(Flag):
     HV_CLK_FAIL = 0x00000040
 
 
-class _BdStatus_DT55XXE(Flag):
+class _BdStatusDT55XXE(Flag):
     """
     Values of ParamType.BDSTATUS for DT55XXE
     """
     ALARMED     = 0x00000001
 
 
-class _BdStatus_SMARTHV(Flag):
+class _BdStatusSMARTHV(Flag):
     """
     Values of ParamType.BDSTATUS for SMARTHV
     """
@@ -52,7 +56,7 @@ class _BdStatus_SMARTHV(Flag):
     TEMP_ERR    = 0x00000008
 
 
-class _ChStatus_Default(Flag):
+class _ChStatusDefault(Flag):
     """
     Values of ParamType.CHSTATUS, from library documentation
     """
@@ -70,7 +74,7 @@ class _ChStatus_Default(Flag):
     UNPLUGG     = 0x00000800
 
 
-class _ChStatus_SY4527_SY5527_R6060(Flag):
+class _ChStatusSY4527(Flag):
     """
     Values of ParamType.CHSTATUS for SY4527, SY5527 and R6060
     """
@@ -92,7 +96,7 @@ class _ChStatus_SY4527_SY5527_R6060(Flag):
     TEMP_FAIL   = 0x00008000
 
 
-class _ChStatus_N1470(Flag):
+class _ChStatusN1470(Flag):
     """
     Values of ParamType.CHSTATUS for N1470
     """
@@ -112,7 +116,7 @@ class _ChStatus_N1470(Flag):
     CAL_ERR     = 0x00002000
 
 
-class _ChStatus_V65XX(Flag):
+class _ChStatusV65XX(Flag):
     """
     Values of ParamType.CHSTATUS for V65XX
     """
@@ -132,7 +136,7 @@ class _ChStatus_V65XX(Flag):
     UNCAL       = 0x00002000
 
 
-class _ChStatus_DT55XXE(Flag):
+class _ChStatusDT55XXE(Flag):
     """
     Values of ParamType.CHSTATUS for DT55XXE
     """
@@ -152,7 +156,7 @@ class _ChStatus_DT55XXE(Flag):
     CAL_ERR     = 0x00002000
 
 
-class _ChStatus_SMARTHV(Flag):
+class _ChStatusSMARTHV(Flag):
     """
     Values of ParamType.CHSTATUS for SMARTHV
     """
@@ -173,23 +177,23 @@ class _ChStatus_SMARTHV(Flag):
     LOCK        = 0x00004000
     MAX_V       = 0x00008000
     CAL_ERR     = 0x00010000
- 
+
 
 _BD_STATUS_TYPE: Dict[hv.SystemType, Type[Flag]] = {
-    hv.SystemType.N1470:    _BdStatus_N1470,
-    hv.SystemType.DT55XXE:  _BdStatus_DT55XXE,
-    hv.SystemType.SMARTHV:  _BdStatus_SMARTHV,
+    hv.SystemType.N1470:    _BdStatusN1470,
+    hv.SystemType.DT55XXE:  _BdStatusDT55XXE,
+    hv.SystemType.SMARTHV:  _BdStatusSMARTHV,
 }
- 
+
 
 _CH_STATUS_TYPE: Dict[hv.SystemType, Type[Flag]] = {
-    hv.SystemType.SY4527:   _ChStatus_SY4527_SY5527_R6060,
-    hv.SystemType.SY5527:   _ChStatus_SY4527_SY5527_R6060,
-    hv.SystemType.V65XX:    _ChStatus_V65XX,
-    hv.SystemType.N1470:    _ChStatus_N1470,
-    hv.SystemType.DT55XXE:  _ChStatus_DT55XXE,
-    hv.SystemType.SMARTHV:  _ChStatus_SMARTHV,
-    hv.SystemType.R6060:    _ChStatus_SY4527_SY5527_R6060,
+    hv.SystemType.SY4527:   _ChStatusSY4527,
+    hv.SystemType.SY5527:   _ChStatusSY4527,
+    hv.SystemType.V65XX:    _ChStatusV65XX,
+    hv.SystemType.N1470:    _ChStatusN1470,
+    hv.SystemType.DT55XXE:  _ChStatusDT55XXE,
+    hv.SystemType.SMARTHV:  _ChStatusSMARTHV,
+    hv.SystemType.R6060:    _ChStatusSY4527,
 }
 
 
@@ -197,7 +201,7 @@ def decode_bd_status(system_type: hv.SystemType, value: int) -> str:
     """
     Convert board status to a string
     """
-    status_type = _BD_STATUS_TYPE.get(system_type, _BdStatus_Default)
+    status_type = _BD_STATUS_TYPE.get(system_type, _BdStatusDefault)
     status = status_type(value).name
     return '' if status is None else status
 
@@ -206,6 +210,6 @@ def decode_ch_status(system_type: hv.SystemType, value: int) -> str:
     """
     Convert channel status to a string
     """
-    status_type = _CH_STATUS_TYPE.get(system_type, _ChStatus_Default)
+    status_type = _CH_STATUS_TYPE.get(system_type, _ChStatusDefault)
     status = status_type(value).name
     return '' if status is None else status

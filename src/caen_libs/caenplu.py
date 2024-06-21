@@ -1,3 +1,7 @@
+"""
+Binding of CAEN PLU
+"""
+
 __author__ = 'Giovanni Cerretani'
 __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
@@ -236,12 +240,12 @@ class _Lib(_utils.Lib):
 
 # Library name is platform dependent
 if sys.platform == 'win32':
-    _lib_name = 'CAEN_PLULib'
+    _LIB_NAME = 'CAEN_PLULib'
 else:
-    _lib_name = 'CAEN_PLU'
+    _LIB_NAME = 'CAEN_PLU'
 
 
-lib = _Lib(_lib_name)
+lib = _Lib(_LIB_NAME)
 
 
 def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):
