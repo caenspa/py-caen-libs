@@ -850,7 +850,7 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.subscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
             failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
@@ -867,7 +867,7 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.subscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
             failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
@@ -884,7 +884,7 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.subscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
             failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
@@ -900,7 +900,7 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.unsubscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
             failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
@@ -916,7 +916,7 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.unsubscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
             failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
@@ -932,7 +932,7 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode()
         l_result_codes = (ct.c_char * param_list_len)()
         lib.unsubscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec) for ec in l_result_codes]
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
             failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
