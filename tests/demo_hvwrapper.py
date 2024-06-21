@@ -1,26 +1,39 @@
+"""
+Python demo for CAEN HV Wrapper
+
+
+The demo as the aim to show the user how to work with the CAEN HW Wrapper library in Python.
+"""
+
+__author__ = 'Giovanni Cerretani'
+__copyright__ = 'Copyright (C) 2024 CAEN SpA'
+__license__ = 'MIT-0'
+# SPDX-License-Identifier: MIT-0
+__contact__ = 'https://www.caen.it/'
+
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from caen_libs import caenhvwrapper as hv
 
+# Parse arguments
+parser = ArgumentParser(
+    description=__doc__,
+    formatter_class=ArgumentDefaultsHelpFormatter,
+)
 
+# Shared parser for subcommands
+parser.add_argument('-s', '--systemtype', type=str, help='system type', required=True, choices=tuple(i.name for i in hv.SystemType))
+parser.add_argument('-l', '--linktype', type=str, help='system type', required=True, choices=tuple(i.name for i in hv.LinkType))
+parser.add_argument('-a', '--arg', type=str, help='connection argument (depending on systemtype and linktype)', required=True)
+parser.add_argument('-u', '--username', type=str, help='username', default='')
+parser.add_argument('-p', '--password', type=str, help='password', default='')
+
+args = parser.parse_args()
+
+print('------------------------------------------------------------------------------------')
 print(f'CAEN HV Wrapper binding loaded (lib version {hv.lib.sw_release()})')
+print('------------------------------------------------------------------------------------')
 
-if False:
-    connection_type = hv.SystemType.SY4527
-    link_type = hv.LinkType.TCPIP
-    device = hv.Device.open(connection_type, link_type, '10.105.254.5', 'admin', 'admin')
-elif False:
-    connection_type = hv.SystemType.R6060
-    link_type = hv.LinkType.TCPIP
-    device = hv.Device.open(connection_type, link_type, '10.105.253.140', 'admin', 'admin')
-elif False:
-    connection_type = hv.SystemType.N1470
-    link_type = hv.LinkType.USB_VCP
-    device = hv.Device.open(connection_type, link_type, 'COM4_9600_8_1_0_0', '', '')
-else:
-    connection_type = hv.SystemType.V8100
-    link_type = hv.LinkType.TCPIP
-    device = hv.Device.open(connection_type, link_type, '10.105.254.13', '', '')
-
-with device:
+with hv.Device.open(hv.SystemType[args.systemtype], hv.LinkType[args.linktype], args.arg, args.username, args.password) as device:
 
     slots = device.get_crate_map()  # initialize internal stuff
 
@@ -57,8 +70,8 @@ with device:
                     print('VALUE', param_value)
                     device.subscribe_channel_params(slot, ch, [param_name])
 
-    while True:
+    # Listen for events
+    for _ in range(10):
         evt_list, _ = device.get_event_data()
         for evt in evt_list:
-            if evt.type != hv.EventType.KEEPALIVE:
-                print(evt)
+            print(evt)
