@@ -24,8 +24,8 @@ with device:
 
     slots = device.get_crate_map()  # initialize internal stuff
 
-    #comm_list = device.get_exec_comm_list()
-    #print('EXEC_COMM_LIST', comm_list)
+    comm_list = device.get_exec_comm_list()
+    print('EXEC_COMM_LIST', comm_list)
 
     sys_props = device.get_sys_prop_list()
     for prop_name in sys_props:
@@ -44,7 +44,7 @@ with device:
             param_prop = device.get_bd_param_prop(slot, param_name)
             print('BD_PARAM', slot, param_name, param_prop.type.name)
             if param_prop.mode != hv.ParamMode.WRONLY:
-                param_value = device.get_bd_param([slot, slot], param_name)
+                param_value = device.get_bd_param([slot], param_name)
                 print('VALUE', param_value)
                 device.subscribe_board_params(slot, [param_name])
         for ch in range(board.n_channel):
