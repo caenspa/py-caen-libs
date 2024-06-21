@@ -1,6 +1,7 @@
 __author__ = 'Giovanni Cerretani'
 __copyright__ = 'Copyright (C) 2024 CAEN SpA'
-__license__ = 'LGPL-3.0-or-later'  # SPDX-License-Identifier
+__license__ = 'LGPL-3.0-or-later'
+# SPDX-License-Identifier: LGPL-3.0-or-later
 
 from contextlib import contextmanager
 import ctypes as ct
@@ -660,7 +661,7 @@ class Device:
         l_ecs = (ct.c_int * n_cycles)()
         lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
-            failed_cycles = [i for i, ec in enumerate(l_ecs) if ec]
+            failed_cycles = [(i, ErrorCode(ec).name) for i, ec in enumerate(l_ecs) if ec]
             raise RuntimeError(f'multi_read failed at cycles {failed_cycles}')
         return l_data[:]
 
@@ -676,7 +677,7 @@ class Device:
         l_ecs = (ct.c_int * n_cycles)()
         lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
-            failed_cycles = [i for i, ec in enumerate(l_ecs) if ec]
+            failed_cycles = [(i, ErrorCode(ec).name) for i, ec in enumerate(l_ecs) if ec]
             raise RuntimeError(f'multi_write failed at cycles {failed_cycles}')
 
     def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:

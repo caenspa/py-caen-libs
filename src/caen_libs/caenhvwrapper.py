@@ -1,6 +1,7 @@
 __author__ = 'Giovanni Cerretani'
 __copyright__ = 'Copyright (C) 2024 CAEN SpA'
-__license__ = 'LGPL-3.0-or-later'  # SPDX-License-Identifier
+__license__ = 'LGPL-3.0-or-later'
+# SPDX-License-Identifier: LGPL-3.0-or-later
 
 from contextlib import contextmanager
 import ctypes as ct
@@ -675,7 +676,7 @@ class Device:
             else:
                 return _utils.str_list_from_char(l_data, n_indexes)
         else:
-            return list(l_data)
+            return l_data[:]
 
     def set_bd_param(self, slot_list: Sequence[int], name: str, value: Optional[Union[str, float, int]]) -> None:
         """
@@ -804,7 +805,7 @@ class Device:
             else:
                 return _utils.str_list_from_char(l_data, n_indexes)
         else:
-            return list(l_data)
+            return l_data[:]
 
     def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: Optional[Union[str, float, int]]) -> None:
         """
@@ -851,7 +852,8 @@ class Device:
         lib.subscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
-            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'subscribe_system_params failed at params {failed_params}')
 
     def subscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
@@ -867,7 +869,8 @@ class Device:
         lib.subscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
-            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'subscribe_board_params failed at params {failed_params}')
 
     def subscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
@@ -883,7 +886,8 @@ class Device:
         lib.subscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
-            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'subscribe_channel_params failed at params {failed_params}')
 
     def unsubscribe_system_params(self, param_list: Sequence[str]) -> None:
@@ -897,8 +901,9 @@ class Device:
         l_result_codes = (ct.c_char * param_list_len)()
         lib.unsubscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
-        if any(l_result_codes):
-            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+        if any(result_codes):
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'unsubscribe_system_params failed at params {failed_params}')
 
     def unsubscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
@@ -912,8 +917,9 @@ class Device:
         l_result_codes = (ct.c_char * param_list_len)()
         lib.unsubscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
-        if any(l_result_codes):
-            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+        if any(result_codes):
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'unsubscribe_board_params failed at params {failed_params}')
 
     def unsubscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
@@ -928,7 +934,8 @@ class Device:
         lib.unsubscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         result_codes = [int.from_bytes(ec) for ec in l_result_codes]
         if any(result_codes):
-            failed_params = [i for i, ec in enumerate(result_codes) if ec]
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = [(i, ec) for i, ec in enumerate(result_codes) if ec]
             raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
 
     def get_event_data(self) -> Tuple[List[EventData], SystemStatus]:
@@ -1070,8 +1077,7 @@ class Device:
             # the ctypes object.
             l_value = _socket()
             lib.get_sys_prop(self.handle, b'EventDataSocket', ct.byref(l_value))
-            lib_socket = l_value.value if l_value.value is not None else 0
-            self.__skt_client = socket.socket(fileno=lib_socket)
+            self.__skt_client = socket.socket(fileno=l_value.value)
         else:
             self.__skt_client, addr_info = self.__skt_server.accept()
             if self.__library_event_thread():
