@@ -224,7 +224,7 @@ class _Lib(_utils.Lib):
             ) for i in l_data[:l_num_devs.value]
         )
 
-    def usb_enumerate_serial_number(self) -> List[str]:
+    def usb_enumerate_serial_number(self) -> Tuple[str, ...]:
         """
         Binding of CAEN_PLU_USBEnumerateSerialNumber()
 
@@ -235,7 +235,7 @@ class _Lib(_utils.Lib):
         l_device_sn_length = 512  # Undocumented but, hopefully, long enough
         l_device_sn = ct.create_string_buffer(l_device_sn_length)
         self.__usb_enumerate_serial_number(l_num_devs, l_device_sn, l_device_sn_length)
-        return _utils.str_list_from_char(l_device_sn, l_num_devs.value)
+        return tuple(_utils.str_from_char(l_device_sn, l_num_devs.value))
 
 
 # Library name is platform dependent

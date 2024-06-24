@@ -299,7 +299,7 @@ class ParamProp:
     decimal: Optional[int] = field(default=None)
     onstate: Optional[str] = field(default=None)
     offstate: Optional[str] = field(default=None)
-    enum: Optional[List[str]] = field(default=None)
+    enum: Optional[Tuple[str, ...]] = field(default=None)
 
 
 class Error(RuntimeError):
@@ -604,8 +604,8 @@ class Device:
         g_frmaxl = lib.auto_ptr(ct.c_ubyte)
         with g_nocl as l_nocl, g_ml as l_ml, g_dl as l_dl, g_snl as l_snl, g_frminl as l_frminl, g_frmaxl as l_frmaxl:
             lib.get_crate_map(self.handle, l_nos, l_nocl, l_ml, l_dl, l_snl, l_frminl, l_frmaxl)
-            ml = _utils.str_list_from_char_p(l_ml, l_nos.value)
-            dl = _utils.str_list_from_char_p(l_dl, l_nos.value)
+            ml = tuple(_utils.str_from_char_p(l_ml, l_nos.value))
+            dl = tuple(_utils.str_from_char_p(l_dl, l_nos.value))
             return tuple(
                 Board(
                     ml[i],
@@ -617,7 +617,7 @@ class Device:
             )
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
-    def get_sys_prop_list(self) -> List[str]:
+    def get_sys_prop_list(self) -> Tuple[str, ...]:
         """
         Binding of CAENHV_GetSysPropList()
         """
@@ -625,7 +625,7 @@ class Device:
         g_prop_name_list = lib.auto_ptr(ct.c_char)
         with g_prop_name_list as l_pnl:
             lib.get_sys_prop_list(self.handle, l_num_prop, l_pnl)
-            return _utils.str_list_from_char_p(l_pnl, l_num_prop.value)
+            return tuple(_utils.str_from_char_p(l_pnl, l_num_prop.value))
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
     def get_sys_prop_info(self, name: str) -> SysProp:
@@ -676,9 +676,9 @@ class Device:
         lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data_proxy)
         if param_type == ParamType.STRING:
             if self.__char_p_p_str_bd_param_arg():
-                return _utils.str_list_from_n_char_array(l_data, _STR_SIZE, n_indexes)
+                return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
-                return _utils.str_list_from_char(l_data, n_indexes)
+                return list(_utils.str_from_char(l_data, n_indexes))
         else:
             return l_data[:]
 
@@ -711,14 +711,14 @@ class Device:
         return self.__get_param_prop(slot, name)
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
-    def get_bd_param_info(self, slot: int) -> List[str]:
+    def get_bd_param_info(self, slot: int) -> Tuple[str, ...]:
         """
         Binding of CAENHV_GetBdParamInfo()
         """
         g_value = lib.auto_ptr(ct.c_char)
         with g_value as l_value:
             lib.get_bd_param_info(self.handle, slot, l_value)
-            return _utils.str_list_from_char_array(l_value.contents, self.MAX_PARAM_NAME)
+            return tuple(_utils.str_from_char_array(l_value.contents, self.MAX_PARAM_NAME))
 
     def test_bd_presence(self, slot: int) -> Board:
         """
@@ -749,7 +749,7 @@ class Device:
         return self.__get_param_prop(slot, name, channel)
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
-    def get_ch_param_info(self, slot: int, channel: int) -> List[str]:
+    def get_ch_param_info(self, slot: int, channel: int) -> Tuple[str, ...]:
         """
         Binding of CAENHV_GetChParamInfo()
         """
@@ -757,10 +757,9 @@ class Device:
         with g_value as l_value:
             l_size = ct.c_int()
             lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
-            res = _utils.str_list_from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value)
-            return res
+            return tuple(_utils.str_from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value))
 
-    def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> List[str]:
+    def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> Tuple[str, ...]:
         """
         Binding of CAENHV_GetChName()
         """
@@ -771,7 +770,7 @@ class Device:
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
         l_value = (ct.c_char * (self.MAX_CH_NAME * n_allocated_values))()
         lib.get_ch_name(self.handle, slot, n_indexes, l_index_list, l_value)
-        return _utils.str_list_from_n_char_array(l_value, self.MAX_CH_NAME, n_indexes)
+        return tuple(_utils.str_from_n_char_array(l_value, self.MAX_CH_NAME, n_indexes))
 
     def set_ch_name(self, slot: int, channel_list: Sequence[int], name: str) -> None:
         """
@@ -805,9 +804,9 @@ class Device:
         lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data_proxy)
         if param_type == ParamType.STRING:
             if self.__char_p_p_str_ch_param_arg():
-                return _utils.str_list_from_n_char_array(l_data, _STR_SIZE, n_indexes)
+                return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
-                return _utils.str_list_from_char(l_data, n_indexes)
+                return list(_utils.str_from_char(l_data, n_indexes))
         else:
             return l_data[:]
 
@@ -827,7 +826,7 @@ class Device:
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager)
-    def get_exec_comm_list(self) -> List[str]:
+    def get_exec_comm_list(self) -> Tuple[str, ...]:
         """
         Binding of CAENHV_GetExecCommList()
         """
@@ -835,7 +834,7 @@ class Device:
         g_comm_name_list = lib.auto_ptr(ct.c_char)
         with g_comm_name_list as l_cnl:
             lib.get_exec_comm_list(self.handle, l_num_comm, l_cnl)
-            return _utils.str_list_from_char_p(l_cnl, l_num_comm.value)
+            return tuple(_utils.str_from_char_p(l_cnl, l_num_comm.value))
 
     def exec_comm(self, name: str) -> None:
         """
@@ -1008,7 +1007,7 @@ class Device:
                 n_enums = int(res.maxval - res.minval)
                 n_allocated_values = n_enums + 1  # In case library tries to set an empty string after the last
                 l_value = _get('Enum', ct.c_char * (self.MAX_ENUM_NAME * n_allocated_values))
-                enum = _utils.str_list_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums)
+                enum = tuple(_utils.str_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
                 res.enum = enum
         return res
 
