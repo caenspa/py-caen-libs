@@ -197,9 +197,9 @@ def str_from_char(data: Union[ct.c_char, ct.Array], n_strings: int) -> Iterator[
     """
     data_addr = ct.addressof(data)
     for _ in range(n_strings):
-        value = ct.string_at(data_addr).decode()
+        value = ct.string_at(data_addr)
         data_addr += len(value) + 1
-        yield value
+        yield value.decode()
 
 
 def str_from_char_p(data: ct._Pointer, n_strings: int) -> Iterator[str]:
@@ -219,11 +219,11 @@ def str_from_char_array(data: Union[ct.c_char, ct.Array], string_size: int) -> I
     """
     data_addr = ct.addressof(data)
     while True:
-        value = ct.string_at(data_addr).decode()
+        value = ct.string_at(data_addr)
         if len(value) == 0:
             return
         data_addr += string_size
-        yield value
+        yield value.decode()
 
 
 def str_from_n_char_array(data: Union[ct.c_char, ct.Array], string_size: int, n_strings: int) -> Iterator[str]:
@@ -234,9 +234,9 @@ def str_from_n_char_array(data: Union[ct.c_char, ct.Array], string_size: int, n_
     """
     data_addr = ct.addressof(data)
     for _ in range(n_strings):
-        value = ct.string_at(data_addr).decode()
+        value = ct.string_at(data_addr)
         data_addr += string_size
-        yield value
+        yield value.decode()
 
 
 def str_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int) -> Iterator[str]:

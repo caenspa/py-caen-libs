@@ -12,7 +12,7 @@ import ctypes as ct
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 import sys
-from typing import Callable, List, Tuple, Type, TypeVar, Union
+from typing import Callable, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
 
