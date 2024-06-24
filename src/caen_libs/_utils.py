@@ -195,10 +195,10 @@ def str_from_char(data: Union[ct.c_char, ct.Array], n_strings: int) -> Iterator[
 
     Note: ct.Array is not subscriptable on Python 3.8, could be ct.Array[ct.c_char]
     """
-    offset = 0
+    data_addr = ct.addressof(data)
     for _ in range(n_strings):
-        value = ct.string_at(ct.addressof(data) + offset).decode()
-        offset += len(value) + 1
+        value = ct.string_at(data_addr).decode()
+        data_addr += len(value) + 1
         yield value
 
 
@@ -217,12 +217,12 @@ def str_from_char_array(data: Union[ct.c_char, ct.Array], string_size: int) -> I
     Size is deduced by the first zero size string found.
     For ct.c_char and arrays of it.
     """
-    offset = 0
+    data_addr = ct.addressof(data)
     while True:
-        value = ct.string_at(ct.addressof(data) + offset).decode()
+        value = ct.string_at(data_addr).decode()
         if len(value) == 0:
             return
-        offset += string_size
+        data_addr += string_size
         yield value
 
 
@@ -232,10 +232,10 @@ def str_from_n_char_array(data: Union[ct.c_char, ct.Array], string_size: int, n_
     Size is passed as parameter.
     For ct.c_char and arrays of it.
     """
-    offset = 0
+    data_addr = ct.addressof(data)
     for _ in range(n_strings):
-        value = ct.string_at(ct.addressof(data) + offset).decode()
-        offset += string_size
+        value = ct.string_at(data_addr).decode()
+        data_addr += string_size
         yield value
 
 

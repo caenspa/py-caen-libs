@@ -15,7 +15,7 @@ from enum import IntEnum, unique
 import os
 import socket
 import sys
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
 
@@ -499,14 +499,14 @@ class _Lib(_utils.Lib):
             self.__free(value)
 
     @contextmanager
-    def evt_data_auto_ptr(self, pointer_type: Type):
+    def evt_data_auto_ptr(self):
         """
         Context manager to auto free event data on scope exit
 
         The returned pointer is initialized to NULL to avoid error
         when freeing, in case callee function does not set the pointer.
         """
-        value = _P(pointer_type)()
+        value = _P(_EventDataRaw)()
         assert bool(value) is False  # Must be NULL
         try:
             yield value
@@ -856,7 +856,7 @@ class Device:
         result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = [{i: ec} for i, ec in enumerate(result_codes) if ec]
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'subscribe_system_params failed at params {failed_params}')
 
     def subscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
@@ -873,7 +873,7 @@ class Device:
         result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = [{i: ec} for i, ec in enumerate(result_codes) if ec]
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'subscribe_board_params failed at params {failed_params}')
 
     def subscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
@@ -890,7 +890,7 @@ class Device:
         result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = [{i: ec} for i, ec in enumerate(result_codes) if ec]
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'subscribe_channel_params failed at params {failed_params}')
 
     def unsubscribe_system_params(self, param_list: Sequence[str]) -> None:
@@ -906,7 +906,7 @@ class Device:
         result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = [{i: ec} for i, ec in enumerate(result_codes) if ec]
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'unsubscribe_system_params failed at params {failed_params}')
 
     def unsubscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
@@ -922,7 +922,7 @@ class Device:
         result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = [{i: ec} for i, ec in enumerate(result_codes) if ec]
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'unsubscribe_board_params failed at params {failed_params}')
 
     def unsubscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
@@ -938,25 +938,21 @@ class Device:
         result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = [{i: ec} for i, ec in enumerate(result_codes) if ec]
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
 
-    def get_event_data(self) -> Tuple[List[EventData], SystemStatus]:
+    def get_event_data(self) -> Tuple[Tuple[EventData, ...], SystemStatus]:
         """
         Binding of CAENHV_GetEventData()
         """
         self.__init_events_client()
         assert self.__skt_client is not None
         l_system_status = _SystemStatusRaw()
-        g_event_data = lib.evt_data_auto_ptr(_EventDataRaw)
+        g_event_data = lib.evt_data_auto_ptr()
         l_data_number = ct.c_uint()
         with g_event_data as l_ed:
             lib.get_event_data(self.__skt_client.fileno(), l_system_status, l_ed, l_data_number)
-            events = []
-            for i in range(l_data_number.value):
-                event = self.__decode_event_data(l_ed[i])
-                if event is not None:
-                    events.append(event)
+            events = tuple(self.__decode_event_data(l_ed, l_data_number.value))
         system_status = EventStatus(l_system_status.System)
         board_status = tuple(EventStatus(i) for i in l_system_status.Board)
         status = SystemStatus(system_status, board_status)
@@ -1099,36 +1095,39 @@ class Device:
                     arg.extend(char)
                 assert self.arg == arg.decode()
 
-    def __decode_event_data(self, ed: _EventDataRaw) -> Optional[EventData]:
-        item_id = ed.ItemID.decode()
-        if not item_id and self.__library_event_thread():
-            # There could be empty events, expecially from library event thread, to be ignored.
-            return None
-        event_type = EventType(ed.Type)
-        system_handle = ed.SystemHandle
-        board_index = ed.BoardIndex
-        channel_index = ed.ChannelIndex
-        assert system_handle == self.handle  # should always be the same
-        if event_type != EventType.PARAMETER:
-            return EventData(event_type, item_id, board_index, channel_index)
-        if board_index == -1:
-            # System prop
-            prop_type = self.get_sys_prop_info(item_id).type
-            value = _SYS_PROP_TYPE_EVENT_ARG[prop_type](ed.Value)
-        else:
-            if channel_index == -1:
-                # Board param
-                param_type = self.__get_param_type(board_index, item_id)
+    def __decode_event_data(self, event_data: ct._Pointer, n_events: int) -> Iterator[EventData]:
+        for i in range(n_events):
+            event: _EventDataRaw = event_data[i]
+            item_id = event.ItemID.decode()
+            if not item_id and self.__library_event_thread():
+                # There could be empty events, expecially from library event thread, to be ignored.
+                continue
+            event_type = EventType(event.Type)
+            system_handle = event.SystemHandle
+            board_index = event.BoardIndex
+            channel_index = event.ChannelIndex
+            assert system_handle == self.handle  # should always be the same
+            if event_type != EventType.PARAMETER:
+                yield EventData(event_type, item_id, board_index, channel_index)
+            if board_index == -1:
+                # System prop
+                prop_type = self.get_sys_prop_info(item_id).type
+                value = _SYS_PROP_TYPE_EVENT_ARG[prop_type](event.Value)
             else:
-                # Channel param
-                if item_id == 'Name':
-                    # Workaround for Name: even if not being a real channel parameter, i.e.
-                    # get_ch_param_prop does not work, changes are sent as events of type PARAMETER.
-                    param_type = ParamType.STRING
+                if channel_index == -1:
+                    # Board param
+                    param_type = self.__get_param_type(board_index, item_id)
                 else:
-                    param_type = self.__get_param_type(board_index, item_id, channel_index)
-            value = _PARAM_TYPE_EVENT_ARG[param_type](ed.Value)
-        return EventData(event_type, item_id, board_index, channel_index, value)
+                    # Channel param
+                    if item_id == 'Name':
+                        # Workaround for Name: even if not being a real channel parameter, i.e.
+                        # get_ch_param_prop does not work, changes are sent as events of type
+                        # PARAMETER.
+                        param_type = ParamType.STRING
+                    else:
+                        param_type = self.__get_param_type(board_index, item_id, channel_index)
+                value = _PARAM_TYPE_EVENT_ARG[param_type](event.Value)
+            yield EventData(event_type, item_id, board_index, channel_index, value)
 
     # Python utilities
 
