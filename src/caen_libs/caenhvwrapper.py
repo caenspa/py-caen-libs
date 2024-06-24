@@ -972,7 +972,10 @@ class Device:
     # Private utilities
 
     def __get_param_prop(self, slot: int, name: str, channel: Optional[int] = None) -> ParamProp:
-        # Cannot be cached since minval/maxval may depend on the value of other parameters
+        """
+        Get all parameter properties.
+        Cannot be cached since minval/maxval may depend on the value of other parameters.
+        """
         def _get(prop_name: str, prop_type: Type):
             l_value = prop_type()
             try:
@@ -1011,7 +1014,7 @@ class Device:
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
-        """Simplified version used internally to retrieve just param type"""
+        """Simplified version of __get_param_prop used internally to retrieve just param type."""
         l_uint = ct.c_uint()
         if channel is None:
             lib.get_bd_param_prop(self.handle, slot, name.encode(), b'Type', ct.byref(l_uint))
@@ -1020,7 +1023,7 @@ class Device:
         return ParamType(l_uint.value)
 
     def __check_events_support(self) -> None:
-        """SY1524/ST2527 have a legacy version of events not supported by this binding"""
+        """SY1524/SY2527 have a legacy version of events not supported by this binding"""
         if self.system_type in (SystemType.SY1527, SystemType.SY2527):
             raise RuntimeError('Legacy events not supported by this binding.')
 
