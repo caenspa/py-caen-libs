@@ -3,7 +3,7 @@
 Python demo for CAEN PLULib
 
 
-The demo as the aim to show the user how to work with the CAEN PLULib in Python.
+The demo aims to show the user how to work with the CAEN PLULib in Python.
 """
 
 __author__ = 'Matteo Bianchini'

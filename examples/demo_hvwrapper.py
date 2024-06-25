@@ -3,7 +3,7 @@
 Python demo for CAEN HV Wrapper
 
 
-The demo as the aim to show the user how to work with the CAEN HW Wrapper library in Python.
+The demo aims to show the user how to work with the CAEN HW Wrapper library in Python.
 """
 
 __author__ = 'Giovanni Cerretani'
