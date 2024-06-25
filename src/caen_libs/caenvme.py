@@ -1,3 +1,7 @@
+"""
+Binding of CAEN VMELib
+"""
+
 __author__ = 'Giovanni Cerretani'
 __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
@@ -150,8 +154,8 @@ class AddressModifiers(IntEnum):
     A64_BLT      = 0x03  # A64 block transfer @warning Not yet implemented
     A64_MBLT     = 0x00  # A64 64-bit block transfer @warning Not yet implem
     A64_LCK      = 0x04  # A64 lock command @warning Not yet implemented
-    A3U_2eVME    = 0x21  # 2eVME for 3U modules @warning Not yet implemented
-    A6U_2eVME    = 0x20  # 2eVME for 6U modules @warning Not yet implemented
+    A3U_2EVME    = 0x21  # 2eVME for 3U modules @warning Not yet implemented
+    A6U_2EVME    = 0x20  # 2eVME for 6U modules @warning Not yet implemented
 
 
 @unique
@@ -231,9 +235,9 @@ class IOPolarity(IntEnum):
 
 
 if sys.platform == 'win32':
-    _CAEN_BOOL = ct.c_short
+    _CaenBool = ct.c_short  # CAEN_BOOL
 else:
-    _CAEN_BOOL = ct.c_int
+    _CaenBool = ct.c_int  # CAEN_BOOL
 
 
 class IRQLevels(Flag):
@@ -255,17 +259,17 @@ class _DisplayRaw(ct.Structure):
         ('Data', ct.c_long),
         ('AM', ct.c_long),
         ('IRQ', ct.c_long),
-        ('DS0', _CAEN_BOOL),
-        ('DS1', _CAEN_BOOL),
-        ('AS', _CAEN_BOOL),
-        ('IACK', _CAEN_BOOL),
-        ('WRITE', _CAEN_BOOL),
-        ('LWORD', _CAEN_BOOL),
-        ('DTACK', _CAEN_BOOL),
-        ('BERR', _CAEN_BOOL),
-        ('SYSRES', _CAEN_BOOL),
-        ('BR', _CAEN_BOOL),
-        ('BG', _CAEN_BOOL),
+        ('DS0', _CaenBool),
+        ('DS1', _CaenBool),
+        ('AS', _CaenBool),
+        ('IACK', _CaenBool),
+        ('WRITE', _CaenBool),
+        ('LWORD', _CaenBool),
+        ('DTACK', _CaenBool),
+        ('BERR', _CaenBool),
+        ('SYSRES', _CaenBool),
+        ('BR', _CaenBool),
+        ('BG', _CaenBool),
     ]
 
 
@@ -534,12 +538,12 @@ class _Lib(_utils.Lib):
 
 # Library name is platform dependent
 if sys.platform == 'win32':
-    _lib_name = 'CAENVMElib'
+    _LIB_NAME = 'CAENVMElib'
 else:
-    _lib_name = 'CAENVME'
+    _LIB_NAME = 'CAENVME'
 
 
-lib = _Lib(_lib_name)
+lib = _Lib(_LIB_NAME)
 
 
 def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
@@ -661,7 +665,7 @@ class Device:
         l_ecs = (ct.c_int * n_cycles)()
         lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
-            failed_cycles = [{i: ErrorCode(ec).name} for i, ec in enumerate(l_ecs) if ec]
+            failed_cycles = {i: ErrorCode(ec).name for i, ec in enumerate(l_ecs) if ec}
             raise RuntimeError(f'multi_read failed at cycles {failed_cycles}')
         return l_data[:]
 
@@ -677,7 +681,7 @@ class Device:
         l_ecs = (ct.c_int * n_cycles)()
         lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
-            failed_cycles = [{i: ErrorCode(ec).name} for i, ec in enumerate(l_ecs) if ec]
+            failed_cycles = {i: ErrorCode(ec).name for i, ec in enumerate(l_ecs) if ec}
             raise RuntimeError(f'multi_write failed at cycles {failed_cycles}')
 
     def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:

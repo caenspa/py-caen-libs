@@ -6,7 +6,7 @@ __license__ = 'LGPL-3.0-or-later'
 import ctypes as ct
 from functools import lru_cache, wraps, _lru_cache_wrapper
 import sys
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Iterator, List, Optional, Tuple, Union
 from weakref import ref, ReferenceType
 
 
@@ -136,10 +136,8 @@ def lru_cache_method(cache_manager: Optional[CacheManager] = None, maxsize: int 
         # ReferenceType is not subscriptable on Python <= 3.8
         def cached_method(self_ref: ReferenceType, *args, **kwargs):
             self = self_ref()
-            if self is not None:
-                return method(self, *args, **kwargs)
-            # self cannot be None: this function is always called by inner()
-            assert False, 'unreachable'
+            assert self is not None  # this function is always called by inner()
+            return method(self, *args, **kwargs)
 
         @wraps(method)
         def inner(self, *args, **kwargs):
@@ -170,10 +168,8 @@ def lru_cache_clear(cache_manager: CacheManager):
         # ReferenceType is not subscriptable on Python <= 3.8
         def not_cached_method(self_ref: ReferenceType, *args, **kwargs):
             self = self_ref()
-            if self is not None:
-                return method(self, *args, **kwargs)
-            # self cannot be None: this function is always called by inner()
-            assert False, 'unreachable'
+            assert self is not None  # this function is always called by inner()
+            return method(self, *args, **kwargs)
 
         @wraps(method)
         def inner(self, *args, **kwargs):
@@ -187,7 +183,7 @@ def lru_cache_clear(cache_manager: CacheManager):
     return wrapper
 
 
-def str_list_from_char(data: Union[ct.c_char, ct.Array], n_strings: int) -> List[str]:
+def str_from_char(data: Union[ct.c_char, ct.Array], n_strings: int) -> Iterator[str]:
     """
     Split a buffer into a list of N string.
     Strings are separated by the null terminator.
@@ -195,57 +191,54 @@ def str_list_from_char(data: Union[ct.c_char, ct.Array], n_strings: int) -> List
 
     Note: ct.Array is not subscriptable on Python 3.8, could be ct.Array[ct.c_char]
     """
-    res: List[str] = [None] * n_strings  # type: ignore
-    offset = 0
-    for i in range(n_strings):
-        value = ct.string_at(ct.addressof(data) + offset).decode()
-        offset += len(value) + 1
-        res[i] = value
-    return res
+    data_addr = ct.addressof(data)
+    for _ in range(n_strings):
+        value = ct.string_at(data_addr)
+        data_addr += len(value) + 1
+        yield value.decode()
 
 
-def str_list_from_char_p(data: ct._Pointer, n_strings: int) -> List[str]:
+def str_from_char_p(data: ct._Pointer, n_strings: int) -> Iterator[str]:
     """
-    Same of _str_list_from_char.
+    Same of _str_from_char.
     For pointers to ct.c_char, to avoid dereferences in case of zero size.
     """
-    return str_list_from_char(data.contents, n_strings) if n_strings != 0 else []
+    if n_strings != 0:
+        yield from str_from_char(data.contents, n_strings)
 
 
-def str_list_from_char_array(data: Union[ct.c_char, ct.Array], string_size: int) -> List[str]:
+def str_from_char_array(data: Union[ct.c_char, ct.Array], string_size: int) -> Iterator[str]:
     """
     Split a buffer of fixed size string.
     Size is deduced by the first zero size string found.
     For ct.c_char and arrays of it.
     """
-    res: List[str] = []
-    offset = 0
+    data_addr = ct.addressof(data)
     while True:
-        value = ct.string_at(ct.addressof(data) + offset).decode()
+        value = ct.string_at(data_addr)
         if len(value) == 0:
-            return res
-        offset += string_size
-        res.append(value)
+            return
+        data_addr += string_size
+        yield value.decode()
 
 
-def str_list_from_n_char_array(data: Union[ct.c_char, ct.Array], string_size: int, n_strings: int) -> List[str]:
+def str_from_n_char_array(data: Union[ct.c_char, ct.Array], string_size: int, n_strings: int) -> Iterator[str]:
     """
     Split a buffer of fixed size string.
     Size is passed as parameter.
     For ct.c_char and arrays of it.
     """
-    res: List[str] = [None] * n_strings  # type: ignore
-    offset = 0
-    for i in range(n_strings):
-        value = ct.string_at(ct.addressof(data) + offset).decode()
-        offset += string_size
-        res[i] = value
-    return res
+    data_addr = ct.addressof(data)
+    for _ in range(n_strings):
+        value = ct.string_at(data_addr)
+        data_addr += string_size
+        yield value.decode()
 
 
-def str_list_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int) -> List[str]:
+def str_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int) -> Iterator[str]:
     """
-    Same of _str_list_from_n_char_array.
+    Same of _str_from_n_char_array.
     For pointers to ct.c_char, to avoid dereferences in case of zero size.
     """
-    return str_list_from_n_char_array(data.contents, string_size, n_strings) if n_strings != 0 else []
+    if n_strings != 0:
+        yield from str_from_n_char_array(data.contents, string_size, n_strings)

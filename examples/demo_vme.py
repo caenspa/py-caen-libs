@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 """
 Python demo for CAEN VMELib
 
 
-The demo as the aim to show the user how to work with the CAEN VMELib library in Python.
+The demo aims to show the user how to work with the CAEN VMELib library in Python.
 The user can cofigure the parameter for the VME operation, and then launch it.
 The demo is able to perform a VME Read Cycle, a VME Write Cycle and a VME BLT Read Cycle.
 """

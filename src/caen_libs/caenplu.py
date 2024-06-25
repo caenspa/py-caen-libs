@@ -1,3 +1,7 @@
+"""
+Binding of CAEN PLU
+"""
+
 __author__ = 'Giovanni Cerretani'
 __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
@@ -8,7 +12,7 @@ import ctypes as ct
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 import sys
-from typing import Callable, List, Tuple, Type, TypeVar, Union
+from typing import Callable, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
 
@@ -220,7 +224,7 @@ class _Lib(_utils.Lib):
             ) for i in l_data[:l_num_devs.value]
         )
 
-    def usb_enumerate_serial_number(self) -> List[str]:
+    def usb_enumerate_serial_number(self) -> Tuple[str, ...]:
         """
         Binding of CAEN_PLU_USBEnumerateSerialNumber()
 
@@ -231,17 +235,17 @@ class _Lib(_utils.Lib):
         l_device_sn_length = 512  # Undocumented but, hopefully, long enough
         l_device_sn = ct.create_string_buffer(l_device_sn_length)
         self.__usb_enumerate_serial_number(l_num_devs, l_device_sn, l_device_sn_length)
-        return _utils.str_list_from_char(l_device_sn, l_num_devs.value)
+        return tuple(_utils.str_from_char(l_device_sn, l_num_devs.value))
 
 
 # Library name is platform dependent
 if sys.platform == 'win32':
-    _lib_name = 'CAEN_PLULib'
+    _LIB_NAME = 'CAEN_PLULib'
 else:
-    _lib_name = 'CAEN_PLU'
+    _LIB_NAME = 'CAEN_PLU'
 
 
-lib = _Lib(_lib_name)
+lib = _Lib(_LIB_NAME)
 
 
 def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):

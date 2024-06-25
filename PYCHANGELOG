@@ -11,7 +11,24 @@
 -----------------------------------------------------------------------------
 
 
+v1.0.1 (25/06/2024)
+-------------------
+
+Changes:
+- On caenhvwrapper and caenplu some functions now return tuples instead of
+    lists.
+- Examples moved to examples folder.
+- Renamed some (unused) values on caenvme.AddressModifiers.
+
+New features:
+- Update `[project.urls]` on pyproject.tolm, with new public repositories
+    on github.com.
+
+Fixes:
+- Fix some typos.
+
+
 v1.0.0 (21/06/2024)
 -------------------
 
-First public release
+First public release.
