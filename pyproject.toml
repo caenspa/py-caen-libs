@@ -32,3 +32,5 @@ version = {attr = "caen_libs.__version__"}
 [project.urls]
 Homepage = "https://www.caen.it"
 Support = "https://www.caen.it/mycaen/support/"
+Source = "https://github.com/caenspa/py-caen-libs"
+Changelog  = "https://github.com/caenspa/py-caen-libs/blob/main/PYCHANGELOG"
