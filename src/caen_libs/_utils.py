@@ -136,10 +136,8 @@ def lru_cache_method(cache_manager: Optional[CacheManager] = None, maxsize: int 
         # ReferenceType is not subscriptable on Python <= 3.8
         def cached_method(self_ref: ReferenceType, *args, **kwargs):
             self = self_ref()
-            if self is not None:
-                return method(self, *args, **kwargs)
-            # self cannot be None: this function is always called by inner()
-            assert False, 'unreachable'
+            assert self is not None  # this function is always called by inner()
+            return method(self, *args, **kwargs)
 
         @wraps(method)
         def inner(self, *args, **kwargs):
@@ -170,10 +168,8 @@ def lru_cache_clear(cache_manager: CacheManager):
         # ReferenceType is not subscriptable on Python <= 3.8
         def not_cached_method(self_ref: ReferenceType, *args, **kwargs):
             self = self_ref()
-            if self is not None:
-                return method(self, *args, **kwargs)
-            # self cannot be None: this function is always called by inner()
-            assert False, 'unreachable'
+            assert self is not None  # this function is always called by inner()
+            return method(self, *args, **kwargs)
 
         @wraps(method)
         def inner(self, *args, **kwargs):

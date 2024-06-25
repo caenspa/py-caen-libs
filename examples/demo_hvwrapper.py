@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Python demo for CAEN HV Wrapper
 
