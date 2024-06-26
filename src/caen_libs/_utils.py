@@ -113,7 +113,7 @@ class CacheManager(List[_lru_cache_wrapper]):
 
 
 # Typing support for decorators comes with Python 3.10.
-# Omitted because very verbose. See caen-felib for reference.
+# Omitted because very verbose.
 
 
 def lru_cache_method(cache_manager: Optional[CacheManager] = None, maxsize: int = 128, typed: bool = False):
