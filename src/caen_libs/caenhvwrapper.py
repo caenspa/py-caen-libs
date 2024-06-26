@@ -840,7 +840,7 @@ class Device:
         """
         Binding of CAENHV_ExecComm()
         """
-        lib.get_exec_comm_list(self.handle, name.encode())
+        lib.exec_comm(self.handle, name.encode())
 
     def subscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
