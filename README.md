@@ -1,33 +1,39 @@
-# caen_libs
+# caen-libs
 Official Python binding for CAEN VMELib, CAEN Comm, CAEN PLU and CAEN HV Wrapper libraries.
 
 ## Install
 You need to install the latest version of the libraries from [the CAEN website](https://www.caen.it/subfamilies/software-libraries/).
 
-Then, install this module and have fun.
+Then, install this module and have fun:
+
+    pip install caen-libs
 
 ## Examples
-This example show the simplest way to read some registers using the CAEN Comm:
+Few examples may be found on the [`examples`](https://github.com/caenspa/py-caen-libs/tree/main/examples) folder of the project repository.
 
-```python
-from caen_libs import caencomm as comm
+## Copyright notice
+Copyright &copy; 2024 CAEN SpA
 
+The caen-libs module is free software; you can redistribute it and/or
+modify it under the terms of the **GNU Lesser General Public
+License** as published by the Free Software Foundation; either
+version 3 of the License, or (at your option) any later version.
 
-print(f'CAEN Comm binding loaded (lib version {comm.lib.sw_release()})')
+The caen-libs module is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+Lesser General Public License for more details.
 
-conn_type = comm.ConnectionType.USB
-link_number = 0
-conet_node = 0
-vme_ba = 0
+You should have received a copy of the GNU Lesser General Public License along
+with the caen-libs module; if not, see https://www.gnu.org/licenses/.
 
-with comm.Device.open(conn_type, link_number, conet_node, vme_ba) as device:
-    # Assuming to be connected to a CAEN Digitizer 1.0
-    serial_byte_1 = device.read32(0xF080) & 0xFF
-    serial_byte_0 = device.read32(0xF084) & 0xFF
-    serial_number = (serial_byte_1 << 8) | serial_byte_0
-    print(f'Connected to device with serial number {serial_number}')
-```
+The license applies to the caen-libs module source as a whole, though
+individual source files can have a different license which is required to be
+compatible with the GNU Lesser General Public Library, version 3.
 
 ## References
-Requirements and documentation can be found at 
-https://www.caen.it/subfamilies/software-libraries/.
+Requirements and documentation can be found at https://www.caen.it/subfamilies/software-libraries/.
+
+## Support
+For technical support, go to https://www.caen.it/mycaen/support/ (login and
+MyCAEN+ account required).

@@ -66,28 +66,40 @@ class ConnectionType(IntEnum):
     USB_V4718 = 7
 
 
-class BoardInfo(ct.Structure):
+class _BoardInfoRaw(ct.Structure):
     """
     Binding of ::CAEN_DGTZ_BoardInfo_t
     """
     _fields_ = [
-        ('model_name', ct.c_char * 12),
-        ('model', ct.c_uint32),
-        ('channels', ct.c_uint32),
-        ('form_factor', ct.c_uint32),
-        ('family_code', ct.c_uint32),
-        ('roc_firmware_rel', ct.c_char * 20),
-        ('amc_firmware_rel', ct.c_char * 40),
-        ('serial_number', ct.c_uint32),
-        ('mezzanine_ser_num', (ct.c_char * 4) * 8),
-        ('pcb_revision', ct.c_uint32),
-        ('adc_n_bits', ct.c_uint32),
-        ('sam_correction_data_loaded', ct.c_uint32),
-        ('comm_handle', ct.c_int),
-        ('vme_handle', ct.c_int),
-        ('license', ct.c_char * 17),
+        ('ModelName', ct.c_char * 12),
+        ('Model', ct.c_uint32),
+        ('Channels', ct.c_uint32),
+        ('FormFactor', ct.c_uint32),
+        ('FamilyCode', ct.c_uint32),
+        ('ROC_FirmwareRel', ct.c_char * 20),
+        ('AMC_FirmwareRel', ct.c_char * 40),
+        ('SerialNumber', ct.c_uint32),
+        ('MezzanineSerNum', (ct.c_char * 4) * 8),
+        ('PCB_Revision', ct.c_uint32),
+        ('ADC_NBits', ct.c_uint32),
+        ('SAMCorrectionDataLoaded', ct.c_uint32),
+        ('CommHandle', ct.c_int),
+        ('VMEHandle', ct.c_int),
+        ('License', ct.c_char * 17),
     ]
 
+class _EventInfoRaw(ct.Structure):
+    """
+    Binding of ::CAEN_DGTZ_EventInfo_t
+    """
+    _fields_ = [
+        ('EventSize', ct.c_uint32),
+        ('BoardId', ct.c_uint32),
+        ('Pattern', ct.c_uint32),
+        ('ChannelMask', ct.c_uint32),
+        ('EventCounter', ct.c_uint32),
+        ('TriggerTimeTag', ct.c_uint32),
+    ]
 
 @unique
 class EnaDis(IntEnum):
@@ -134,6 +146,17 @@ class Error(RuntimeError):
         super().__init__(f'{self.func} failed: {self.code.name}')
 
 
+# Utility definitions
+_P = ct.POINTER
+_c_char_p = _P(ct.c_char)  # ct.c_char_p is not fine due to its own memory management
+_c_char_p_p = _P(_c_char_p)
+_c_int_p = _P(ct.c_int)
+_c_uint8_p = _P(ct.c_uint8)
+_c_int32_p = _P(ct.c_int32)
+_c_uint32_p = _P(ct.c_uint32)
+_c_void_p_p = _P(ct.c_void_p)
+
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -143,80 +166,84 @@ class _Lib(_utils.Lib):
     def __load_api(self) -> None:
         # Load API not related to devices
         self.__sw_release = self.__get('SWRelease', ct.c_char_p)
+        self.__free_readout_buffer = self.__get('FreeReadoutBuffer', _c_char_p_p)
 
         # Load API
-        self.open_digitizer = self.__get('OpenDigitizer', ct.c_int, ct.c_int, ct.c_int, ct.c_uint32, ct.POINTER(ct.c_int))
-        self.open_digitizer2 = self.__get('OpenDigitizer2', ct.c_int, ct.c_void_p, ct.c_int, ct.c_uint32, ct.POINTER(ct.c_int))
+        self.open_digitizer = self.__get('OpenDigitizer', ct.c_int, ct.c_int, ct.c_int, ct.c_uint32, _c_int_p)
+        self.open_digitizer2 = self.__get('OpenDigitizer2', ct.c_int, ct.c_void_p, ct.c_int, ct.c_uint32, _c_int_p)
         self.close_digitizer = self.__get('CloseDigitizer', ct.c_int)
         self.write_register = self.__get('WriteRegister', ct.c_int, ct.c_uint32, ct.c_uint32)
         self.read_register = self.__get('ReadRegister', ct.c_int, ct.c_uint32, ct.c_uint16)
-        self.get_info = self.__get('GetInfo', ct.c_int, ct.POINTER(BoardInfo))
+        self.get_info = self.__get('GetInfo', ct.c_int, _P(_BoardInfoRaw))
         self.reset = self.__get('Reset', ct.c_int)
         self.clear_data = self.__get('ClearData', ct.c_int)
         self.send_sw_trigger = self.__get('SendSWtrigger', ct.c_int)
         self.sw_start_acquisition = self.__get('SWStartAcquisition', ct.c_int)
         self.sw_stop_acquisition = self.__get('SWStopAcquisition', ct.c_int)
         self.set_interrupt_config = self.__get('SetInterruptConfig', ct.c_int, ct.c_int, ct.c_uint8, ct.c_uint32, ct.c_uint16, ct.c_int)
-        self.get_interrupt_config = self.__get('GetInterruptConfig', ct.c_int, ct.POINTER(ct.c_int), ct.POINTER(ct.c_uint8), ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_uint16), ct.POINTER(ct.c_int))
+        self.get_interrupt_config = self.__get('GetInterruptConfig', ct.c_int, _c_int_p, _c_uint8_p, _c_uint32_p, _P(ct.c_uint16), _c_int_p)
         self.irq_wait = self.__get('IRQWait', ct.c_int, ct.c_uint32)
         self.set_des_mode = self.__get('SetDESMode', ct.c_int, ct.c_int)
-        self.get_des_mode = self.__get('GetDESMode', ct.c_int, ct.POINTER(ct.c_int))
+        self.get_des_mode = self.__get('GetDESMode', ct.c_int, _c_int_p)
         self.set_record_length = self.__get('SetRecordLength', ct.c_int, ct.c_uint32, variadic=True)
-        self.get_record_length = self.__get('GetRecordLength', ct.c_int, ct.POINTER(ct.c_uint32), variadic=True)
+        self.get_record_length = self.__get('GetRecordLength', ct.c_int, _c_uint32_p, variadic=True)
         self.set_channel_enable_mask = self.__get('SetChannelEnableMask', ct.c_int, ct.c_uint32)
-        self.get_channel_enable_mask = self.__get('GetChannelEnableMask', ct.c_int, ct.POINTER(ct.c_uint32))
+        self.get_channel_enable_mask = self.__get('GetChannelEnableMask', ct.c_int, _c_uint32_p)
         self.set_group_enable_mask = self.__get('SetGroupEnableMask', ct.c_int, ct.c_uint32)
-        self.get_group_enable_mask = self.__get('GetGroupEnableMask', ct.c_int, ct.POINTER(ct.c_uint32))
+        self.get_group_enable_mask = self.__get('GetGroupEnableMask', ct.c_int, _c_uint32_p)
         self.set_sw_trigger_mode = self.__get('SetSWTriggerMode', ct.c_int, ct.c_int)
-        self.get_sw_trigger_mode = self.__get('GetSWTriggerMode', ct.c_int, ct.POINTER(ct.c_int))
+        self.get_sw_trigger_mode = self.__get('GetSWTriggerMode', ct.c_int, _c_int_p)
         self.set_ext_trigger_input_mode = self.__get('SetExtTriggerInputMode', ct.c_int, ct.c_int)
-        self.get_ext_trigger_input_mode = self.__get('GetExtTriggerInputMode', ct.c_int, ct.POINTER(ct.c_int))
+        self.get_ext_trigger_input_mode = self.__get('GetExtTriggerInputMode', ct.c_int, _c_int_p)
         self.set_channel_self_trigger = self.__get('SetChannelSelfTrigger', ct.c_int, ct.c_int, ct.c_uint32)
-        self.get_channel_self_trigger = self.__get('GetChannelSelfTrigger', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_int))
+        self.get_channel_self_trigger = self.__get('GetChannelSelfTrigger', ct.c_int, ct.c_uint32, _c_int_p)
         self.set_group_self_trigger = self.__get('SetGroupSelfTrigger', ct.c_int, ct.c_int, ct.c_uint32)
-        self.get_group_self_trigger = self.__get('GetGroupSelfTrigger', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_int))
+        self.get_group_self_trigger = self.__get('GetGroupSelfTrigger', ct.c_int, ct.c_uint32, _c_int_p)
         self.set_post_trigger_size = self.__get('SetPostTriggerSize', ct.c_int, ct.c_uint32)
-        self.get_post_trigger_size = self.__get('GetPostTriggerSize', ct.c_int, ct.POINTER(ct.c_uint32))
+        self.get_post_trigger_size = self.__get('GetPostTriggerSize', ct.c_int, _c_uint32_p)
         self.set_dpp_pre_trigger_size = self.__get('SetDPPPreTriggerSize', ct.c_int, ct.c_int, ct.c_uint32)
-        self.get_dpp_pre_trigger_size = self.__get('GetDPPPreTriggerSize', ct.c_int, ct.c_int, ct.POINTER(ct.c_uint32))
+        self.get_dpp_pre_trigger_size = self.__get('GetDPPPreTriggerSize', ct.c_int, ct.c_int, _c_uint32_p)
         # TODO
         self.set_channel_dc_offset = self.__get('SetChannelDCOffset', ct.c_int, ct.c_uint32, ct.c_uint32)
-        self.get_channel_dc_offset = self.__get('GetChannelDCOffset', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32))
+        self.get_channel_dc_offset = self.__get('GetChannelDCOffset', ct.c_int, ct.c_uint32, _c_uint32_p)
         self.set_group_dc_offset = self.__get('SetGroupDCOffset', ct.c_int, ct.c_uint32, ct.c_uint32)
-        self.get_group_dc_offset = self.__get('GetGroupDCOffset', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32))
+        self.get_group_dc_offset = self.__get('GetGroupDCOffset', ct.c_int, ct.c_uint32, _c_uint32_p)
         self.set_channel_trigger_threshold = self.__get('SetChannelTriggerThreshold', ct.c_int, ct.c_uint32, ct.c_uint32)
-        self.get_channel_trigger_threshold = self.__get('GetChannelTriggerThreshold', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32))
+        self.get_channel_trigger_threshold = self.__get('GetChannelTriggerThreshold', ct.c_int, ct.c_uint32, _c_uint32_p)
         self.set_channel_pulse_polarity = self.__get('SetChannelPulsePolarity', ct.c_int, ct.c_uint32, ct.c_int)
-        self.get_channel_pulse_polarity = self.__get('GetChannelPulsePolarity', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_int))
+        self.get_channel_pulse_polarity = self.__get('GetChannelPulsePolarity', ct.c_int, ct.c_uint32, _c_int_p)
         self.set_group_trigger_threshold = self.__get('SetGroupTriggerThreshold', ct.c_int, ct.c_uint32, ct.c_uint32)
-        self.get_group_trigger_threshold = self.__get('GetGroupTriggerThreshold', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32))
+        self.get_group_trigger_threshold = self.__get('GetGroupTriggerThreshold', ct.c_int, ct.c_uint32, _c_uint32_p)
         self.set_zero_suppression_mode = self.__get('SetZeroSuppressionMode', ct.c_int, ct.c_int)
-        self.get_zero_suppression_mode = self.__get('GetZeroSuppressionMode', ct.c_int, ct.POINTER(ct.c_int))
+        self.get_zero_suppression_mode = self.__get('GetZeroSuppressionMode', ct.c_int, _c_int_p)
         self.set_channel_zs_params = self.__get('SetChannelZSParams', ct.c_int, ct.c_uint32, ct.c_int, ct.c_int32, ct.c_int32)
-        self.get_channel_zs_params = self.__get('GetChannelZSParams', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_int), ct.POINTER(ct.c_int32), ct.POINTER(ct.c_int32))
+        self.get_channel_zs_params = self.__get('GetChannelZSParams', ct.c_int, ct.c_uint32, _c_int_p, _c_int32_p, _c_int32_p)
         self.set_acquisition_mode = self.__get('SetAcquisitionMode', ct.c_int, ct.c_int)
-        self.get_acquisition_mode = self.__get('GetAcquisitionMode', ct.c_int, ct.POINTER(ct.c_int))
+        self.get_acquisition_mode = self.__get('GetAcquisitionMode', ct.c_int, _c_int_p)
         self.set_run_synchronization_mode = self.__get('SetRunSynchronizationMode', ct.c_int, ct.c_int)
-        self.get_run_synchronization_mode = self.__get('GetRunSynchronizationMode', ct.c_int, ct.POINTER(ct.c_int))
+        self.get_run_synchronization_mode = self.__get('GetRunSynchronizationMode', ct.c_int, _c_int_p)
         self.set_analog_mon_output = self.__get('SetAnalogMonOutput', ct.c_int, ct.c_int)
-        self.get_analog_mon_output = self.__get('GetAnalogMonOutput', ct.c_int, ct.POINTER(ct.c_int))
+        self.get_analog_mon_output = self.__get('GetAnalogMonOutput', ct.c_int, _c_int_p)
         self.set_analog_inspection_mon_params = self.__get('SetAnalogInspectionMonParams', ct.c_int, ct.c_uint32, ct.c_uint32, ct.c_int, ct.c_int)
-        self.get_analog_inspection_mon_params = self.__get('GetAnalogInspectionMonParams', ct.c_int, ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_int), ct.POINTER(ct.c_int))
+        self.get_analog_inspection_mon_params = self.__get('GetAnalogInspectionMonParams', ct.c_int, _c_uint32_p, _c_uint32_p, _c_int_p, _c_int_p)
         self.disable_event_aligned_readout = self.__get('DisableEventAlignedReadout', ct.c_int)
         self.set_event_packaging = self.__get('SetEventPackaging', ct.c_int, ct.c_int)
-        self.get_event_packaging = self.__get('GetEventPackaging', ct.c_int, ct.POINTER(ct.c_int))
+        self.get_event_packaging = self.__get('GetEventPackaging', ct.c_int, _c_int_p)
         self.set_max_num_aggregates_blt = self.__get('SetMaxNumAggregatesBLT', ct.c_int, ct.c_uint32)
-        self.get_max_num_aggregates_blt = self.__get('GetMaxNumAggregatesBLT', ct.c_int, ct.POINTER(ct.c_uint32))
+        self.get_max_num_aggregates_blt = self.__get('GetMaxNumAggregatesBLT', ct.c_int, _c_uint32_p)
         self.set_max_num_events_blt = self.__get('SetMaxNumEventsBLT', ct.c_int, ct.c_uint32)
-        self.get_max_num_events_blt = self.__get('GetMaxNumEventsBLT', ct.c_int, ct.POINTER(ct.c_uint32))
-        self.malloc_readout_buffer = self.__get('MallocReadoutBuffer', ct.c_int, ct.POINTER(ct.c_char_p), ct.POINTER(ct.c_uint32))
-        self.free_readout_buffer = self.__get('FreeReadoutBuffer', ct.c_int, ct.POINTER(ct.c_char_p))
-        self.read_data = self.__get('ReadData', ct.c_int, ct.c_int, ct.c_char_p, ct.POINTER(ct.c_uint32))
+        self.get_max_num_events_blt = self.__get('GetMaxNumEventsBLT', ct.c_int, _c_uint32_p)
+        self.malloc_readout_buffer = self.__get('MallocReadoutBuffer', ct.c_int, _c_char_p_p, _c_uint32_p)
+        self.read_data = self.__get('ReadData', ct.c_int, ct.c_int, _c_char_p, _c_uint32_p)
+        self.get_num_events = self.__get('GetNumEvents', ct.c_int, _c_char_p, ct.c_uint32, _c_uint32_p)
+        self.get_event_info = self.__get('GetEventInfo', ct.c_int, _c_char_p, ct.c_uint32, ct.c_int32, _P(_EventInfoRaw), _c_char_p_p)
+        self.decode_event = self.__get('DecodeEvent', ct.c_int, _c_char_p, _c_void_p_p)
+        self.free_event = self.__get('FreeEvent', ct.c_int, _c_void_p_p)
 
         # Load API related to CAENVME wrappers
-        self.vme_irq_wait = self.__get('VMEIRQWait', ct.c_int, ct.c_int, ct.c_int, ct.c_uint8, ct.c_uint32, ct.POINTER(ct.c_int))
-        self.vme_irq_check = self.__get('VMEIRQCheck', ct.c_int, ct.POINTER(ct.c_uint8))
-        self.vme_iack_cycle = self.__get('VMEIACKCycle', ct.c_int, ct.c_uint8, ct.POINTER(ct.c_int32))
+        self.vme_irq_wait = self.__get('VMEIRQWait', ct.c_int, ct.c_int, ct.c_int, ct.c_uint8, ct.c_uint32, _c_int_p)
+        self.vme_irq_check = self.__get('VMEIRQCheck', ct.c_int, _c_uint8_p)
+        self.vme_iack_cycle = self.__get('VMEIACKCycle', ct.c_int, ct.c_uint8, _c_int32_p)
 
     def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
         if res < 0:
@@ -334,11 +361,11 @@ class Device:
         lib.read_register(self.handle, address, l_value)
         return l_value.value
 
-    def get_info(self) -> BoardInfo:
+    def get_info(self) -> _BoardInfoRaw:
         """
         Binding of CAEN_DGTZ_GetInfo()
         """
-        l_data = BoardInfo()
+        l_data = _BoardInfoRaw()
         lib.get_info(self.handle, l_data)
         return l_data
 
