@@ -312,10 +312,11 @@ class Error(RuntimeError):
     message: str  ## Message description
     func: str  ## Name of failed function
 
-    def __init__(self, res: int, func: str) -> None:
+    def __init__(self, message: str, res: int, func: str) -> None:
         self.code = ErrorCode(res)
+        self.message = message
         self.func = func
-        super().__init__(f'{self.func} failed: {self.code.name}')
+        super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
 
 
 # Utility definitions
@@ -420,9 +421,9 @@ class _Lib(_utils.Lib):
 
     def __load_api(self) -> None:
         # Load API not related to devices
-        self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_data_p_p, _c_uint_p)
-        self.__free_event_data = self.__get('FreeEventData', _event_data_p_p)
-        self.__free = self.__get('Free', ct.c_void_p)
+        self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_data_p_p, _c_uint_p, device_errcheck=False)
+        self.__free_event_data = self.__get('FreeEventData', _event_data_p_p, device_errcheck=False)
+        self.__free = self.__get('Free', ct.c_void_p, device_errcheck=False)
 
         # CAENHVLibSwRel has non conventional API
         self.___sw_rel = self.__lib.CAENHVLibSwRel
@@ -464,15 +465,26 @@ class _Lib(_utils.Lib):
 
     def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
         if res != ErrorCode.OK:
-            raise Error(res, func.__name__)
+            raise Error('details not available', res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type) -> Callable[..., int]:
+    def __api_device_errcheck(self, res: int, func: Callable, args: Tuple) -> int:
+        if res != ErrorCode.OK:
+            handle = args[0]  # first argument is always handle
+            message = self.get_error(handle).decode()
+            raise Error(message, res, func.__name__)
+        return res
+
+    def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
         # Use lib_variadic as API is __cdecl
         func = getattr(self.lib_variadic, f'CAENHV_{name}')
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck
+        device_errcheck = kwargs.get('device_errcheck', True)
+        if device_errcheck:
+            func.errcheck = self.__api_device_errcheck
+        else:
+            func.errcheck = self.__api_errcheck
         return func
 
     # C API bindings

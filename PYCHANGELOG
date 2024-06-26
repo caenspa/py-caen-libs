@@ -14,6 +14,9 @@
 v1.0.3 (XX/YY/2024)
 -------------------
 
+New features:
+- Better support of caenhvwrapper error messages.
+
 Fixes:
 - Fix caenhvwrapper.exec_comm.
 
