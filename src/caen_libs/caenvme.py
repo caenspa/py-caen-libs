@@ -403,10 +403,7 @@ class _Lib(_utils.Lib):
 
     def __load_api(self) -> None:
         # Load API not related to devices
-        # CAENVME_DecodeError has non conventional API
-        self.__decode_error = self.__lib.CAENVME_DecodeError
-        self.__decode_error.argtypes = [ct.c_int]
-        self.__decode_error.restype = ct.c_char_p
+        self.__decode_error = self.__get_str('DecodeError', ct.c_int)
         self.__sw_release = self.__get('SWRelease', ct.c_char_p)
 
         # Load API
@@ -497,16 +494,14 @@ class _Lib(_utils.Lib):
 
     def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
         if res < 0:
-            raise Error(self.__decode_error(res).decode(), res, func.__name__)
+            raise Error(self.__decode_error(res), res, func.__name__)
         return res
 
     def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
-        linux_only = kwargs.get('linux_only')
-        if linux_only is not None:
-            if linux_only and sys.platform == 'win32':
-                def fallback_win(*args, **kwargs):
-                    raise RuntimeError(f'{name} function is Linux only.')
-                return fallback_win
+        if kwargs.get('linux_only', False) and sys.platform == 'win32':
+            def fallback_win(*args, **kwargs):
+                raise RuntimeError(f'{name} function is Linux only.')
+            return fallback_win
         min_version = kwargs.get('min_version')
         if min_version is not None:
             # This feature requires __sw_release to be already defined
@@ -519,6 +514,13 @@ class _Lib(_utils.Lib):
         func.argtypes = args
         func.restype = ct.c_int
         func.errcheck = self.__api_errcheck
+        return func
+
+    def __get_str(self, name: str, *args) -> Callable[..., str]:
+        func = getattr(self.lib, f'CAENVME_{name}')
+        func.argtypes = args
+        func.restype = ct.c_char_p
+        func.errcheck = lambda res, func, args: res.decode()
         return func
 
     # C API bindings
