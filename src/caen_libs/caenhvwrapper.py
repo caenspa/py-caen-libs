@@ -421,9 +421,9 @@ class _Lib(_utils.Lib):
 
     def __load_api(self) -> None:
         # Load API not related to devices
-        self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_data_p_p, _c_uint_p, device_errcheck=False)
-        self.__free_event_data = self.__get('FreeEventData', _event_data_p_p, device_errcheck=False)
-        self.__free = self.__get('Free', ct.c_void_p, device_errcheck=False)
+        self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_data_p_p, _c_uint_p, handle_errcheck=False)
+        self.__free_event_data = self.__get('FreeEventData', _event_data_p_p, handle_errcheck=False)
+        self.__free = self.__get('Free', ct.c_void_p, handle_errcheck=False)
         self.__sw_rel = self.__get_str('LibSwRel', legacy=True)
 
         # Load API
@@ -460,7 +460,7 @@ class _Lib(_utils.Lib):
             raise Error('details not available', res, func.__name__)
         return res
 
-    def __api_device_errcheck(self, res: int, func: Callable, func_args: Tuple) -> int:
+    def __api_handle_errcheck(self, res: int, func: Callable, func_args: Tuple) -> int:
         """
         Binding of CAENHV_GetError()
 
@@ -480,8 +480,8 @@ class _Lib(_utils.Lib):
         func = getattr(self.lib_variadic, f'CAENHV_{name}')
         func.argtypes = args
         func.restype = ct.c_int
-        if kwargs.get('device_errcheck', True):
-            func.errcheck = self.__api_device_errcheck
+        if kwargs.get('handle_errcheck', True):
+            func.errcheck = self.__api_handle_errcheck
         else:
             func.errcheck = self.__api_errcheck
         return func
@@ -984,12 +984,6 @@ class Device:
         board_status = tuple(EventStatus(i) for i in l_system_status.Board)
         status = SystemStatus(system_status, board_status)
         return events, status
-
-    def get_error(self) -> str:
-        """
-        Binding of CAENHV_GetError()
-        """
-        return lib.__get_error(self.handle).decode()
 
     # Private utilities
 

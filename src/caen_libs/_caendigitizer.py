@@ -251,14 +251,6 @@ class _Lib(_utils.Lib):
         return res
 
     def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
-        min_version = kwargs.get('min_version')
-        if min_version is not None:
-            # This feature requires __sw_release to be already defined
-            assert self.__sw_release is not None
-            if not self.__ver_at_least(min_version):
-                def fallback(*args, **kwargs):
-                    raise RuntimeError(f'{name} requires {self.name} >= {min_version}. Please update it.')
-                return fallback
         l_lib = self.lib if not kwargs.get('variadic', False) else self.lib_variadic
         func = getattr(l_lib, f'CAEN_DGTZ_{name}')
         func.argtypes = args
@@ -275,10 +267,6 @@ class _Lib(_utils.Lib):
         l_value = ct.create_string_buffer(16)
         self.__sw_release(l_value)
         return l_value.value.decode()
-
-    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
-        ver = self.sw_release()
-        return _utils.version_to_tuple(ver) >= target
 
 
 lib = _Lib('CAENDigitizer')
