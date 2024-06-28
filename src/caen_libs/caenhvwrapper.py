@@ -1130,6 +1130,7 @@ class Device:
             assert system_handle == self.handle  # should always be the same
             if event_type != EventType.PARAMETER:
                 yield EventData(event_type, item_id, board_index, channel_index)
+                continue
             if board_index == -1:
                 # System prop
                 prop_type = self.get_sys_prop_info(item_id).type
