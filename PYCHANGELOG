@@ -19,6 +19,8 @@ New features:
 
 Fixes:
 - Fix caenhvwrapper.exec_comm.
+- Fix support of non PARAMETER events on caenhvwrapper (regression
+    introduced on v1.0.1).
 
 
 v1.0.2 (26/05/2024)
