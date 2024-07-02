@@ -94,6 +94,18 @@ class Error(RuntimeError):
         super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
 
 
+# Utility definitions
+_P = ct.POINTER
+_c_ubyte_p = _P(ct.c_ubyte)
+_c_short_p = _P(ct.c_short)
+_c_int_p = _P(ct.c_int)
+_c_uint_p = _P(ct.c_uint)
+_c_uint8_p = _P(ct.c_uint8)
+_c_uint16_p = _P(ct.c_uint16)
+_c_int32_p = _P(ct.c_int32)
+_c_uint32_p = _P(ct.c_uint32)
+
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -106,30 +118,30 @@ class _Lib(_utils.Lib):
         self.__sw_release = self.__get('SWRelease', ct.c_char_p)
 
         # Load API
-        self.open_device = self.__get('OpenDevice', ct.c_int, ct.c_int, ct.c_int, ct.c_uint32, ct.POINTER(ct.c_int))
-        self.open_device2 = self.__get('OpenDevice2', ct.c_int, ct.c_void_p, ct.c_int, ct.c_uint32, ct.POINTER(ct.c_int))
+        self.open_device = self.__get('OpenDevice', ct.c_int, ct.c_int, ct.c_int, ct.c_uint32, _c_int_p)
+        self.open_device2 = self.__get('OpenDevice2', ct.c_int, ct.c_void_p, ct.c_int, ct.c_uint32, _c_int_p)
         self.close_device = self.__get('CloseDevice', ct.c_int)
         self.write32 = self.__get('Write32', ct.c_int, ct.c_uint32, ct.c_uint32)
         self.write16 = self.__get('Write16', ct.c_int, ct.c_uint32, ct.c_uint16)
-        self.read32 = self.__get('Read32', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32))
-        self.read16 = self.__get('Read16', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint16))
-        self.multi_write32 = self.__get('MultiWrite32', ct.c_int, ct.POINTER(ct.c_uint32), ct.c_int, ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_int))
-        self.multi_write16 = self.__get('MultiWrite16', ct.c_int, ct.POINTER(ct.c_uint32), ct.c_int, ct.POINTER(ct.c_uint16), ct.POINTER(ct.c_int))
-        self.multi_read32 = self.__get('MultiRead32', ct.c_int, ct.POINTER(ct.c_uint32), ct.c_int, ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_int))
-        self.multi_read16 = self.__get('MultiRead16', ct.c_int, ct.POINTER(ct.c_uint32), ct.c_int, ct.POINTER(ct.c_uint16), ct.POINTER(ct.c_int))
-        self.blt_read = self.__get('BLTRead', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32), ct.c_int, ct.POINTER(ct.c_int))
-        self.mblt_read = self.__get('MBLTRead', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32), ct.c_int, ct.POINTER(ct.c_int))
+        self.read32 = self.__get('Read32', ct.c_int, ct.c_uint32, _c_uint32_p)
+        self.read16 = self.__get('Read16', ct.c_int, ct.c_uint32, _c_uint16_p)
+        self.multi_write32 = self.__get('MultiWrite32', ct.c_int, _c_uint32_p, ct.c_int, _c_uint32_p, _c_int_p)
+        self.multi_write16 = self.__get('MultiWrite16', ct.c_int, _c_uint32_p, ct.c_int, _c_uint16_p, _c_int_p)
+        self.multi_read32 = self.__get('MultiRead32', ct.c_int, _c_uint32_p, ct.c_int, _c_uint32_p, _c_int_p)
+        self.multi_read16 = self.__get('MultiRead16', ct.c_int, _c_uint32_p, ct.c_int, _c_uint16_p, _c_int_p)
+        self.blt_read = self.__get('BLTRead', ct.c_int, ct.c_uint32, _c_uint32_p, ct.c_int, _c_int_p)
+        self.mblt_read = self.__get('MBLTRead', ct.c_int, ct.c_uint32, _c_uint32_p, ct.c_int, _c_int_p)
         self.irq_disable = self.__get('IRQDisable', ct.c_int)
         self.irq_enable = self.__get('IRQEnable', ct.c_int)
-        self.iack_cycle = self.__get('IACKCycle', ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
+        self.iack_cycle = self.__get('IACKCycle', ct.c_int, ct.c_int, _c_int_p)
         self.irq_wait = self.__get('IRQWait', ct.c_int, ct.c_uint32)
         self.info = self.__get('Info', ct.c_int, ct.c_int, ct.c_void_p)
 
         # Load API related to CAENVME wrappers
-        self.__vme_irq_check = self.__get('VMEIRQCheck', ct.c_int32, ct.POINTER(ct.c_uint8))
-        self.__vme_iack_cycle16 = self.__get('VMEIACKCycle16', ct.c_int32, ct.c_int, ct.POINTER(ct.c_int))
-        self.__vme_iack_cycle32 = self.__get('VMEIACKCycle32', ct.c_int32, ct.c_int, ct.POINTER(ct.c_int))
-        self.__vme_irq_wait = self.__get('VMEIRQWait', ct.c_int, ct.c_int, ct.c_int, ct.c_uint8, ct.c_uint32, ct.POINTER(ct.c_int32))
+        self.__vme_irq_check = self.__get('VMEIRQCheck', ct.c_int32, _c_uint8_p)
+        self.__vme_iack_cycle16 = self.__get('VMEIACKCycle16', ct.c_int32, ct.c_int, _c_int_p)
+        self.__vme_iack_cycle32 = self.__get('VMEIACKCycle32', ct.c_int32, ct.c_int, _c_int_p)
+        self.__vme_irq_wait = self.__get('VMEIRQWait', ct.c_int, ct.c_int, ct.c_int, ct.c_uint8, ct.c_uint32, _c_int32_p)
 
         # Load API available only on recent library versions
         self.__reboot_device = self.__get('RebootDevice', ct.c_int, ct.c_int, min_version=(1, 7, 0))

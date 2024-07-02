@@ -395,6 +395,17 @@ class Error(RuntimeError):
         super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
 
 
+# Utility definitions
+_P = ct.POINTER
+_c_ubyte_p = _P(ct.c_ubyte)
+_c_short_p = _P(ct.c_short)
+_c_int_p = _P(ct.c_int)
+_c_uint_p = _P(ct.c_uint)
+_c_uint16_p = _P(ct.c_uint16)
+_c_int32_p = _P(ct.c_int32)
+_c_uint32_p = _P(ct.c_uint32)
+_display_p = _P(_DisplayRaw)
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -403,15 +414,12 @@ class _Lib(_utils.Lib):
 
     def __load_api(self) -> None:
         # Load API not related to devices
-        # CAENVME_DecodeError has non conventional API
-        self.__decode_error = self.__lib.CAENVME_DecodeError
-        self.__decode_error.argtypes = [ct.c_int]
-        self.__decode_error.restype = ct.c_char_p
+        self.__decode_error = self.__get_str('DecodeError', ct.c_int)
         self.__sw_release = self.__get('SWRelease', ct.c_char_p)
 
         # Load API
-        self.init = self.__get('Init', ct.c_int, ct.c_short, ct.c_short, ct.POINTER(ct.c_int32))
-        self.init2 = self.__get('Init2', ct.c_int, ct.c_void_p, ct.c_short, ct.POINTER(ct.c_int32))
+        self.init = self.__get('Init', ct.c_int, ct.c_short, ct.c_short, _c_int32_p)
+        self.init2 = self.__get('Init2', ct.c_int, ct.c_void_p, ct.c_short, _c_int32_p)
         self.end = self.__get('End', ct.c_int32)
         self.board_fw_release = self.__get('BoardFWRelease', ct.c_int32, ct.c_char_p)
         self.driver_release = self.__get('DriverRelease', ct.c_int32, ct.c_char_p)
@@ -419,20 +427,20 @@ class _Lib(_utils.Lib):
         self.read_cycle = self.__get('ReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int)
         self.rmw_cycle = self.__get('RMWCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int)
         self.write_cycle = self.__get('WriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int)
-        self.multi_read = self.__get('MultiRead', ct.c_int32, ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_uint32), ct.c_int, ct.POINTER(ct.c_int), ct.POINTER(ct.c_int), ct.POINTER(ct.c_int))
-        self.multi_write = self.__get('MultiWrite', ct.c_int32, ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_uint32), ct.c_int, ct.POINTER(ct.c_int), ct.POINTER(ct.c_int), ct.POINTER(ct.c_int))
-        self.blt_read_cycle = self.__get('BLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
-        self.fifo_blt_read_cycle = self.__get('FIFOBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
-        self.mblt_read_cycle = self.__get('MBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
-        self.fifo_mblt_read_cycle = self.__get('FIFOMBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
-        self.blt_write_cycle = self.__get('BLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
-        self.fifo_blt_write_cycle = self.__get('FIFOBLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
-        self.mblt_write_cycle = self.__get('MBLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
-        self.fifo_mblt_write_cycle = self.__get('FIFOMBLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
+        self.multi_read = self.__get('MultiRead', ct.c_int32, _c_uint32_p, _c_uint32_p, ct.c_int, _c_int_p, _c_int_p, _c_int_p)
+        self.multi_write = self.__get('MultiWrite', ct.c_int32, _c_uint32_p, _c_uint32_p, ct.c_int, _c_int_p, _c_int_p, _c_int_p)
+        self.blt_read_cycle = self.__get('BLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p)
+        self.fifo_blt_read_cycle = self.__get('FIFOBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p)
+        self.mblt_read_cycle = self.__get('MBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, _c_int_p)
+        self.fifo_mblt_read_cycle = self.__get('FIFOMBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, _c_int_p)
+        self.blt_write_cycle = self.__get('BLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p)
+        self.fifo_blt_write_cycle = self.__get('FIFOBLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p)
+        self.mblt_write_cycle = self.__get('MBLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, _c_int_p)
+        self.fifo_mblt_write_cycle = self.__get('FIFOMBLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, _c_int_p)
         self.ado_cycle = self.__get('ADOCycle', ct.c_int32, ct.c_uint32, ct.c_int)
         self.adoh_cycle = self.__get('ADOHCycle', ct.c_int32, ct.c_uint32, ct.c_int)
         self.iack_cycle = self.__get('IACKCycle', ct.c_int32, ct.c_int, ct.c_void_p, ct.c_int)
-        self.irq_check = self.__get('IRQCheck', ct.c_int32, ct.POINTER(ct.c_ubyte))
+        self.irq_check = self.__get('IRQCheck', ct.c_int32, _c_ubyte_p)
         self.irq_enable = self.__get('IRQEnable', ct.c_int32, ct.c_uint32)
         self.irq_disable = self.__get('IRQDisable', ct.c_int32, ct.c_uint32)
         self.irq_wait = self.__get('IRQWait', ct.c_int32, ct.c_uint32, ct.c_uint32)
@@ -440,16 +448,16 @@ class _Lib(_utils.Lib):
         self.set_scaler_conf = self.__get('SetScalerConf', ct.c_int32, ct.c_short, ct.c_short, ct.c_int, ct.c_int, ct.c_int)
         self.set_output_conf = self.__get('SetOutputConf', ct.c_int32, ct.c_int, ct.c_int, ct.c_int, ct.c_int)
         self.set_input_conf = self.__get('SetInputConf', ct.c_int32, ct.c_int, ct.c_int, ct.c_int)
-        self.get_pulser_conf = self.__get('GetPulserConf', ct.c_int32, ct.c_int, ct.POINTER(ct.c_ubyte), ct.POINTER(ct.c_ubyte), ct.POINTER(ct.c_int), ct.POINTER(ct.c_ubyte), ct.POINTER(ct.c_int), ct.POINTER(ct.c_int))
-        self.get_scaler_conf = self.__get('GetScalerConf', ct.c_int32, ct.POINTER(ct.c_short), ct.POINTER(ct.c_short), ct.POINTER(ct.c_int), ct.POINTER(ct.c_int), ct.POINTER(ct.c_int))
-        self.get_output_conf = self.__get('GetOutputConf', ct.c_int32, ct.c_int, ct.POINTER(ct.c_int), ct.POINTER(ct.c_int), ct.POINTER(ct.c_int))
-        self.get_input_conf = self.__get('GetInputConf', ct.c_int32, ct.c_int, ct.POINTER(ct.c_int), ct.POINTER(ct.c_int))
-        self.read_register = self.__get('ReadRegister', ct.c_int32, ct.c_int, ct.POINTER(ct.c_uint))
+        self.get_pulser_conf = self.__get('GetPulserConf', ct.c_int32, ct.c_int, _c_ubyte_p, _c_ubyte_p, _c_int_p, _c_ubyte_p, _c_int_p, _c_int_p)
+        self.get_scaler_conf = self.__get('GetScalerConf', ct.c_int32, _c_short_p, _c_short_p, _c_int_p, _c_int_p, _c_int_p)
+        self.get_output_conf = self.__get('GetOutputConf', ct.c_int32, ct.c_int, _c_int_p, _c_int_p, _c_int_p)
+        self.get_input_conf = self.__get('GetInputConf', ct.c_int32, ct.c_int, _c_int_p, _c_int_p)
+        self.read_register = self.__get('ReadRegister', ct.c_int32, ct.c_int, _c_uint_p)
         self.write_register = self.__get('WriteRegister', ct.c_int32, ct.c_int, ct.c_uint)
         self.set_output_register = self.__get('SetOutputRegister', ct.c_int32, ct.c_ushort)
         self.clear_output_register = self.__get('ClearOutputRegister', ct.c_int32, ct.c_ushort)
         self.pulse_output_register = self.__get('PulseOutputRegister', ct.c_int32, ct.c_ushort)
-        self.read_display = self.__get('ReadDisplay', ct.c_int32, ct.POINTER(_DisplayRaw))
+        self.read_display = self.__get('ReadDisplay', ct.c_int32, _display_p)
         self.set_arbiter_type = self.__get('SetArbiterType', ct.c_int32, ct.c_int)
         self.set_requester_type = self.__get('SetRequesterType', ct.c_int32, ct.c_int)
         self.set_release_type = self.__get('SetReleaseType', ct.c_int32, ct.c_int)
@@ -457,68 +465,65 @@ class _Lib(_utils.Lib):
         self.set_timeout = self.__get('SetTimeout', ct.c_int32, ct.c_int)
         self.set_location_monitor = self.__get('SetLocationMonitor', ct.c_int32, ct.c_uint32, ct.c_int, ct.c_short, ct.c_short, ct.c_short)
         self.set_fifo_mode = self.__get('SetFIFOMode', ct.c_int32, ct.c_short)
-        self.get_arbiter_type = self.__get('GetArbiterType', ct.c_int32, ct.POINTER(ct.c_int))
-        self.get_requester_type = self.__get('GetRequesterType', ct.c_int32, ct.POINTER(ct.c_int))
-        self.get_release_type = self.__get('GetReleaseType', ct.c_int32, ct.POINTER(ct.c_int))
-        self.get_bus_req_level = self.__get('GetBusReqLevel', ct.c_int32, ct.POINTER(ct.c_int))
-        self.get_timeout = self.__get('GetTimeout', ct.c_int32, ct.POINTER(ct.c_int))
-        self.get_fifo_mode = self.__get('GetFIFOMode', ct.c_int32, ct.POINTER(ct.c_short))
+        self.get_arbiter_type = self.__get('GetArbiterType', ct.c_int32, _c_int_p)
+        self.get_requester_type = self.__get('GetRequesterType', ct.c_int32, _c_int_p)
+        self.get_release_type = self.__get('GetReleaseType', ct.c_int32, _c_int_p)
+        self.get_bus_req_level = self.__get('GetBusReqLevel', ct.c_int32, _c_int_p)
+        self.get_timeout = self.__get('GetTimeout', ct.c_int32, _c_int_p)
+        self.get_fifo_mode = self.__get('GetFIFOMode', ct.c_int32, _c_short_p)
         self.system_reset = self.__get('SystemReset', ct.c_int32)
         self.reset_scaler_count = self.__get('ResetScalerCount', ct.c_int32)
         self.enable_scaler_gate = self.__get('EnableScalerGate', ct.c_int32)
         self.disable_scaler_gate = self.__get('DisableScalerGate', ct.c_int32)
         self.start_pulser = self.__get('StartPulser', ct.c_int32, ct.c_int)
         self.stop_pulser = self.__get('StopPulser', ct.c_int32, ct.c_int)
-        self.write_flash_page = self.__get('WriteFlashPage', ct.c_int32, ct.POINTER(ct.c_ubyte), ct.c_int)
-        self.read_flash_page = self.__get('ReadFlashPage', ct.c_int32, ct.POINTER(ct.c_ubyte), ct.c_int)
+        self.write_flash_page = self.__get('WriteFlashPage', ct.c_int32, _c_ubyte_p, ct.c_int)
+        self.read_flash_page = self.__get('ReadFlashPage', ct.c_int32, _c_ubyte_p, ct.c_int)
         self.erase_flash_page = self.__get('EraseFlashPage', ct.c_int32, ct.c_int)
         self.set_scaler_input_source = self.__get('SetScaler_InputSource', ct.c_int32, ct.c_int)
-        self.get_scaler_input_source = self.__get('GetScaler_InputSource', ct.c_int32, ct.POINTER(ct.c_int))
+        self.get_scaler_input_source = self.__get('GetScaler_InputSource', ct.c_int32, _c_int_p)
         self.set_scaler_gate_source = self.__get('SetScaler_GateSource', ct.c_int32, ct.c_int)
-        self.get_scaler_gate_source = self.__get('GetScaler_GateSource', ct.c_int32, ct.POINTER(ct.c_int))
+        self.get_scaler_gate_source = self.__get('GetScaler_GateSource', ct.c_int32, _c_int_p)
         self.set_scaler_mode = self.__get('SetScaler_Mode', ct.c_int32, ct.c_int)
-        self.get_scaler_mode = self.__get('GetScaler_Mode', ct.c_int32, ct.POINTER(ct.c_int))
+        self.get_scaler_mode = self.__get('GetScaler_Mode', ct.c_int32, _c_int_p)
         self.set_scaler_clear_source = self.__get('SetScaler_ClearSource', ct.c_int32, ct.c_int)
         self.set_scaler_start_source = self.__get('SetScaler_StartSource', ct.c_int32, ct.c_int)
-        self.get_scaler_start_source = self.__get('GetScaler_StartSource', ct.c_int32, ct.POINTER(ct.c_int))
+        self.get_scaler_start_source = self.__get('GetScaler_StartSource', ct.c_int32, _c_int_p)
         self.set_scaler_continuous_run = self.__get('SetScaler_ContinuousRun', ct.c_int32, ct.c_int)
-        self.get_scaler_continuous_run = self.__get('GetScaler_ContinuousRun', ct.c_int32, ct.POINTER(ct.c_int))
+        self.get_scaler_continuous_run = self.__get('GetScaler_ContinuousRun', ct.c_int32, _c_int_p)
         self.set_scaler_max_hits = self.__get('SetScaler_MaxHits', ct.c_int32, ct.c_uint16)
-        self.get_scaler_max_hits = self.__get('GetScaler_MaxHits', ct.c_int32, ct.POINTER(ct.c_uint16))
+        self.get_scaler_max_hits = self.__get('GetScaler_MaxHits', ct.c_int32, _c_uint16_p)
         self.set_scaler_dwell_time = self.__get('SetScaler_DWellTime', ct.c_int32, ct.c_uint16)
-        self.get_scaler_dwell_time = self.__get('GetScaler_DWellTime', ct.c_int32, ct.POINTER(ct.c_uint16))
+        self.get_scaler_dwell_time = self.__get('GetScaler_DWellTime', ct.c_int32, _c_uint16_p)
         self.set_scaler_sw_start = self.__get('SetScaler_SWStart', ct.c_int32)
         self.set_scaler_sw_stop = self.__get('SetScaler_SWStop', ct.c_int32)
         self.set_scaler_sw_reset = self.__get('SetScaler_SWReset', ct.c_int32)
         self.set_scaler_sw_open_gate = self.__get('SetScaler_SWOpenGate', ct.c_int32)
         self.set_scaler_sw_close_gate = self.__get('SetScaler_SWCloseGate', ct.c_int32)
         self.blt_read_async = self.__get('BLTReadAsync', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, linux_only=True)
-        self.blt_read_wait = self.__get('BLTReadWait', ct.c_int32, ct.POINTER(ct.c_int), linux_only=True)
+        self.blt_read_wait = self.__get('BLTReadWait', ct.c_int32, _c_int_p, linux_only=True)
 
     def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
         if res < 0:
-            raise Error(self.__decode_error(res).decode(), res, func.__name__)
+            raise Error(self.__decode_error(res), res, func.__name__)
         return res
 
     def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
-        linux_only = kwargs.get('linux_only')
-        if linux_only is not None:
-            if linux_only and sys.platform == 'win32':
-                def fallback_win(*args, **kwargs):
-                    raise RuntimeError(f'{name} function is Linux only.')
-                return fallback_win
-        min_version = kwargs.get('min_version')
-        if min_version is not None:
-            # This feature requires __sw_release to be already defined
-            assert self.__sw_release is not None
-            if not self.__ver_at_least(min_version):
-                def fallback_ver(*args, **kwargs):
-                    raise RuntimeError(f'{name} requires {self.name} >= {min_version}. Please update it.')
-                return fallback_ver
+        if kwargs.get('linux_only', False) and sys.platform == 'win32':
+            def fallback_win(*args, **kwargs):
+                raise RuntimeError(f'{name} function is Linux only.')
+            return fallback_win
         func = getattr(self.lib, f'CAENVME_{name}')
         func.argtypes = args
         func.restype = ct.c_int
         func.errcheck = self.__api_errcheck
+        return func
+
+    def __get_str(self, name: str, *args) -> Callable[..., str]:
+        func = getattr(self.lib, f'CAENVME_{name}')
+        func.argtypes = args
+        func.restype = ct.c_char_p
+        func.errcheck = lambda res, func, args: res.decode()
         return func
 
     # C API bindings
@@ -530,10 +535,6 @@ class _Lib(_utils.Lib):
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         self.__sw_release(l_value)
         return l_value.value.decode()
-
-    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
-        ver = self.sw_release()
-        return _utils.version_to_tuple(ver) >= target
 
 
 # Library name is platform dependent

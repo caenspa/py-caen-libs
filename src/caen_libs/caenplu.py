@@ -153,6 +153,14 @@ class Error(RuntimeError):
         super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
 
 
+# Utility definitions
+_P = ct.POINTER
+_c_int_p = _P(ct.c_int)
+_c_uint_p = _P(ct.c_uint)
+_c_uint32_p = _P(ct.c_uint32)
+_usb_device_p = _P(_USBDeviceRaw)
+_board_info_p = _P(_BoardInfoRaw)
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -161,31 +169,31 @@ class _Lib(_utils.Lib):
 
     def __load_api(self) -> None:
         # Load API not related to devices
-        self.__usb_enumerate = self.__get('USBEnumerate', ct.POINTER(_USBDeviceRaw), ct.POINTER(ct.c_uint32))
-        self.__usb_enumerate_serial_number = self.__get('USBEnumerateSerialNumber', ct.POINTER(ct.c_uint), ct.c_char_p, ct.c_uint32)
+        self.__usb_enumerate = self.__get('USBEnumerate', _usb_device_p, _c_uint32_p)
+        self.__usb_enumerate_serial_number = self.__get('USBEnumerateSerialNumber', _c_uint_p, ct.c_char_p, ct.c_uint32)
 
         # Load API
-        self.open_device = self.__get('OpenDevice', ct.c_int, ct.c_char_p, ct.c_int, ct.c_int, ct.POINTER(ct.c_int))
-        self.open_device2 = self.__get('OpenDevice2', ct.c_int, ct.c_void_p, ct.c_int, ct.c_char_p, ct.POINTER(ct.c_int))
+        self.open_device = self.__get('OpenDevice', ct.c_int, ct.c_char_p, ct.c_int, ct.c_int, _c_int_p)
+        self.open_device2 = self.__get('OpenDevice2', ct.c_int, ct.c_void_p, ct.c_int, ct.c_char_p, _c_int_p)
         self.close_device = self.__get('CloseDevice', ct.c_int)
         self.write_reg = self.__get('WriteReg', ct.c_int, ct.c_uint32, ct.c_uint32)
-        self.read_reg = self.__get('ReadReg', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32))
-        self.write_data32 = self.__get('WriteData32', ct.c_int, ct.c_uint32, ct.c_uint32, ct.POINTER(ct.c_uint32))
-        self.write_fifo32 = self.__get('WriteFIFO32', ct.c_int, ct.c_uint32, ct.c_uint32, ct.POINTER(ct.c_uint32))
-        self.read_data32 = self.__get('ReadData32', ct.c_int, ct.c_uint32, ct.c_uint32, ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_uint32))
-        self.read_fifo32 = self.__get('ReadFIFO32', ct.c_int, ct.c_uint32, ct.c_uint32, ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_uint32))
+        self.read_reg = self.__get('ReadReg', ct.c_int, ct.c_uint32, _c_uint32_p)
+        self.write_data32 = self.__get('WriteData32', ct.c_int, ct.c_uint32, ct.c_uint32, _c_uint32_p)
+        self.write_fifo32 = self.__get('WriteFIFO32', ct.c_int, ct.c_uint32, ct.c_uint32, _c_uint32_p)
+        self.read_data32 = self.__get('ReadData32', ct.c_int, ct.c_uint32, ct.c_uint32, _c_uint32_p, _c_uint32_p)
+        self.read_fifo32 = self.__get('ReadFIFO32', ct.c_int, ct.c_uint32, ct.c_uint32, _c_uint32_p, _c_uint32_p)
         self.init_gate_and_delay_generators = self.__get('InitGateAndDelayGenerators', ct.c_int)
         self.set_gate_and_delay_generator = self.__get('SetGateAndDelayGenerator', ct.c_int, ct.c_uint32, ct.c_uint32, ct.c_uint32, ct.c_uint32, ct.c_uint32)
         self.set_gate_and_delay_generators = self.__get('SetGateAndDelayGenerators', ct.c_int, ct.c_uint32, ct.c_uint32, ct.c_uint32)
-        self.get_gate_and_delay_generator = self.__get('GetGateAndDelayGenerator', ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_uint32), ct.POINTER(ct.c_uint32))
+        self.get_gate_and_delay_generator = self.__get('GetGateAndDelayGenerator', ct.c_int, ct.c_uint32, _c_uint32_p, _c_uint32_p, _c_uint32_p)
         self.enable_flash_access = self.__get('EnableFlashAccess', ct.c_int, ct.c_int)
         self.disable_flash_access = self.__get('DisableFlashAccess', ct.c_int, ct.c_int)
         self.delete_flash_sector = self.__get('DeleteFlashSector', ct.c_int, ct.c_int, ct.c_uint32)
-        self.write_flash_data = self.__get('WriteFlashData', ct.c_int, ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32), ct.c_uint32)
-        self.read_flash_data = self.__get('ReadFlashData', ct.c_int, ct.c_int, ct.c_uint32, ct.POINTER(ct.c_uint32), ct.c_uint32)
-        self.get_info = self.__get('GetInfo', ct.c_int, ct.POINTER(_BoardInfoRaw))
+        self.write_flash_data = self.__get('WriteFlashData', ct.c_int, ct.c_int, ct.c_uint32, _c_uint32_p, ct.c_uint32)
+        self.read_flash_data = self.__get('ReadFlashData', ct.c_int, ct.c_int, ct.c_uint32, _c_uint32_p, ct.c_uint32)
+        self.get_info = self.__get('GetInfo', ct.c_int, _board_info_p)
         self.get_serial_number = self.__get('GetSerialNumber', ct.c_int, ct.c_char_p, ct.c_uint32)
-        self.connection_status = self.__get('ConnectionStatus', ct.c_int, ct.POINTER(ct.c_int))
+        self.connection_status = self.__get('ConnectionStatus', ct.c_int, _c_int_p)
 
     def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
         if res < 0:

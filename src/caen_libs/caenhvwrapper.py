@@ -312,10 +312,11 @@ class Error(RuntimeError):
     message: str  ## Message description
     func: str  ## Name of failed function
 
-    def __init__(self, res: int, func: str) -> None:
+    def __init__(self, message: str, res: int, func: str) -> None:
         self.code = ErrorCode(res)
+        self.message = message
         self.func = func
-        super().__init__(f'{self.func} failed: {self.code.name}')
+        super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
 
 
 # Utility definitions
@@ -420,14 +421,10 @@ class _Lib(_utils.Lib):
 
     def __load_api(self) -> None:
         # Load API not related to devices
-        self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_data_p_p, _c_uint_p)
-        self.__free_event_data = self.__get('FreeEventData', _event_data_p_p)
-        self.__free = self.__get('Free', ct.c_void_p)
-
-        # CAENHVLibSwRel has non conventional API
-        self.___sw_rel = self.__lib.CAENHVLibSwRel
-        self.___sw_rel.argtypes = []
-        self.___sw_rel.restype = ct.c_char_p
+        self.get_event_data = self.__get('GetEventData', _socket, _system_status_p, _event_data_p_p, _c_uint_p, handle_errcheck=False)
+        self.__free_event_data = self.__get('FreeEventData', _event_data_p_p, handle_errcheck=False)
+        self.__free = self.__get('Free', ct.c_void_p, handle_errcheck=False)
+        self.__sw_rel = self.__get_str('LibSwRel', legacy=True)
 
         # Load API
         self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p)
@@ -456,23 +453,49 @@ class _Lib(_utils.Lib):
         self.unsubscribe_system_params = self.__get('UnSubscribeSystemParams', ct.c_int, ct.c_short, _c_char_p, ct.c_uint, _c_char_p)
         self.unsubscribe_board_params = self.__get('UnSubscribeBoardParams', ct.c_int, ct.c_short, ct.c_ushort, _c_char_p, ct.c_uint, _c_char_p)
         self.unsubscribe_channel_params = self.__get('UnSubscribeChannelParams', ct.c_int, ct.c_short, ct.c_ushort, ct.c_ushort, _c_char_p, ct.c_uint, _c_char_p)
-
-        # CAENHV_GetError has non conventional API
-        self.get_error = self.__lib.CAENHV_GetError
-        self.get_error.argtypes = [ct.c_int]
-        self.get_error.restype = ct.c_char_p
+        self.__get_error = self.__get_str('GetError', ct.c_int)
 
     def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
         if res != ErrorCode.OK:
-            raise Error(res, func.__name__)
+            raise Error('details not available', res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type) -> Callable[..., int]:
+    def __api_handle_errcheck(self, res: int, func: Callable, func_args: Tuple) -> int:
+        """
+        Binding of CAENHV_GetError()
+
+        Even if the first argument is an handle, this binding
+        is defined as errcheck rather then a method of Device class
+        because actually it has to be called after a failed call.
+        The handle is obtained assuming it is the first argument
+        of the failed function.
+        """
+        if res != ErrorCode.OK:
+            handle = func_args[0]  # first argument is always handle
+            raise Error(self.__get_error(handle), res, func.__name__)
+        return res
+
+    def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
         # Use lib_variadic as API is __cdecl
         func = getattr(self.lib_variadic, f'CAENHV_{name}')
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck
+        if kwargs.get('handle_errcheck', True):
+            func.errcheck = self.__api_handle_errcheck
+        else:
+            func.errcheck = self.__api_errcheck
+        return func
+
+    def __get_str(self, name: str, *args: Type, **kwargs) -> Callable[..., str]:
+        # Use lib_variadic as API is __cdecl
+        if kwargs.get('legacy', False):
+            func_name = f'CAENHV{name}'
+        else:
+            func_name = f'CAENHV_{name}'
+        func = getattr(self.lib_variadic, func_name)
+        func.argtypes = args
+        func.restype = ct.c_char_p
+        func.errcheck = lambda res, func, args: res.decode()
         return func
 
     # C API bindings
@@ -481,7 +504,7 @@ class _Lib(_utils.Lib):
         """
         Binding of CAENHVLibSwRel()
         """
-        return self.___sw_rel().decode()
+        return self.__sw_rel()
 
     @contextmanager
     def auto_ptr(self, pointer_type: Type):
@@ -840,7 +863,7 @@ class Device:
         """
         Binding of CAENHV_ExecComm()
         """
-        lib.get_exec_comm_list(self.handle, name.encode())
+        lib.exec_comm(self.handle, name.encode())
 
     def subscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
@@ -944,6 +967,10 @@ class Device:
     def get_event_data(self) -> Tuple[Tuple[EventData, ...], SystemStatus]:
         """
         Binding of CAENHV_GetEventData()
+
+        Even if the first call of the C API is a socket rather
+        than an handle, we do here a trick to make this anomaly
+        transparent to the user.
         """
         self.__init_events_client()
         assert self.__skt_client is not None
@@ -957,12 +984,6 @@ class Device:
         board_status = tuple(EventStatus(i) for i in l_system_status.Board)
         status = SystemStatus(system_status, board_status)
         return events, status
-
-    def get_error(self) -> str:
-        """
-        Binding of CAENHV_GetError()
-        """
-        return lib.get_error(self.handle).decode()
 
     # Private utilities
 
@@ -1109,6 +1130,7 @@ class Device:
             assert system_handle == self.handle  # should always be the same
             if event_type != EventType.PARAMETER:
                 yield EventData(event_type, item_id, board_index, channel_index)
+                continue
             if board_index == -1:
                 # System prop
                 prop_type = self.get_sys_prop_info(item_id).type
