@@ -536,10 +536,6 @@ class _Lib(_utils.Lib):
         self.__sw_release(l_value)
         return l_value.value.decode()
 
-    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
-        ver = self.sw_release()
-        return _utils.version_to_tuple(ver) >= target
-
 
 # Library name is platform dependent
 if sys.platform == 'win32':
