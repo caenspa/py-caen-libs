@@ -10,7 +10,7 @@ __license__ = 'LGPL-3.0-or-later'
 from contextlib import contextmanager
 import ctypes as ct
 from dataclasses import dataclass, field
-from enum import Flag, IntEnum, unique
+from enum import IntFlag, IntEnum, unique
 from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
@@ -64,7 +64,7 @@ class Info(IntEnum):
     VME_BRIDGE_FW_REL_2 = 4
 
 
-class IRQLevels(Flag):
+class IRQLevels(IntFlag):
     """
     Binding of ::IRQLevels
     """
@@ -96,10 +96,7 @@ class Error(RuntimeError):
 
 # Utility definitions
 _P = ct.POINTER
-_c_ubyte_p = _P(ct.c_ubyte)
-_c_short_p = _P(ct.c_short)
 _c_int_p = _P(ct.c_int)
-_c_uint_p = _P(ct.c_uint)
 _c_uint8_p = _P(ct.c_uint8)
 _c_uint16_p = _P(ct.c_uint16)
 _c_int32_p = _P(ct.c_int32)

@@ -11,6 +11,20 @@
 -----------------------------------------------------------------------------
 
 
+v1.0.4 (XX/07/2024)
+-------------------
+
+New features:
+- Support for Resol parameter property on caenhvwrapper for VME8100.
+
+Fixes:
+- Classes inheriting enum.Flag now inherits enum.IntFlag to improve,
+    among the various things, the support of unknown flags. This
+    applies to caenvme.IRQLevels, caencomm.IRQLevels and all the
+    classes on caenhvwrapperflags.
+
+
+
 v1.0.3 (02/07/2024)
 -------------------
 

@@ -8,13 +8,13 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 
-from enum import Flag
+from enum import IntFlag
 from typing import Dict, Type
 
 from caen_libs import caenhvwrapper as hv
 
 
-class _BdStatusDefault(Flag):
+class _BdStatusDefault(IntFlag):
     """
     Values of ParamType.BDSTATUS, from library documentation
     """
@@ -24,9 +24,10 @@ class _BdStatusDefault(Flag):
     TEMP_ERR    = 0x00000008
     UN_TEMP     = 0x00000010
     OV_TEMP     = 0x00000020
+#    UNKNOWN     = 0x00000200
 
 
-class _BdStatusN1470(Flag):
+class _BdStatusN1470(IntFlag):
     """
     Values of ParamType.BDSTATUS for N1470
     """
@@ -39,14 +40,14 @@ class _BdStatusN1470(Flag):
     HV_CLK_FAIL = 0x00000040
 
 
-class _BdStatusDT55XXE(Flag):
+class _BdStatusDT55XXE(IntFlag):
     """
     Values of ParamType.BDSTATUS for DT55XXE
     """
     ALARMED     = 0x00000001
 
 
-class _BdStatusSMARTHV(Flag):
+class _BdStatusSMARTHV(IntFlag):
     """
     Values of ParamType.BDSTATUS for SMARTHV
     """
@@ -56,7 +57,7 @@ class _BdStatusSMARTHV(Flag):
     TEMP_ERR    = 0x00000008
 
 
-class _ChStatusDefault(Flag):
+class _ChStatusDefault(IntFlag):
     """
     Values of ParamType.CHSTATUS, from library documentation
     """
@@ -74,7 +75,7 @@ class _ChStatusDefault(Flag):
     UNPLUGG     = 0x00000800
 
 
-class _ChStatusSY4527(Flag):
+class _ChStatusSY4527(IntFlag):
     """
     Values of ParamType.CHSTATUS for SY4527, SY5527 and R6060
     """
@@ -96,7 +97,7 @@ class _ChStatusSY4527(Flag):
     TEMP_FAIL   = 0x00008000
 
 
-class _ChStatusN1470(Flag):
+class _ChStatusN1470(IntFlag):
     """
     Values of ParamType.CHSTATUS for N1470
     """
@@ -116,7 +117,7 @@ class _ChStatusN1470(Flag):
     CAL_ERR     = 0x00002000
 
 
-class _ChStatusV65XX(Flag):
+class _ChStatusV65XX(IntFlag):
     """
     Values of ParamType.CHSTATUS for V65XX
     """
@@ -136,7 +137,7 @@ class _ChStatusV65XX(Flag):
     UNCAL       = 0x00002000
 
 
-class _ChStatusDT55XXE(Flag):
+class _ChStatusDT55XXE(IntFlag):
     """
     Values of ParamType.CHSTATUS for DT55XXE
     """
@@ -156,7 +157,7 @@ class _ChStatusDT55XXE(Flag):
     CAL_ERR     = 0x00002000
 
 
-class _ChStatusSMARTHV(Flag):
+class _ChStatusSMARTHV(IntFlag):
     """
     Values of ParamType.CHSTATUS for SMARTHV
     """
@@ -179,14 +180,14 @@ class _ChStatusSMARTHV(Flag):
     CAL_ERR     = 0x00010000
 
 
-_BD_STATUS_TYPE: Dict[hv.SystemType, Type[Flag]] = {
+_BD_STATUS_TYPE: Dict[hv.SystemType, Type[IntFlag]] = {
     hv.SystemType.N1470:    _BdStatusN1470,
     hv.SystemType.DT55XXE:  _BdStatusDT55XXE,
     hv.SystemType.SMARTHV:  _BdStatusSMARTHV,
 }
 
 
-_CH_STATUS_TYPE: Dict[hv.SystemType, Type[Flag]] = {
+_CH_STATUS_TYPE: Dict[hv.SystemType, Type[IntFlag]] = {
     hv.SystemType.SY4527:   _ChStatusSY4527,
     hv.SystemType.SY5527:   _ChStatusSY4527,
     hv.SystemType.V65XX:    _ChStatusV65XX,

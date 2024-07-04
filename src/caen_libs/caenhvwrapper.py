@@ -297,6 +297,7 @@ class ParamProp:
     unit: Optional[ParamUnit] = field(default=None)
     exp: Optional[int] = field(default=None)
     decimal: Optional[int] = field(default=None)
+    resol: Optional[int] = field(default=None)
     onstate: Optional[str] = field(default=None)
     offstate: Optional[str] = field(default=None)
     enum: Optional[Tuple[str, ...]] = field(default=None)
@@ -1014,6 +1015,8 @@ class Device:
             res.unit = ParamUnit(_get('Unit', ct.c_ushort).value)
             res.exp = _get('Exp', ct.c_short).value
             res.decimal = _get('Decimal', ct.c_short).value
+            if self.__resol_param_prop():
+                res.resol = _get('Resol', ct.c_short).value
         elif param_type == ParamType.ONOFF:
             res.onstate = _get('Onstate', ct.c_char * _STR_SIZE).value.decode()
             res.offstate = _get('Offstate', ct.c_char * _STR_SIZE).value.decode()
@@ -1046,6 +1049,10 @@ class Device:
     def __library_event_thread(self) -> bool:
         """Devices with polling thread within library"""
         return self.system_type not in (SystemType.SY4527, SystemType.SY5527, SystemType.R6060)
+
+    def __resol_param_prop(self) -> bool:
+        """Devices with weird Resol parameter property on numeric data"""
+        return self.system_type in (SystemType.V8100,)
 
     def __new_events_format(self) -> bool:
         """Devices with new events format, with socket opened within the library"""
@@ -1120,8 +1127,9 @@ class Device:
         for i in range(n_events):
             event: _EventDataRaw = event_data[i]
             item_id = event.ItemID.decode()
-            if not item_id and self.__library_event_thread():
+            if not item_id:
                 # There could be empty events, expecially from library event thread, to be ignored.
+                assert self.__library_event_thread()
                 continue
             event_type = EventType(event.Type)
             system_handle = event.SystemHandle

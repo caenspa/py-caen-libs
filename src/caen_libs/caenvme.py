@@ -10,7 +10,7 @@ __license__ = 'LGPL-3.0-or-later'
 from contextlib import contextmanager
 import ctypes as ct
 from dataclasses import dataclass, field
-from enum import Flag, IntEnum, unique
+from enum import IntFlag, IntEnum, unique
 import sys
 from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
@@ -240,7 +240,7 @@ else:
     _CaenBool = ct.c_int  # CAEN_BOOL
 
 
-class IRQLevels(Flag):
+class IRQLevels(IntFlag):
     """
     Binding of ::CVIRQLevels
     """
