@@ -1043,8 +1043,7 @@ class Device:
             n_enums = int(res.maxval - res.minval + 1)
             assert n_enums <= self.MAX_ENUM_VALS
             l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.MAX_ENUM_NAME * self.MAX_ENUM_VALS))
-            enum = tuple(_utils.str_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
-            res.enum = enum
+            res.enum = tuple(_utils.str_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
         return res
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
