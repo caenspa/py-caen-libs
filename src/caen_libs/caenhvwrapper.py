@@ -560,6 +560,7 @@ class Device:
     MAX_PARAM_NAME: ClassVar[int] = 10  # From CAENHVWrapper.h
     MAX_CH_NAME: ClassVar[int] = 12  # From CAENHVWrapper.h
     MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
+    MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
 
     # Static private members
     __node_cache_manager: ClassVar[_utils.CacheManager] = _utils.CacheManager()
@@ -988,58 +989,89 @@ class Device:
 
     # Private utilities
 
+    _R = TypeVar('_R', bound='ct._CData')
+
+    def __get_prop(self, slot: int, name: str, prop_name: bytes, channel: Optional[int], var_type: Callable[..., _R], *args, **kwargs) -> _R:
+        """
+        Get single parameter property.
+
+        If args are defined, they are used to construct the value passed to the
+        C library, and could be used to catch errors (see comment in __get_param_type)
+        If default is set in kwargs, it returns var_type(default) in case of
+        PARAMPROPNOTFOUND error.
+        """
+        l_value = var_type(*args)
+        try:
+            if channel is None:
+                lib.get_bd_param_prop(self.handle, slot, name.encode(), prop_name, ct.byref(l_value))
+            else:
+                lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), prop_name, ct.byref(l_value))
+        except Error as ex:
+            if ex.code == ErrorCode.PARAMPROPNOTFOUND:
+                default = kwargs.get('default')
+                if default is not None:
+                    return var_type(default)
+            raise ex
+        return l_value
+
     def __get_param_prop(self, slot: int, name: str, channel: Optional[int] = None) -> ParamProp:
         """
         Get all parameter properties.
         Cannot be cached since minval/maxval may depend on the value of other parameters.
         """
-        def _get(prop_name: str, prop_type: Type):
-            l_value = prop_type()
-            try:
-                if channel is None:
-                    lib.get_bd_param_prop(self.handle, slot, name.encode(), prop_name.encode(), ct.byref(l_value))
-                else:
-                    lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), prop_name.encode(), ct.byref(l_value))
-            except Error:
-                # Ignore errors, return empty value
-                return prop_type()
-            return l_value
-        param_type = ParamType(_get('Type', ct.c_uint).value)
-        param_mode = ParamMode(_get('Mode', ct.c_uint).value)
-        if param_type is None or param_mode is None:
-            raise RuntimeError('Missing parameter property Type or Mode')
+        # Mandatory values (raise if name is not valid)
+        param_type = self.__get_param_type(slot, name, channel)
+        param_mode = self.__get_param_mode(slot, name, channel)
         res = ParamProp(param_type, param_mode)
+        # Optional values
         if param_type == ParamType.NUMERIC:
-            res.minval = _get('Minval', ct.c_float).value
-            res.maxval = _get('Maxval', ct.c_float).value
-            res.unit = ParamUnit(_get('Unit', ct.c_ushort).value)
-            res.exp = _get('Exp', ct.c_short).value
-            res.decimal = _get('Decimal', ct.c_short).value
+            # Always defined
+            res.unit = ParamUnit(self.__get_prop(slot, name, b'Unit', channel, ct.c_ushort).value)
+            res.exp = self.__get_prop(slot, name, b'Exp', channel, ct.c_short).value
+            # Not defined on some old systems
+            res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float, default=0.).value
+            res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float, default=0.).value
+            res.decimal = self.__get_prop(slot, name, b'Decimal', channel, ct.c_short, default=0).value
             if self.__resol_param_prop():
-                res.resol = _get('Resol', ct.c_short).value
+                res.resol = self.__get_prop(slot, name, b'Resol', channel, ct.c_short, default=1).value
         elif param_type == ParamType.ONOFF:
-            res.onstate = _get('Onstate', ct.c_char * _STR_SIZE).value.decode()
-            res.offstate = _get('Offstate', ct.c_char * _STR_SIZE).value.decode()
+            res.onstate = self.__get_prop(slot, name, b'Onstate', channel, ct.c_char * _STR_SIZE).value.decode()
+            res.offstate = self.__get_prop(slot, name, b'Offstate', channel, ct.c_char * _STR_SIZE).value.decode()
         elif param_type == ParamType.ENUM:
-            res.minval = _get('Minval', ct.c_float).value
-            res.maxval = _get('Maxval', ct.c_float).value
-            if res.minval is not None and res.maxval is not None:
-                n_enums = int(res.maxval - res.minval)
-                n_allocated_values = n_enums + 1  # In case library tries to set an empty string after the last
-                l_value = _get('Enum', ct.c_char * (self.MAX_ENUM_NAME * n_allocated_values))
-                enum = tuple(_utils.str_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
-                res.enum = enum
+            res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float).value
+            res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float).value
+            n_enums = int(res.maxval - res.minval + 1)
+            assert n_enums <= self.MAX_ENUM_VALS
+            l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.MAX_ENUM_NAME * self.MAX_ENUM_VALS))
+            enum = tuple(_utils.str_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
+            res.enum = enum
         return res
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
         """Simplified version of __get_param_prop used internally to retrieve just param type."""
-        l_uint = ct.c_uint()
-        if channel is None:
-            lib.get_bd_param_prop(self.handle, slot, name.encode(), b'Type', ct.byref(l_uint))
-        else:
-            lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), b'Type', ct.byref(l_uint))
-        return ParamType(l_uint.value)
+        # Initialize arg to -1 to detect errors because library functions return
+        # in case of non-existing parameter. We detect this error as the value is
+        # not modified by the library, and we map it to a library Error value.
+        # The check is not done on all the properties because, in case of invalid
+        # parameter, it will fail in the very first call.
+        bad_value = -1
+        assert bad_value not in ParamType
+        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, bad_value).value
+        if value == bad_value:
+            raise Error('Parameter not found', ErrorCode.PARAMNOTFOUND.value, '__get_param_mode')
+        return ParamType(value)
+
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    def __get_param_mode(self, slot: int, name: str, channel: Optional[int] = None) -> ParamMode:
+        """Simplified version of __get_param_prop used internally to retrieve just param mode."""
+        # See comment on __get_param_type
+        bad_value = -1
+        assert bad_value not in ParamMode
+        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, bad_value).value
+        if value == bad_value:
+            raise Error('Parameter not found', ErrorCode.PARAMNOTFOUND.value, '__get_param_mode')
+        return ParamMode(value)
 
     def __check_events_support(self) -> None:
         """SY1524/SY2527 have a legacy version of events not supported by this binding"""

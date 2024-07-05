@@ -21,6 +21,8 @@ Fixes:
 - Classes inheriting enum.Flag now inherit enum.IntFlag to improve
     the support of unknown flags. This applies to caenvme.IRQLevels,
     caencomm.IRQLevels and all the classes on caenhvwrapperflags.
+- Fix decode of caenhvwrapper.ParamProp.enum.
+- Fix error detection on caenhvwrapper.Device.get_XX_param_prop()
 
 
 v1.0.3 (02/07/2024)
