@@ -713,8 +713,8 @@ class Device:
 
         The CAEN HV Wrapper is not consistent, since it allows to pass an array of values as input, to
         be set respectively to the slots in the slot_list, but this is done only on some system
-        types (notably, on ST4527 and R6060 it uses only the first value of the array for all channels
-        in the slot_list). To make their behavior homogeneous, we to the same also for systems
+        types (notably, on SY4527 and R6060 it uses only the first value of the array for all channels
+        in the slot_list). To make their behavior homogeneous, we do the same also on systems
         supporting different values, setting the same value on all slots.
         The trick is not done on parameters of STRING type because the systems that accept an array
         as input do not have any writable parameter of that type. The trick is not done on CMD type
