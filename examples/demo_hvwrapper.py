@@ -13,6 +13,7 @@ __license__ = 'MIT-0'
 __contact__ = 'https://www.caen.it/'
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+
 from caen_libs import caenhvwrapper as hv
 
 # Parse arguments

@@ -7,11 +7,11 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-from contextlib import contextmanager
 import ctypes as ct
-from dataclasses import dataclass, field
-from enum import IntFlag, IntEnum, unique
 import sys
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from enum import IntEnum, IntFlag, unique
 from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
@@ -405,6 +405,7 @@ _c_uint16_p = _P(ct.c_uint16)
 _c_int32_p = _P(ct.c_int32)
 _c_uint32_p = _P(ct.c_uint32)
 _display_p = _P(_DisplayRaw)
+
 
 class _Lib(_utils.Lib):
 

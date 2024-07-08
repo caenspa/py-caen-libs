@@ -7,15 +7,16 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-from contextlib import contextmanager
 import ctypes as ct
 import ctypes.wintypes as ctw
-from dataclasses import dataclass, field
-from enum import IntEnum, unique
 import os
 import socket
 import sys
-from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Sequence, Tuple, Type, TypeVar, Union
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from enum import IntEnum, unique
+from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
+                    Sequence, Tuple, Type, TypeVar, Union)
 
 from caen_libs import _utils
 
@@ -413,6 +414,7 @@ _PARAM_TYPE_EVENT_ARG: Dict[ParamType, Callable] = {
     ParamType.ENUM:         lambda v: v.IntValue,
     ParamType.CMD:          lambda v: v.IntValue,
 }
+
 
 class _Lib(_utils.Lib):
 

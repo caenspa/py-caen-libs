@@ -8,11 +8,10 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
-from functools import lru_cache, wraps, _lru_cache_wrapper
 import sys
+from functools import _lru_cache_wrapper, lru_cache, wraps
 from typing import Any, Iterator, List, Optional, Tuple, Union
-from weakref import ref, ReferenceType
-
+from weakref import ReferenceType, ref
 
 if sys.platform == 'win32':
     _LibNotFoundClass = FileNotFoundError

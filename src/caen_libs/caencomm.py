@@ -7,10 +7,10 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-from contextlib import contextmanager
 import ctypes as ct
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from enum import IntFlag, IntEnum, unique
+from enum import IntEnum, IntFlag, unique
 from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils

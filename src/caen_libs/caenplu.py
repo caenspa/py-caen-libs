@@ -7,11 +7,11 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-from contextlib import contextmanager
 import ctypes as ct
+import sys
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-import sys
 from typing import Callable, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
@@ -160,6 +160,7 @@ _c_uint_p = _P(ct.c_uint)
 _c_uint32_p = _P(ct.c_uint32)
 _usb_device_p = _P(_USBDeviceRaw)
 _board_info_p = _P(_BoardInfoRaw)
+
 
 class _Lib(_utils.Lib):
 

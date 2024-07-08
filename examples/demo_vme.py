@@ -14,8 +14,9 @@ __license__ = 'MIT-0'
 # SPDX-License-Identifier: MIT-0
 __contact__ = 'https://www.caen.it/'
 
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 import sys
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+
 from caen_libs import caenvme as vme
 
 # Parse arguments

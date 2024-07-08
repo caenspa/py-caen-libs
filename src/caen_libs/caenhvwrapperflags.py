@@ -7,7 +7,6 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 from enum import IntFlag
 from typing import Dict, Type
 
