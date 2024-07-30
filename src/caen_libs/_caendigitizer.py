@@ -274,7 +274,7 @@ lib = _Lib('CAENDigitizer')
 
 
 def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
-    if connection_type == ConnectionType.ETH_V4718:
+    if connection_type is ConnectionType.ETH_V4718:
         assert isinstance(arg, str), 'arg expected to be an instance of str'
         return arg.encode()
     else:

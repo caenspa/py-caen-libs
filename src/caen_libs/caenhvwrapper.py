@@ -178,9 +178,9 @@ class EventData:
     """
     type: EventType
     item_id: str
-    board_index: int = field(default=-1)
-    channel_index: int = field(default=-1)
-    value: Union[str, float, int] = field(default=-1)
+    board_index: int
+    channel_index: int
+    value: Union[str, float, int]
 
 
 @dataclass(frozen=True)
@@ -691,7 +691,7 @@ class Device:
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
-        if param_type == ParamType.STRING and self.__char_p_p_str_bd_param_arg():
+        if param_type is ParamType.STRING and self.__char_p_p_str_bd_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_size = ct.sizeof(l_data)
@@ -701,7 +701,7 @@ class Device:
             l_data_proxy = l_data
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data_proxy)
-        if param_type == ParamType.STRING:
+        if param_type is ParamType.STRING:
             if self.__char_p_p_str_bd_param_arg():
                 return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
@@ -819,7 +819,7 @@ class Device:
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
-        if param_type == ParamType.STRING and self.__char_p_p_str_ch_param_arg():
+        if param_type is ParamType.STRING and self.__char_p_p_str_ch_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_size = ct.sizeof(l_data)
@@ -829,7 +829,7 @@ class Device:
             l_data_proxy = l_data
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data_proxy)
-        if param_type == ParamType.STRING:
+        if param_type is ParamType.STRING:
             if self.__char_p_p_str_ch_param_arg():
                 return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
@@ -1009,7 +1009,7 @@ class Device:
             else:
                 lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), prop_name, ct.byref(l_value))
         except Error as ex:
-            if ex.code == ErrorCode.PARAMPROPNOTFOUND:
+            if ex.code is ErrorCode.PARAMPROPNOTFOUND:
                 default = kwargs.get('default')
                 if default is not None:
                     return var_type(default)
@@ -1026,7 +1026,7 @@ class Device:
         param_mode = self.__get_param_mode(slot, name, channel)
         res = ParamProp(param_type, param_mode)
         # Optional values
-        if param_type == ParamType.NUMERIC:
+        if param_type is ParamType.NUMERIC:
             # Always defined
             res.unit = ParamUnit(self.__get_prop(slot, name, b'Unit', channel, ct.c_ushort).value)
             res.exp = self.__get_prop(slot, name, b'Exp', channel, ct.c_short).value
@@ -1036,10 +1036,10 @@ class Device:
             res.decimal = self.__get_prop(slot, name, b'Decimal', channel, ct.c_short, default=0).value
             if self.__resol_param_prop():
                 res.resol = self.__get_prop(slot, name, b'Resol', channel, ct.c_short, default=1).value
-        elif param_type == ParamType.ONOFF:
+        elif param_type is ParamType.ONOFF:
             res.onstate = self.__get_prop(slot, name, b'Onstate', channel, ct.c_char * _STR_SIZE).value.decode()
             res.offstate = self.__get_prop(slot, name, b'Offstate', channel, ct.c_char * _STR_SIZE).value.decode()
-        elif param_type == ParamType.ENUM:
+        elif param_type is ParamType.ENUM:
             res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float).value
             res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float).value
             n_enums = int(res.maxval - res.minval + 1)
@@ -1075,7 +1075,7 @@ class Device:
         return ParamMode(value)
 
     def __check_events_support(self) -> None:
-        """SY1524/SY2527 have a legacy version of events not supported by this binding"""
+        """SY1527/SY2527 have a legacy version of events not supported by this binding"""
         if self.system_type in (SystemType.SY1527, SystemType.SY2527):
             raise RuntimeError('Legacy events not supported by this binding.')
 
@@ -1156,6 +1156,25 @@ class Device:
                     arg.extend(char)
                 assert self.arg == arg.decode()
 
+    def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
+        """
+        Same of __get_param_type, with a workaround for Name: even if not being
+        a real channel parameter, i.e. get_ch_param_prop does not work, changes
+        are sent as events of type PARAMETER.
+        """
+        if channel is not None and name == 'Name':
+            return ParamType.STRING
+        return self.__get_param_type(slot, name, channel)
+
+    def __decode_event_value(self, event_type: EventType, board_index: int, channel_index: int, item_id: str, value: _IdValueRaw) -> Union[str, float, int]:
+        if event_type is not EventType.PARAMETER:
+            return -1
+        if board_index == -1:
+            prop_type = self.get_sys_prop_info(item_id).type
+            return _SYS_PROP_TYPE_EVENT_ARG[prop_type](value)
+        param_type = self.__extended_get_param_type(board_index, item_id, channel_index if channel_index != -1 else None)
+        return _PARAM_TYPE_EVENT_ARG[param_type](value)
+
     def __decode_event_data(self, event_data: ct._Pointer, n_events: int) -> Iterator[EventData]:
         for i in range(n_events):
             event: _EventDataRaw = event_data[i]
@@ -1166,30 +1185,10 @@ class Device:
                 continue
             event_type = EventType(event.Type)
             system_handle = event.SystemHandle
+            assert system_handle == self.handle  # should always be the same
             board_index = event.BoardIndex
             channel_index = event.ChannelIndex
-            assert system_handle == self.handle  # should always be the same
-            if event_type != EventType.PARAMETER:
-                yield EventData(event_type, item_id, board_index, channel_index)
-                continue
-            if board_index == -1:
-                # System prop
-                prop_type = self.get_sys_prop_info(item_id).type
-                value = _SYS_PROP_TYPE_EVENT_ARG[prop_type](event.Value)
-            else:
-                if channel_index == -1:
-                    # Board param
-                    param_type = self.__get_param_type(board_index, item_id)
-                else:
-                    # Channel param
-                    if item_id == 'Name':
-                        # Workaround for Name: even if not being a real channel parameter, i.e.
-                        # get_ch_param_prop does not work, changes are sent as events of type
-                        # PARAMETER.
-                        param_type = ParamType.STRING
-                    else:
-                        param_type = self.__get_param_type(board_index, item_id, channel_index)
-                value = _PARAM_TYPE_EVENT_ARG[param_type](event.Value)
+            value = self.__decode_event_value(event_type, board_index, channel_index, item_id, event.Value)
             yield EventData(event_type, item_id, board_index, channel_index, value)
 
     # Python utilities
