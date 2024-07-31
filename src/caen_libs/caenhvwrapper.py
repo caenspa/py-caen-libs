@@ -588,7 +588,7 @@ class Device:
         Binding of CAENHV_InitSystem()
         """
         l_handle = ct.c_int()
-        lib.init_system(system_type.value, link_type.value, arg.encode(), username.encode(), password.encode(), l_handle)
+        lib.init_system(system_type, link_type, arg.encode(), username.encode(), password.encode(), l_handle)
         return cls(l_handle.value, True, system_type, link_type, arg, username, password)
 
     def connect(self) -> None:

@@ -345,19 +345,19 @@ class Device:
         """
         Binding of CAEN_PLU_EnableFlashAccess()
         """
-        lib.enable_flash_access(self.handle, fpga.value)
+        lib.enable_flash_access(self.handle, fpga)
 
     def disable_flash_access(self, fpga: FPGA) -> None:
         """
         Binding of CAEN_PLU_DisableFlashAccess()
         """
-        lib.disable_flash_access(self.handle, fpga.value)
+        lib.disable_flash_access(self.handle, fpga)
 
     def delete_flash_sector(self, fpga: FPGA, sector: int) -> None:
         """
         Binding of CAEN_PLU_DeleteFlashSector()
         """
-        lib.delete_flash_sector(self.handle, fpga.value, sector)
+        lib.delete_flash_sector(self.handle, fpga, sector)
 
     def write_flash_data(self, fpga: FPGA, address: int, data: bytes) -> None:
         """
@@ -366,7 +366,7 @@ class Device:
         length = len(data)
         l_data_length = length // ct.sizeof(ct.c_uint32)
         l_data = (ct.c_uint32 * l_data_length).from_buffer_copy(data)
-        lib.write_flash_data(self.handle, fpga.value, address, l_data, l_data_length)
+        lib.write_flash_data(self.handle, fpga, address, l_data, l_data_length)
 
     def read_flash_data(self, fpga: FPGA, address: int, length: int) -> bytes:
         """
@@ -374,7 +374,7 @@ class Device:
         """
         l_data_length = length // ct.sizeof(ct.c_uint32)
         l_data = (ct.c_uint32 * l_data_length)()
-        lib.read_flash_data(self.handle, fpga.value, address, l_data, l_data_length)
+        lib.read_flash_data(self.handle, fpga, address, l_data, l_data_length)
         return bytes(l_data)
 
     def get_serial_number(self) -> str:

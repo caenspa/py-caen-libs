@@ -210,7 +210,7 @@ class _Lib(_utils.Lib):
         Binding of CAENComm_VMEIRQWait()
         """
         l_value = ct.c_int32()
-        self.__vme_irq_wait(connection_type.value, link_num, conet_node, irq_mask.value, timeout, l_value)
+        self.__vme_irq_wait(connection_type, link_num, conet_node, irq_mask, timeout, l_value)
         return l_value.value
 
     def reboot_device(self, link_number: int, use_backup: bool) -> None:
@@ -407,7 +407,7 @@ class Device:
         Binding of CAENComm_IACKCycle()
         """
         l_data = ct.c_int()
-        lib.iack_cycle(self.handle, levels.value, l_data)
+        lib.iack_cycle(self.handle, levels, l_data)
         return l_data.value
 
     def irq_wait(self, timeout: int) -> None:

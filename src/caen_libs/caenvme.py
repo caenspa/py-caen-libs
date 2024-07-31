@@ -779,7 +779,7 @@ class Device:
         Binding of CAENVME_IACKCycle()
         """
         l_data = dw.ctypes()
-        lib.iack_cycle(self.handle, levels.value, l_data, dw)
+        lib.iack_cycle(self.handle, levels, l_data, dw)
         return l_data.value
 
     def irq_check(self) -> IRQLevels:
@@ -794,19 +794,19 @@ class Device:
         """
         Binding of CAENVME_IRQEnable()
         """
-        lib.irq_enable(self.handle, mask.value)
+        lib.irq_enable(self.handle, mask)
 
     def irq_disable(self, mask: IRQLevels) -> None:
         """
         Binding of CAENVME_IRQDisable()
         """
-        lib.irq_disable(self.handle, mask.value)
+        lib.irq_disable(self.handle, mask)
 
     def irq_wait(self, mask: IRQLevels, timeout: int) -> None:
         """
         Binding of CAENVME_IRQWait()
         """
-        lib.irq_wait(self.handle, mask.value, timeout)
+        lib.irq_wait(self.handle, mask, timeout)
 
     def set_pulser_conf(self, pul_sel: PulserSelect, period: int, width: int, unit: TimeUnits, pulse_no: int, start: IOSources, reset: IOSources) -> None:
         """

@@ -534,7 +534,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetInterruptConfig()
         """
-        lib.set_interrupt_config(self.handle, state.value, level, status_id, event_number, mode.value)
+        lib.set_interrupt_config(self.handle, state, level, status_id, event_number, mode)
 
     def get_interrupt_config(self) -> Tuple[EnaDis, int, int, int, IRQMode]:
         """
@@ -622,7 +622,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetSWTriggerMode()
         """
-        lib.set_sw_trigger_mode(self.handle, value.value)
+        lib.set_sw_trigger_mode(self.handle, value)
 
     def get_sw_trigger_mode(self) -> TriggerMode:
         """
@@ -636,7 +636,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetExtTriggerInputMode()
         """
-        lib.set_ext_trigger_input_mode(self.handle, value.value)
+        lib.set_ext_trigger_input_mode(self.handle, value)
 
     def get_ext_trigger_input_mode(self) -> TriggerMode:
         """
@@ -650,7 +650,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetChannelSelfTrigger()
         """
-        lib.set_channel_self_trigger(self.handle, mode.value, channel_mask)
+        lib.set_channel_self_trigger(self.handle, mode, channel_mask)
 
     def get_channel_self_trigger(self, channel: int) -> TriggerMode:
         """
@@ -664,7 +664,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetGroupSelfTrigger()
         """
-        lib.set_group_self_trigger(self.handle, mode.value, group_mask)
+        lib.set_group_self_trigger(self.handle, mode, group_mask)
 
     def get_group_self_trigger(self, group: int) -> TriggerMode:
         """
@@ -748,7 +748,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetChannelPulsePolarity()
         """
-        lib.set_channel_pulse_polarity(self.handle, channel, pol.value)
+        lib.set_channel_pulse_polarity(self.handle, channel, pol)
 
     def get_channel_pulse_polarity(self, channel: int) -> PulsePolarity:
         """ 
@@ -776,7 +776,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetZeroSuppressionMode()
         """
-        lib.set_zero_suppression_mode(self.handle, channel, mode.value)
+        lib.set_zero_suppression_mode(self.handle, channel, mode)
 
     def get_zero_suppression_mode(self, channel: int) -> ZSMode:
         """ 
@@ -790,7 +790,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetChannelZSParams()
         """
-        lib.set_channel_zs_params(self.handle, channel, weight.value, threshold, n_samples)
+        lib.set_channel_zs_params(self.handle, channel, weight, threshold, n_samples)
 
     def get_channel_zs_params(self, channel: int) -> Tuple[ThresholdWeight, int, int]:
         """ 
@@ -806,7 +806,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetAcquisitionMode()
         """
-        lib.set_acquisition_mode(self.handle, channel, mode.value)
+        lib.set_acquisition_mode(self.handle, channel, mode)
 
     def get_acquisition_mode(self, channel: int) -> AcqMode:
         """ 
@@ -820,7 +820,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetRunSynchronizationMode()
         """
-        lib.set_run_synchronization_mode(self.handle, channel, mode.value)
+        lib.set_run_synchronization_mode(self.handle, channel, mode)
 
     def get_run_synchronization_mode(self, channel: int) -> RunSyncMode:
         """ 
@@ -834,7 +834,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetAnalogMonOutput()
         """
-        lib.set_analog_mon_output(self.handle, channel, mode.value)
+        lib.set_analog_mon_output(self.handle, channel, mode)
 
     def get_analog_mon_output(self, channel: int) -> AnalogMonitorOutputMode:
         """ 
