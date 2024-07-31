@@ -130,6 +130,70 @@ class TriggerMode(IntEnum):
     ACQ_AND_EXTOUT   = 3
 
 
+@unique
+class PulsePolarity(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_PulsePolarity_t
+    """
+    POSITIVE = 0
+    NEGATIVE = 1
+
+
+@unique
+class ZSMode(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_ZS_Mode_t
+    """
+    NO  = 0
+    INT = 1
+    ZLE = 2
+    AMP = 3
+
+
+@unique
+class ThresholdWeight(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_ThresholdWeight_t
+    """
+    FINE    = 0
+    COARSE  = 1
+
+
+@unique
+class AcqMode(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_AcqMode_t
+    """
+    SW_CONTROLLED           = 0
+    S_IN_CONTROLLED         = 1
+    FIRST_TRG_CONTROLLED    = 2
+    LVDS_CONTROLLED         = 3
+
+
+@unique
+class RunSyncMode(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_RunSyncMode_t
+    """
+    DISABLED                    = 0
+    TRG_OUT_TRG_IN_DAISY_CHAIN  = 1
+    TRG_OUT_SIN_DAISY_CHAIN     = 2
+    SIN_FANOUT                  = 3
+    GPIO_GPIO_DAISY_CHAIN       = 4
+
+
+@unique
+class AnalogMonitorOutputMode(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_AnalogMonitorOutputMode_t
+    """
+    TRIGGER_MAJORITY    = 0
+    TEST                = 1
+    ANALOG_INSPECTION   = 2
+    BUFFER_OCCUPANCY    = 3
+    VOLTAGE_LEVEL       = 4
+
+
 class Error(RuntimeError):
     """
     Raised when a wrapped C API function returns
@@ -156,7 +220,7 @@ _c_uint16_p = _P(ct.c_uint16)
 _c_int32_p = _P(ct.c_int32)
 _c_uint32_p = _P(ct.c_uint32)
 _c_void_p_p = _P(ct.c_void_p)
-
+_event_info_p = _P(_EventInfoRaw)
 
 class _Lib(_utils.Lib):
 
@@ -168,6 +232,7 @@ class _Lib(_utils.Lib):
         # Load API not related to devices
         self.__sw_release = self.__get('SWRelease', ct.c_char_p)
         self.__free_readout_buffer = self.__get('FreeReadoutBuffer', _c_char_p_p)
+        self.__get_dpp_virtual_probe_name = self.__get('GetDPP_VirtualProbeName', ct.c_int, _c_char_p)
 
         # Load API
         self.open_digitizer = self.__get('OpenDigitizer', ct.c_int, ct.c_int, ct.c_int, ct.c_uint32, _c_int_p)
@@ -204,7 +269,6 @@ class _Lib(_utils.Lib):
         self.get_post_trigger_size = self.__get('GetPostTriggerSize', ct.c_int, _c_uint32_p)
         self.set_dpp_pre_trigger_size = self.__get('SetDPPPreTriggerSize', ct.c_int, ct.c_int, ct.c_uint32)
         self.get_dpp_pre_trigger_size = self.__get('GetDPPPreTriggerSize', ct.c_int, ct.c_int, _c_uint32_p)
-        # TODO
         self.set_channel_dc_offset = self.__get('SetChannelDCOffset', ct.c_int, ct.c_uint32, ct.c_uint32)
         self.get_channel_dc_offset = self.__get('GetChannelDCOffset', ct.c_int, ct.c_uint32, _c_uint32_p)
         self.set_group_dc_offset = self.__get('SetGroupDCOffset', ct.c_int, ct.c_uint32, ct.c_uint32)
@@ -225,6 +289,7 @@ class _Lib(_utils.Lib):
         self.get_run_synchronization_mode = self.__get('GetRunSynchronizationMode', ct.c_int, _c_int_p)
         self.set_analog_mon_output = self.__get('SetAnalogMonOutput', ct.c_int, ct.c_int)
         self.get_analog_mon_output = self.__get('GetAnalogMonOutput', ct.c_int, _c_int_p)
+        # TODO
         self.set_analog_inspection_mon_params = self.__get('SetAnalogInspectionMonParams', ct.c_int, ct.c_uint32, ct.c_uint32, ct.c_int, ct.c_int)
         self.get_analog_inspection_mon_params = self.__get('GetAnalogInspectionMonParams', ct.c_int, _c_uint32_p, _c_uint32_p, _c_int_p, _c_int_p)
         self.disable_event_aligned_readout = self.__get('DisableEventAlignedReadout', ct.c_int)
@@ -237,9 +302,82 @@ class _Lib(_utils.Lib):
         self.malloc_readout_buffer = self.__get('MallocReadoutBuffer', ct.c_int, _c_char_p_p, _c_uint32_p)
         self.read_data = self.__get('ReadData', ct.c_int, ct.c_int, _c_char_p, _c_uint32_p)
         self.get_num_events = self.__get('GetNumEvents', ct.c_int, _c_char_p, ct.c_uint32, _c_uint32_p)
-        self.get_event_info = self.__get('GetEventInfo', ct.c_int, _c_char_p, ct.c_uint32, ct.c_int32, _P(_EventInfoRaw), _c_char_p_p)
+        self.get_event_info = self.__get('GetEventInfo', ct.c_int, _c_char_p, ct.c_uint32, ct.c_int32, _event_info_p, _c_char_p_p)
         self.decode_event = self.__get('DecodeEvent', ct.c_int, _c_char_p, _c_void_p_p)
         self.free_event = self.__get('FreeEvent', ct.c_int, _c_void_p_p)
+        self.get_dpp_events = self.__get('GetDPPEvents', ct.c_int, _c_char_p, ct.c_uint32, _c_void_p_p, _c_uint32_p)
+        self.malloc_dpp_events = self.__get('MallocDPPEvents', ct.c_int, _c_void_p_p, _c_uint32_p)
+        self.free_dpp_events = self.__get('FreeDPPEvents', ct.c_int, _c_void_p_p)
+        self.malloc_dpp_waveforms = self.__get('MallocDPPWaveforms', ct.c_int, _c_void_p_p, _c_uint32_p)
+        self.free_dpp_waveforms = self.__get('FreeDPPWaveforms', ct.c_int, ct.c_void_p)
+        self.decode_dpp_waveforms = self.__get('DecodeDPPWaveforms', ct.c_int, ct.c_void_p, ct.c_void_p)
+        self.set_num_events_per_aggregate = self.__get('SetNumEventsPerAggregate', ct.c_int, ct.c_uint32, variadic=True)
+        self.get_num_events_per_aggregate = self.__get('GetNumEventsPerAggregate', ct.c_int, _c_uint32_p, variadic=True)
+        self.set_dpp_event_aggregation = self.__get('SetDPPEventAggregation', ct.c_int, ct.c_int, ct.c_int)
+        self.set_dpp_parameters = self.__get('SetDPPParameters', ct.c_int, ct.c_uint32, ct.c_void_p)
+        self.set_dpp_acquisition_mode = self.__get('SetDPPAcquisitionMode', ct.c_int, ct.c_int, ct.c_int)
+        self.get_dpp_acquisition_mode = self.__get('GetDPPAcquisitionMode', ct.c_int, _c_int_p, _c_int_p)
+        self.set_dpp_trigger_mode = self.__get('SetDPPTriggerMode', ct.c_int, ct.c_int)
+        self.get_dpp_trigger_mode = self.__get('GetDPPTriggerMode', ct.c_int, _c_int_p)
+        self.set_dpp_virtual_probe = self.__get('SetDPP_VirtualProbe', ct.c_int, ct.c_int, ct.c_int)
+        self.get_dpp_virtual_probe = self.__get('GetDPP_VirtualProbe', ct.c_int, ct.c_int, _c_int_p)
+        self.get_dpp_supported_virtual_probes = self.__get('GetDPP_SupportedVirtualProbes', ct.c_int, ct.c_int, _c_int_p, _c_int_p)
+        self.allocate_event = self.__get('AllocateEvent', ct.c_int, _c_void_p_p)
+        self.set_io_level = self.__get('SetIOLevel', ct.c_int)
+        self.get_io_level = self.__get('GetIOLevel', _c_int_p)
+        self.set_trigger_polarity = self.__get('SetTriggerPolarity', ct.c_int, ct.c_uint32, ct.c_int)
+        self.get_trigger_polarity = self.__get('GetTriggerPolarity', ct.c_int, ct.c_uint32, _c_int_p)
+        self.rearm_interrupt = self.__get('RearmInterrupt', ct.c_int)
+        self.set_drs4_sampling_frequency = self.__get('SetDRS4SamplingFrequency', ct.c_int, ct.c_int)
+        self.get_drs4_sampling_frequency = self.__get('GetDRS4SamplingFrequency', ct.c_int, _c_int_p)
+        self.set_output_signal_mode = self.__get('SetOutputSignalMode', ct.c_int, ct.c_int)
+        self.get_output_signal_mode = self.__get('GetOutputSignalMode', ct.c_int, _c_int_p)
+        self.set_group_fast_trigger_threshold = self.__get('SetGroupFastTriggerThreshold', ct.c_int, ct.c_uint32, ct.c_uint32)
+        self.get_group_fast_trigger_threshold = self.__get('GetGroupFastTriggerThreshold', ct.c_int, ct.c_uint32, _c_uint32_p)
+        self.set_group_fast_trigger_dc_offset = self.__get('SetGroupFastTriggerDCOffset', ct.c_int, ct.c_uint32, ct.c_uint32)
+        self.get_group_fast_trigger_dc_offset = self.__get('GetGroupFastTriggerDCOffset', ct.c_int, ct.c_uint32, _c_uint32_p)
+        self.set_fast_trigger_digitizing = self.__get('SetFastTriggerDigitizing', ct.c_int, ct.c_int)
+        self.get_fast_trigger_digitizing = self.__get('GetFastTriggerDigitizing', ct.c_int, _c_int_p)
+        self.set_fast_trigger_mode = self.__get('SetFastTriggerMode', ct.c_int, ct.c_int)
+        self.get_fast_trigger_mode = self.__get('GetFastTriggerMode', ct.c_int, _c_int_p)
+        self.load_drs4_correction_data = self.__get('LoadDRS4CorrectionData', ct.c_int, ct.c_int)
+        self.get_correction_tables = self.__get('GetCorrectionTables', ct.c_int, ct.c_int, ct.c_void_p)
+        self.enable_drs4_correction = self.__get('EnableDRS4Correction', ct.c_int)
+        self.disable_drs4_correction = self.__get('DisableDRS4Correction', ct.c_int)
+        self.decode_zle_waveforms = self.__get('DecodeZLEWaveforms', ct.c_int, ct.c_void_p, ct.c_void_p)
+        self.free_zle_waveforms = self.__get('FreeZLEWaveforms', ct.c_int, ct.c_void_p)
+        self.malloc_zle_waveforms = self.__get('MallocZLEWaveforms', ct.c_int, _c_void_p_p, _c_uint32_p)
+        self.free_zle_events = self.__get('FreeZLEEvents', ct.c_int, _c_void_p_p)
+        self.malloc_zle_events = self.__get('MallocZLEEvents', ct.c_int, _c_void_p_p, _c_uint32_p)
+        self.get_zle_events = self.__get('GetZLEEvents', ct.c_int, _c_char_p, ct.c_uint32, _c_void_p_p, _c_uint32_p)
+        self.set_zle_parameters = self.__get('SetZLEParameters', ct.c_int, ct.c_uint32, ct.c_void_p)
+        self.get_sam_correction_level = self.__get('GetSAMCorrectionLevel', ct.c_int, _c_int_p)
+        self.set_sam_correction_level = self.__get('SetSAMCorrectionLevel', ct.c_int, ct.c_int)
+        self.enable_sam_pulse_gen = self.__get('EnableSAMPulseGen', ct.c_int, ct.c_int, ct.c_ushort, ct.c_int)
+        self.disable_sam_pulse_gen = self.__get('DisableSAMPulseGen', ct.c_int, ct.c_int)
+        self.set_sam_post_trigger_size = self.__get('SetSAMPostTriggerSize', ct.c_int, ct.c_int, ct.c_uint8)
+        self.get_sam_post_trigger_size = self.__get('GetSAMPostTriggerSize', ct.c_int, ct.c_int, _c_uint32_p)
+        self.set_sam_sampling_frequency = self.__get('SetSAMSamplingFrequency', ct.c_int, ct.c_int)
+        self.get_sam_sampling_frequency = self.__get('GetSAMSamplingFrequency', ct.c_int, _c_int_p)
+        self.read_eeprom = self.__get('Read_EEPROM', ct.c_int, ct.c_int, ct.c_ushort, ct.c_int, _c_uint8_p, private=True)
+        self.write_eeprom = self.__get('Write_EEPROM', ct.c_int, ct.c_int, ct.c_ushort, ct.c_int, ct.c_void_p, private=True)
+        self.load_sam_correction_data = self.__get('LoadSAMCorrectionData', ct.c_int)
+        self.trigger_threshold = self.__get('TriggerThreshold', ct.c_int, ct.c_int, private=True)
+        self.send_sam_pulse = self.__get('SendSAMPulse', ct.c_int)
+        self.set_sam_acquisition_mode = self.__get('SetSAMAcquisitionMode', ct.c_int, ct.c_int)
+        self.get_sam_acquisition_mode = self.__get('GetSAMAcquisitionMode', ct.c_int, _c_int_p)
+        self.set_trigger_logic = self.__get('SetTriggerLogic', ct.c_int, ct.c_int, ct.c_uint32)
+        self.get_trigger_logic = self.__get('GetTriggerLogic', ct.c_int, _c_int_p, _c_uint32_p)
+        self.get_channel_pair_trigger_logic = self.__get('GetChannelPairTriggerLogic', ct.c_int, ct.c_uint32, ct.c_uint32, _c_int_p, _c_uint16_p)
+        self.set_channel_pair_trigger_logic = self.__get('SetChannelPairTriggerLogic', ct.c_int, ct.c_uint32, ct.c_uint32, ct.c_int, ct.c_uint16)
+        self.set_decimation_factor = self.__get('SetDecimationFactor', ct.c_int, ct.c_uint16)
+        self.get_decimation_factor = self.__get('GetDecimationFactor', ct.c_int, _c_uint16_p)
+        self.set_sam_trigger_count_veto_param = self.__get('SetSAMTriggerCountVetoParam', ct.c_int, ct.c_int, ct.c_int, ct.c_uint32)
+        self.get_sam_trigger_count_veto_param = self.__get('GetSAMTriggerCountVetoParam', ct.c_int, ct.c_int, _c_int_p, _c_uint32_p)
+        self.set_trigger_in_as_gate = self.__get('SetTriggerInAsGate', ct.c_int, ct.c_int)
+        self.calibrate = self.__get('Calibrate', ct.c_int)
+        self.read_temperature = self.__get('ReadTemperature', ct.c_int, ct.c_int32, _c_uint32_p)
+        self.get_dpp_firmware_type = self.__get('GetDPPFirmwareType', ct.c_int, _c_int_p)
 
         # Load API related to CAENVME wrappers
         self.vme_irq_wait = self.__get('VMEIRQWait', ct.c_int, ct.c_int, ct.c_int, ct.c_uint8, ct.c_uint32, _c_int_p)
@@ -253,7 +391,11 @@ class _Lib(_utils.Lib):
 
     def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
         l_lib = self.lib if not kwargs.get('variadic', False) else self.lib_variadic
-        func = getattr(l_lib, f'CAEN_DGTZ_{name}')
+        if kwargs.get('private', False):
+            func_name = f'_CAEN_DGTZ_{name}'
+        else:
+            func_name = f'CAEN_DGTZ_{name}'
+        func = getattr(l_lib, func_name)
         func.argtypes = args
         func.restype = ct.c_int
         func.errcheck = self.__api_errcheck
@@ -559,6 +701,148 @@ class Device:
         l_value = ct.c_uint32()
         lib.get_dpp_pre_trigger_size(self.handle, channel, l_value)
         return l_value.value
+
+    def set_channel_dc_offset(self, channel: int, value: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetChannelDCOffset()
+        """
+        lib.set_channel_dc_offset(self.handle, channel, value)
+
+    def get_channel_dc_offset(self, channel: int) -> int:
+        """
+        Binding of CAEN_DGTZ_GetChannelDCOffset()
+        """
+        l_value = ct.c_uint32()
+        lib.get_channel_dc_offset(self.handle, channel, l_value)
+        return l_value.value
+
+    def set_group_dc_offset(self, channel: int, value: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetGroupDCOffset()
+        """
+        lib.set_group_dc_offset(self.handle, channel, value)
+
+    def get_group_dc_offset(self, channel: int) -> int:
+        """
+        Binding of CAEN_DGTZ_GetGroupDCOffset()
+        """
+        l_value = ct.c_uint32()
+        lib.get_group_dc_offset(self.handle, channel, l_value)
+        return l_value.value
+
+    def set_channel_trigger_threshold(self, channel: int, value: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetChannelTriggerThreshold()
+        """
+        lib.set_channel_trigger_threshold(self.handle, channel, value)
+
+    def get_channel_trigger_threshold(self, channel: int) -> int:
+        """ 
+        Binding of CAEN_DGTZ_GetChannelTriggerThreshold()
+        """
+        l_value = ct.c_uint32()
+        lib.get_channel_trigger_threshold(self.handle, channel, l_value)
+        return l_value.value
+
+    def set_channel_pulse_polarity(self, channel: int, pol: PulsePolarity) -> None:
+        """
+        Binding of CAEN_DGTZ_SetChannelPulsePolarity()
+        """
+        lib.set_channel_pulse_polarity(self.handle, channel, pol.value)
+
+    def get_channel_pulse_polarity(self, channel: int) -> PulsePolarity:
+        """ 
+        Binding of CAEN_DGTZ_GetChannelPulsePolarity()
+        """
+        l_value = ct.c_int()
+        lib.get_channel_pulse_polarity(self.handle, channel, l_value)
+        return PulsePolarity(l_value.value)
+
+    def set_group_trigger_threshold(self, channel: int, value: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetGroupTriggerThreshold()
+        """
+        lib.set_group_trigger_threshold(self.handle, channel, value)
+
+    def get_group_trigger_threshold(self, channel: int) -> int:
+        """ 
+        Binding of CAEN_DGTZ_GetGroupTriggerThreshold()
+        """
+        l_value = ct.c_uint32()
+        lib.get_group_trigger_threshold(self.handle, channel, l_value)
+        return l_value.value
+
+    def set_zero_suppression_mode(self, channel: int, mode: ZSMode) -> None:
+        """
+        Binding of CAEN_DGTZ_SetZeroSuppressionMode()
+        """
+        lib.set_zero_suppression_mode(self.handle, channel, mode.value)
+
+    def get_zero_suppression_mode(self, channel: int) -> ZSMode:
+        """ 
+        Binding of CAEN_DGTZ_GetZeroSuppressionMode()
+        """
+        l_value = ct.c_int()
+        lib.get_zero_suppression_mode(self.handle, channel, l_value)
+        return ZSMode(l_value.value)
+
+    def set_channel_zs_params(self, channel: int, weight: ThresholdWeight, threshold: int, n_samples: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetChannelZSParams()
+        """
+        lib.set_channel_zs_params(self.handle, channel, weight.value, threshold, n_samples)
+
+    def get_channel_zs_params(self, channel: int) -> Tuple[ThresholdWeight, int, int]:
+        """ 
+        Binding of CAEN_DGTZ_GetChannelZSParams()
+        """
+        l_weigth = ct.c_int()
+        l_threshold = ct.c_int32()
+        l_n_samples = ct.c_int32()
+        lib.get_channel_zs_params(self.handle, channel, l_weigth, l_threshold, l_n_samples)
+        return ThresholdWeight(l_weigth.value), l_threshold.value, l_n_samples.value
+
+    def set_acquisition_mode(self, channel: int, mode: AcqMode) -> None:
+        """
+        Binding of CAEN_DGTZ_SetAcquisitionMode()
+        """
+        lib.set_acquisition_mode(self.handle, channel, mode.value)
+
+    def get_acquisition_mode(self, channel: int) -> AcqMode:
+        """ 
+        Binding of CAEN_DGTZ_GetAcquisitionMode()
+        """
+        l_value = ct.c_int()
+        lib.get_acquisition_mode(self.handle, channel, l_value)
+        return AcqMode(l_value.value)
+
+    def set_run_synchronization_mode(self, channel: int, mode: RunSyncMode) -> None:
+        """
+        Binding of CAEN_DGTZ_SetRunSynchronizationMode()
+        """
+        lib.set_run_synchronization_mode(self.handle, channel, mode.value)
+
+    def get_run_synchronization_mode(self, channel: int) -> RunSyncMode:
+        """ 
+        Binding of CAEN_DGTZ_GetRunSynchronizationMode()
+        """
+        l_value = ct.c_int()
+        lib.get_run_synchronization_mode(self.handle, channel, l_value)
+        return RunSyncMode(l_value.value)
+
+    def set_analog_mon_output(self, channel: int, mode: AnalogMonitorOutputMode) -> None:
+        """
+        Binding of CAEN_DGTZ_SetAnalogMonOutput()
+        """
+        lib.set_analog_mon_output(self.handle, channel, mode.value)
+
+    def get_analog_mon_output(self, channel: int) -> AnalogMonitorOutputMode:
+        """ 
+        Binding of CAEN_DGTZ_GetAnalogMonOutput()
+        """
+        l_value = ct.c_int()
+        lib.get_analog_mon_output(self.handle, channel, l_value)
+        return AnalogMonitorOutputMode(l_value.value)
 
     # Python utilities
 
