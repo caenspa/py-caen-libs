@@ -100,7 +100,9 @@ class _BoardInfoRaw(ct.Structure):
         ('revis2', ct.c_uint32),
         ('revis1', ct.c_uint32),
         ('revis0', ct.c_uint32),
-        ('reserved', ct.c_uint32 * 12),
+        ('reserved', ct.c_uint32 * 10),
+        ('sernum3', ct.c_uint32),
+        ('sernum2', ct.c_uint32),
         ('sernum1', ct.c_uint32),
         ('sernum0', ct.c_uint32),
     ]
@@ -132,6 +134,8 @@ class BoardInfo(ct.Structure):
     revis1: int
     revis0: int
     reserved: Tuple[int, ...]
+    sernum3: int
+    sernum2: int
     sernum1: int
     sernum0: int
 
@@ -413,6 +417,8 @@ class Device:
             l_b.revis1,
             l_b.revis0,
             tuple(l_b.reserved),
+            l_b.sernum3,
+            l_b.sernum2,
             l_b.sernum1,
             l_b.sernum0,
         )
