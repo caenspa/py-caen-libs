@@ -287,14 +287,17 @@ class Device:
 
     # Public members
     handle: int
-    opened: bool = field(repr=False)
     connection_mode: ConnectionModes
     arg: Union[int, str]
     conet_node: int
     vme_base_address: str
 
+    def __post_init__(self) -> None:
+        self.__opened = True
+        self.__registers = _utils.Registers(self.read_reg, self.write_reg)
+
     def __del__(self) -> None:
-        if self.opened:
+        if self.__opened:
             self.close()
 
     # C API bindings
@@ -311,7 +314,7 @@ class Device:
         vme_base_address_str = f'{vme_base_address:X}' if isinstance(vme_base_address, int) else vme_base_address
         l_vme_base_address = vme_base_address_str.encode()
         lib.open_device2(connection_mode, l_arg, conet_node, l_vme_base_address, l_handle)
-        return cls(l_handle.value, True, connection_mode, arg, conet_node, vme_base_address_str)
+        return cls(l_handle.value, connection_mode, arg, conet_node, vme_base_address_str)
 
     def connect(self) -> None:
         """
@@ -319,21 +322,21 @@ class Device:
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
-        if self.opened:
+        if self.__opened:
             raise RuntimeError('Already connected.')
         l_arg = _get_l_arg(self.connection_mode, self.arg)
         l_handle = ct.c_int()
         l_vme_base_address = self.vme_base_address.encode()
         lib.open_device2(self.connection_mode, l_arg, self.conet_node, l_vme_base_address, l_handle)
         self.handle = l_handle.value
-        self.opened = True
+        self.__opened = True
 
     def close(self) -> None:
         """
         Binding of CAEN_PLU_CloseDevice()
         """
         lib.close_device(self.handle)
-        self.opened = False
+        self.__opened = False
 
     def write_reg(self, address: int, value: int) -> None:
         """
@@ -348,6 +351,11 @@ class Device:
         l_value = ct.c_uint32()
         lib.read_reg(self.handle, address, l_value)
         return l_value.value
+
+    @property
+    def registers(self) -> _utils.Registers:
+        """Utility to simplify register access"""
+        return self.__registers
 
     def enable_flash_access(self, fpga: FPGA) -> None:
         """
@@ -446,5 +454,5 @@ class Device:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         """Called when exiting from `with` block"""
-        if self.opened:
+        if self.__opened:
             self.close()

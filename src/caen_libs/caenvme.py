@@ -566,13 +566,16 @@ class Device:
 
     # Public members
     handle: int
-    opened: bool = field(repr=False)
     board_type: BoardType
     arg: Union[int, str]
     conet_node: int
 
+    def __post_init__(self) -> None:
+        self.__opened = True
+        self.__registers = _utils.Registers(self.read_register, self.write_register)
+
     def __del__(self) -> None:
-        if self.opened:
+        if self.__opened:
             self.close()
 
     # C API bindings
@@ -587,7 +590,7 @@ class Device:
         l_arg = _get_l_arg(board_type, arg)
         l_handle = ct.c_int32()
         lib.init2(board_type, l_arg, conet_node, l_handle)
-        return cls(l_handle.value, True, board_type, arg, conet_node)
+        return cls(l_handle.value, board_type, arg, conet_node)
 
     def connect(self) -> None:
         """
@@ -595,20 +598,20 @@ class Device:
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
-        if self.opened:
+        if self.__opened:
             raise RuntimeError('Already connected.')
         l_arg = _get_l_arg(self.board_type, self.arg)
         l_handle = ct.c_int32()
         lib.init2(self.board_type, l_arg, self.conet_node, l_handle)
         self.handle = l_handle.value
-        self.opened = True
+        self.__opened = True
 
     def close(self) -> None:
         """
         Binding of CAENVME_End()
         """
         lib.end(self.handle)
-        self.opened = False
+        self.__opened = False
 
     def board_fw_release(self) -> str:
         """
@@ -889,6 +892,11 @@ class Device:
         Binding of CAENVME_WriteRegister()
         """
         lib.write_register(self.handle, address, value)
+
+    @property
+    def registers(self) -> _utils.Registers:
+        """Utility to simplify register access"""
+        return self.__registers
 
     def write_flash_page(self, page_num: int, data: bytes) -> None:
         """
@@ -1242,5 +1250,5 @@ class Device:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         """Called when exiting from `with` block"""
-        if self.opened:
+        if self.__opened:
             self.close()

@@ -11,11 +11,17 @@
 -----------------------------------------------------------------------------
 
 
-v1.0.4 (XX/07/2024)
+v1.1.0 (XX/07/2024)
 -------------------
 
 New features:
 - Support for Resol parameter property on caenhvwrapper for VME8100.
+- Support for 32-bit PID on CAENComm demo.
+- New way to access registers by using __getitem__ and __setitem__.
+    This enables also read-modify-write operations in a single line
+    of code,using in-place operators like "dev.reg32[0x40] &= 0xFF".
+    It has been added in caenvme (registers), caencomm (reg16 and
+    reg32) and caenplu (registers).
 
 Fixes:
 - Classes inheriting enum.Flag now inherit enum.IntFlag to improve
@@ -23,6 +29,9 @@ Fixes:
     caencomm.IRQLevels and all the classes on caenhvwrapperflags.
 - Fix decode of caenhvwrapper.ParamProp.enum.
 - Fix error detection on caenhvwrapper.Device.get_XX_param_prop()
+
+Changes:
+- Removed opened member from device class.
 
 
 v1.0.3 (02/07/2024)

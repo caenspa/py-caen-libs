@@ -8,9 +8,10 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
+from dataclasses import dataclass
 import sys
 from functools import _lru_cache_wrapper, lru_cache, wraps
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterator, List, Optional, Tuple, Union
 from weakref import ReferenceType, ref
 
 if sys.platform == 'win32':
@@ -245,3 +246,17 @@ def str_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int)
     """
     if n_strings != 0:
         yield from str_from_n_char_array(data.contents, string_size, n_strings)
+
+
+@dataclass
+class Registers:
+    """Class to simplify syntax for registers access"""
+
+    getter: Callable[[int], int]
+    setter: Callable[[int, int], None]
+
+    def __getitem__(self, address: int) -> int:
+        return self.getter(address)
+
+    def __setitem__(self, address: int, value: int) -> None:
+        self.setter(address, value)

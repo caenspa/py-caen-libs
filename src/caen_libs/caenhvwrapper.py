@@ -551,7 +551,6 @@ class Device:
 
     # Public members
     handle: int
-    opened: bool = field(repr=False)
     system_type: SystemType
     link_type: LinkType
     arg: str
@@ -570,12 +569,13 @@ class Device:
 
     def __post_init__(self):
         # Internal events related stuff
+        self.__opened = True
         self.__port = 0
         self.__skt_server = None
         self.__skt_client = None
 
     def __del__(self) -> None:
-        if self.opened:
+        if self.__opened:
             self.close()
 
     # C API bindings
@@ -589,7 +589,7 @@ class Device:
         """
         l_handle = ct.c_int()
         lib.init_system(system_type, link_type, arg.encode(), username.encode(), password.encode(), l_handle)
-        return cls(l_handle.value, True, system_type, link_type, arg, username, password)
+        return cls(l_handle.value, system_type, link_type, arg, username, password)
 
     def connect(self) -> None:
         """
@@ -597,12 +597,12 @@ class Device:
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
-        if self.opened:
+        if self.__opened:
             raise RuntimeError('Already connected.')
         l_handle = ct.c_int()
         lib.init_system(self.system_type, self.link_type, self.arg.encode(), self.username.encode(), self.password.encode(), l_handle)
         self.handle = l_handle.value
-        self.opened = True
+        self.__opened = True
 
     @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
     def close(self) -> None:
@@ -612,7 +612,7 @@ class Device:
         This will also clear class cache.
         """
         lib.deinit_system(self.handle)
-        self.opened = False
+        self.__opened = False
 
     @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
     def get_crate_map(self) -> Tuple[Optional[Board], ...]:
@@ -1208,7 +1208,7 @@ class Device:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         """Called when exiting from `with` block"""
-        if self.opened:
+        if self.__opened:
             self.close()
 
     def __hash__(self) -> int:

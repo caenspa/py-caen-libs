@@ -9,7 +9,7 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum, IntFlag, unique
 from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
@@ -245,14 +245,18 @@ class Device:
 
     # Public members
     handle: int
-    opened: bool = field(repr=False)
     connection_type: ConnectionType
     arg: Union[int, str]
     conet_node: int
     vme_base_address: int
 
+    def __post_init__(self) -> None:
+        self.__opened = True
+        self.__reg16 = _utils.Registers(self.read16, self.write16)
+        self.__reg32 = _utils.Registers(self.read32, self.write32)
+
     def __del__(self) -> None:
-        if self.opened:
+        if self.__opened:
             self.close()
 
     # C API bindings
@@ -267,7 +271,7 @@ class Device:
         l_arg = _get_l_arg(connection_type, arg)
         l_handle = ct.c_int()
         lib.open_device2(connection_type, l_arg, conet_node, vme_base_address, l_handle)
-        return cls(l_handle.value, True, connection_type, arg, conet_node, vme_base_address)
+        return cls(l_handle.value, connection_type, arg, conet_node, vme_base_address)
 
     def connect(self) -> None:
         """
@@ -275,20 +279,20 @@ class Device:
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
-        if self.opened:
+        if self.__opened:
             raise RuntimeError('Already connected.')
         l_arg = _get_l_arg(self.connection_type, self.arg)
         l_handle = ct.c_int()
         lib.open_device2(self.connection_type, l_arg, self.conet_node, self.vme_base_address, l_handle)
         self.handle = l_handle.value
-        self.opened = True
+        self.__opened = True
 
     def close(self) -> None:
         """
         Binding of CAENComm_CloseDevice()
         """
         lib.close_device(self.handle)
-        self.opened = False
+        self.__opened = False
 
     def write32(self, address: int, value: int) -> None:
         """
@@ -317,6 +321,16 @@ class Device:
         l_value = ct.c_uint16()
         lib.read16(self.handle, address, l_value)
         return l_value.value
+
+    @property
+    def reg32(self) -> _utils.Registers:
+        """Utility to simplify 32-bit register access"""
+        return self.__reg32
+
+    @property
+    def reg16(self) -> _utils.Registers:
+        """Utility to simplify 32-bit register access"""
+        return self.__reg16
 
     def multi_write32(self, address: Sequence[int], data: Sequence[int]) -> None:
         """
@@ -449,5 +463,5 @@ class Device:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         """Called when exiting from `with` block"""
-        if self.opened:
+        if self.__opened:
             self.close()
