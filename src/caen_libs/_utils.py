@@ -11,7 +11,7 @@ import ctypes as ct
 from dataclasses import dataclass
 import sys
 from functools import _lru_cache_wrapper, lru_cache, wraps
-from typing import Any, Callable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterable, Iterator, List, Optional, Tuple, Union, overload
 from weakref import ReferenceType, ref
 
 if sys.platform == 'win32':
@@ -255,8 +255,39 @@ class Registers:
     getter: Callable[[int], int]
     setter: Callable[[int, int], None]
 
+    @overload
     def __getitem__(self, address: int) -> int:
-        return self.getter(address)
+        ...
 
+    @overload
+    def __getitem__(self, address: slice) -> List[int]:
+        ...
+
+    def __getitem__(self, address):
+        if isinstance(address, slice):
+            step = 1 if address.step is None else address.step
+            return [self.getter(i) for i in range(address.start, address.stop, step)]
+        if isinstance(address, int):
+            return self.getter(address)
+        raise TypeError('Invalid argument type.')
+
+    @overload
     def __setitem__(self, address: int, value: int) -> None:
-        self.setter(address, value)
+        ...
+
+    @overload
+    def __setitem__(self, address: slice, value: Iterable[int]) -> None:
+        ...
+
+    def __setitem__(self, address, value):
+        if isinstance(address, slice):
+            step = 1 if address.step is None else address.step
+            addresses = range(address.start, address.stop, step)
+            if isinstance(value, Iterable) and len(value) == len(addresses):
+                for a, v in zip(addresses, value):
+                    self.setter(a, v)
+            else:
+                raise ValueError('Invalid value size')
+        if isinstance(address, int):
+            return self.setter(address, value)
+        raise TypeError('Invalid argument type.')

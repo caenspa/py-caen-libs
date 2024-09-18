@@ -44,27 +44,19 @@ print('-------------------------------------------------------------------------
 with comm.Device.open(comm.ConnectionType[args.connectiontype], args.linknumber, args.conetnode, args.vmebaseaddress) as device:
 
     # Assuming to be connected to a CAEN Digitizer 1.0
-    serial_byte_0 = device.reg32[0xF084] & 0xFF
-    serial_byte_1 = device.reg32[0xF080] & 0xFF
-    serial_number = (serial_byte_1 << 8) | serial_byte_0
+    serial = device.reg32[0xF080:0xF088:4]
+    serial_number = (serial[0] << 8) | serial[1]
     if serial_number == 0xFFFF:
         # Support for 32-bit serial number
-        serial_byte_0 = device.reg32[0xF070] & 0xFF
-        serial_byte_1 = device.reg32[0xF074] & 0xFF
-        serial_byte_2 = device.reg32[0xF078] & 0xFF
-        serial_byte_3 = device.reg32[0xF07C] & 0xFF
-        serial_number = (serial_byte_3 << 24) | (serial_byte_2 << 16) | (serial_byte_1 << 8) | serial_byte_0
+        serial = device.reg32[0xF070:0xF080:4]
+        serial_number = (serial[3] << 24) | (serial[2] << 16) | (serial[1] << 8) | serial[0]
     print(f'Connected with Digitizer {serial_number}')
     # Read ROC revision register 0x8124
-    fw_version = device.reg32[0x8124]
-    ROC_fw_revision_major = (fw_version & 0xFF00) >> 8
-    ROC_fw_revision_minor = fw_version & 0xFF
-    print(f'ROC firmware version {ROC_fw_revision_major}.{ROC_fw_revision_minor}')
+    fw_version = device.reg32[0x8124].to_bytes(4, 'little')
+    print(f'ROC firmware version {fw_version[1]}.{fw_version[0]}')
     # Read AMC revision register 0x108C
-    fw_version = device.reg32[0x108C]
-    AMC_fw_revision_major = (fw_version & 0xFF00) >> 8
-    AMC_fw_revision_minor = fw_version & 0xFF
-    print(f'AMC firmware version {AMC_fw_revision_major}.{AMC_fw_revision_minor}')
+    fw_version = device.reg32[0x108C].to_bytes(4, 'little')
+    print(f'AMC firmware version {fw_version[1]}.{fw_version[0]}')
 
     # Dummy acquisition with a digitizer
     # Reset

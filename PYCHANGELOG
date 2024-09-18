@@ -21,7 +21,7 @@ New features:
     This enables also read-modify-write operations in a single line
     of code,using in-place operators like "dev.reg32[0x40] &= 0xFF".
     It has been added in caenvme (registers), caencomm (reg16 and
-    reg32) and caenplu (registers).
+    reg32) and caenplu (registers). Slicing is supported.
 
 Fixes:
 - Classes inheriting enum.Flag now inherit enum.IntFlag to improve
