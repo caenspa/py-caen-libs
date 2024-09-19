@@ -252,8 +252,8 @@ class Device:
 
     def __post_init__(self) -> None:
         self.__opened = True
-        self.__reg16 = _utils.Registers(self.read16, self.write16)
-        self.__reg32 = _utils.Registers(self.read32, self.write32)
+        self.__reg16 = _utils.Registers(self.read16, self.write16, self.multi_read16, self.multi_write16)
+        self.__reg32 = _utils.Registers(self.read32, self.write32, self.multi_read32, self.multi_write32)
 
     def __del__(self) -> None:
         if self.__opened:

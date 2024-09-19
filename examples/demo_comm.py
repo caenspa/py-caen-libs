@@ -58,25 +58,20 @@ with comm.Device.open(comm.ConnectionType[args.connectiontype], args.linknumber,
     fw_version = device.reg32[0x108C].to_bytes(4, 'little')
     print(f'AMC firmware version {fw_version[1]}.{fw_version[0]}')
 
+    # Check if we are using waveform recording firmware
+    assert fw_version[1] == 0x00, 'This demo requires a waveform recording firmware.'
+
     # Dummy acquisition with a digitizer
-    # Reset
-    device.reg32[0xEF24] = 1
-
-    # Start Command
-    device.reg32[0x8100] |= 0x4
-
-    # Send SW trigger
-    device.reg32[0x8108] = 1
-
-    # Stop Command
-    device.reg32[0x8100] &= 0xFFFFFFF8
+    device.reg32[0xEF24] = 1        # Reset
+    device.reg32[0x8100] |= 0x4     # Start Command
+    device.reg32[0x8108] = 1        # Send SW trigger
+    device.reg32[0x8100] &= ~0x4    # Stop Command
 
     # Read data from the digitizer
-    buffer = device.blt_read(0x0, 256)
+    buffer = device.blt_read(0x0000, 256)
     print(f'Size of data read: {len(buffer)} bytes')
     print(buffer)
 
-    # Reset
-    device.reg32[0xEF24] = 1
+    device.reg32[0xEF24] = 1            # Reset
 
 print('Bye bye')

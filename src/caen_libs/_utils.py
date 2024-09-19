@@ -8,10 +8,10 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import sys
 from functools import _lru_cache_wrapper, lru_cache, wraps
-from typing import Any, Callable, Iterable, Iterator, List, Optional, Tuple, Union, overload
+from typing import Any, Callable, Iterator, List, Optional, Sequence, Tuple, Union, overload
 from weakref import ReferenceType, ref
 
 if sys.platform == 'win32':
@@ -248,46 +248,50 @@ def str_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int)
         yield from str_from_n_char_array(data.contents, string_size, n_strings)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Registers:
     """Class to simplify syntax for registers access"""
 
     getter: Callable[[int], int]
     setter: Callable[[int, int], None]
+    multi_getter: Optional[Callable[[Sequence[int]], List[int]]] = field(default=None)
+    multi_setter: Optional[Callable[[Sequence[int], Sequence[int]], None]] = field(default=None)
 
     @overload
-    def __getitem__(self, address: int) -> int:
-        ...
-
+    def __getitem__(self, address: int) -> int: ...
     @overload
-    def __getitem__(self, address: slice) -> List[int]:
-        ...
+    def __getitem__(self, address: slice) -> List[int]: ...
 
     def __getitem__(self, address):
-        if isinstance(address, slice):
-            step = 1 if address.step is None else address.step
-            return [self.getter(i) for i in range(address.start, address.stop, step)]
         if isinstance(address, int):
             return self.getter(address)
+        if isinstance(address, slice):
+            if address.start is None or address.stop is None:
+                raise ValueError('Both start and stop must be specified.')
+            step = 1 if address.step is None else address.step
+            addresses = range(address.start, address.stop, step)
+            if self.multi_getter is not None:
+                return self.multi_getter(addresses)
+            return [self.getter(i) for i in addresses]
         raise TypeError('Invalid argument type.')
 
     @overload
-    def __setitem__(self, address: int, value: int) -> None:
-        ...
-
+    def __setitem__(self, address: int, value: int) -> None: ...
     @overload
-    def __setitem__(self, address: slice, value: Iterable[int]) -> None:
-        ...
+    def __setitem__(self, address: slice, value: Sequence[int]) -> None: ...
 
     def __setitem__(self, address, value):
-        if isinstance(address, slice):
-            step = 1 if address.step is None else address.step
-            addresses = range(address.start, address.stop, step)
-            if isinstance(value, Iterable) and len(value) == len(addresses):
-                for a, v in zip(addresses, value):
-                    self.setter(a, v)
-            else:
-                raise ValueError('Invalid value size')
         if isinstance(address, int):
             return self.setter(address, value)
+        if isinstance(address, slice) and isinstance(value, Sequence):
+            if address.start is None or address.stop is None:
+                raise ValueError('Both start and stop must be specified.')
+            step = 1 if address.step is None else address.step
+            addresses = range(address.start, address.stop, step)
+            if len(value) != len(addresses):
+                raise ValueError('Invalid value size.')
+            if self.multi_setter is not None:
+                return self.multi_setter(addresses, value)
+            for a, v in zip(addresses, value):
+                self.setter(a, v)
         raise TypeError('Invalid argument type.')
