@@ -5,7 +5,7 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import Callable, Optional, Tuple, Type, TypeVar, Union
 
