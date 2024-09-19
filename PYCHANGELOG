@@ -11,7 +11,7 @@
 -----------------------------------------------------------------------------
 
 
-v1.1.0 (XX/07/2024)
+v1.1.0 (19/09/2024)
 -------------------
 
 New features:
@@ -24,6 +24,7 @@ New features:
     reg32) and caenplu (registers). Slicing is supported.
 
 Fixes:
+- Fix caenhvwrapper load on Linux.
 - Classes inheriting enum.Flag now inherit enum.IntFlag to improve
     the support of unknown flags. This applies to caenvme.IRQLevels,
     caencomm.IRQLevels and all the classes on caenhvwrapperflags.

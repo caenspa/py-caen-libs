@@ -540,7 +540,14 @@ class _Lib(_utils.Lib):
             self.__free_event_data(value)
 
 
-lib = _Lib('CAENHVWrapper')
+# Library name is platform dependent
+if sys.platform == 'win32':
+    _LIB_NAME = 'CAENHVWrapper'
+else:
+    _LIB_NAME = 'caenhvwrapper'
+
+
+lib = _Lib(_LIB_NAME)
 
 
 @dataclass
