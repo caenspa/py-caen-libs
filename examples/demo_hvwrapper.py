@@ -13,6 +13,7 @@ __license__ = 'MIT-0'
 __contact__ = 'https://www.caen.it/'
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+
 from caen_libs import caenhvwrapper as hv
 
 # Parse arguments
@@ -45,7 +46,7 @@ with hv.Device.open(hv.SystemType[args.systemtype], hv.LinkType[args.linktype], 
     for prop_name in sys_props:
         prop_info = device.get_sys_prop_info(prop_name)
         print('SYSPROP', prop_name, prop_info.type.name)
-        if prop_info.mode != hv.SysPropMode.WRONLY:
+        if prop_info.mode is not hv.SysPropMode.WRONLY:
             prop_value = device.get_sys_prop(prop_name)
             print('VALUE', prop_value)
             device.subscribe_system_params([prop_name])
@@ -57,7 +58,7 @@ with hv.Device.open(hv.SystemType[args.systemtype], hv.LinkType[args.linktype], 
         for param_name in bd_params:
             param_prop = device.get_bd_param_prop(slot, param_name)
             print('BD_PARAM', slot, param_name, param_prop.type.name)
-            if param_prop.mode != hv.ParamMode.WRONLY:
+            if param_prop.mode is not hv.ParamMode.WRONLY:
                 param_value = device.get_bd_param([slot], param_name)
                 print('VALUE', param_value)
                 device.subscribe_board_params(slot, [param_name])
@@ -66,7 +67,7 @@ with hv.Device.open(hv.SystemType[args.systemtype], hv.LinkType[args.linktype], 
             for param_name in ch_params:
                 param_prop = device.get_ch_param_prop(slot, ch, param_name)
                 print('CH_PARAM', slot, ch, param_name, param_prop.type.name)
-                if param_prop.mode != hv.ParamMode.WRONLY:
+                if param_prop.mode is not hv.ParamMode.WRONLY:
                     param_value = device.get_ch_param(slot, [ch], param_name)
                     print('VALUE', param_value)
                     device.subscribe_channel_params(slot, ch, [param_name])

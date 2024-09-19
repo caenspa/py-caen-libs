@@ -13,6 +13,7 @@ __license__ = 'MIT-0'
 __contact__ = 'https://www.caen.it/'
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+
 from caen_libs import caenplu as plu
 
 
@@ -41,9 +42,9 @@ print('-------------------------------------------------------------------------
 
 
 with plu.Device.open(plu.ConnectionModes[args.connectiontype], args.linknumber, args.conetnode, args.vmebaseaddress) as device:
-    pcb_revision = device.read_reg(0x814C)
+    pcb_revision = device.registers[0x814C]
     print(f'PCB Revision = {pcb_revision}')
-    fw_version = device.read_reg(0x8200).to_bytes(2, 'little')
+    fw_version = device.registers[0x8200].to_bytes(2, 'little')
     print(f'FW Revision = {fw_version[1]}.{fw_version[0]}')
     serial_num = device.get_serial_number()
     print(f'Serial number = {serial_num}')

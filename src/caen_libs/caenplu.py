@@ -7,11 +7,11 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-from contextlib import contextmanager
 import ctypes as ct
-from dataclasses import dataclass, field
-from enum import IntEnum, unique
 import sys
+from contextlib import contextmanager
+from dataclasses import dataclass
+from enum import IntEnum, unique
 from typing import Callable, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
@@ -100,7 +100,11 @@ class _BoardInfoRaw(ct.Structure):
         ('revis2', ct.c_uint32),
         ('revis1', ct.c_uint32),
         ('revis0', ct.c_uint32),
-        ('reserved', ct.c_uint32 * 12),
+        ('reserved', ct.c_uint32 * 8),
+        ('sernum0_v2', ct.c_uint32),
+        ('sernum1_v2', ct.c_uint32),
+        ('sernum2_v2', ct.c_uint32),
+        ('sernum3_v2', ct.c_uint32),
         ('sernum1', ct.c_uint32),
         ('sernum0', ct.c_uint32),
     ]
@@ -132,6 +136,10 @@ class BoardInfo(ct.Structure):
     revis1: int
     revis0: int
     reserved: Tuple[int, ...]
+    sernum0_v2: int
+    sernum1_v2: int
+    sernum2_v2: int
+    sernum3_v2: int
     sernum1: int
     sernum0: int
 
@@ -160,6 +168,7 @@ _c_uint_p = _P(ct.c_uint)
 _c_uint32_p = _P(ct.c_uint32)
 _usb_device_p = _P(_USBDeviceRaw)
 _board_info_p = _P(_BoardInfoRaw)
+
 
 class _Lib(_utils.Lib):
 
@@ -278,14 +287,17 @@ class Device:
 
     # Public members
     handle: int
-    opened: bool = field(repr=False)
     connection_mode: ConnectionModes
     arg: Union[int, str]
     conet_node: int
     vme_base_address: str
 
+    def __post_init__(self) -> None:
+        self.__opened = True
+        self.__registers = _utils.Registers(self.read_reg, self.write_reg)
+
     def __del__(self) -> None:
-        if self.opened:
+        if self.__opened:
             self.close()
 
     # C API bindings
@@ -302,7 +314,7 @@ class Device:
         vme_base_address_str = f'{vme_base_address:X}' if isinstance(vme_base_address, int) else vme_base_address
         l_vme_base_address = vme_base_address_str.encode()
         lib.open_device2(connection_mode, l_arg, conet_node, l_vme_base_address, l_handle)
-        return cls(l_handle.value, True, connection_mode, arg, conet_node, vme_base_address_str)
+        return cls(l_handle.value, connection_mode, arg, conet_node, vme_base_address_str)
 
     def connect(self) -> None:
         """
@@ -310,21 +322,21 @@ class Device:
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
-        if self.opened:
+        if self.__opened:
             raise RuntimeError('Already connected.')
         l_arg = _get_l_arg(self.connection_mode, self.arg)
         l_handle = ct.c_int()
         l_vme_base_address = self.vme_base_address.encode()
         lib.open_device2(self.connection_mode, l_arg, self.conet_node, l_vme_base_address, l_handle)
         self.handle = l_handle.value
-        self.opened = True
+        self.__opened = True
 
     def close(self) -> None:
         """
         Binding of CAEN_PLU_CloseDevice()
         """
         lib.close_device(self.handle)
-        self.opened = False
+        self.__opened = False
 
     def write_reg(self, address: int, value: int) -> None:
         """
@@ -340,23 +352,28 @@ class Device:
         lib.read_reg(self.handle, address, l_value)
         return l_value.value
 
+    @property
+    def registers(self) -> _utils.Registers:
+        """Utility to simplify register access"""
+        return self.__registers
+
     def enable_flash_access(self, fpga: FPGA) -> None:
         """
         Binding of CAEN_PLU_EnableFlashAccess()
         """
-        lib.enable_flash_access(self.handle, fpga.value)
+        lib.enable_flash_access(self.handle, fpga)
 
     def disable_flash_access(self, fpga: FPGA) -> None:
         """
         Binding of CAEN_PLU_DisableFlashAccess()
         """
-        lib.disable_flash_access(self.handle, fpga.value)
+        lib.disable_flash_access(self.handle, fpga)
 
     def delete_flash_sector(self, fpga: FPGA, sector: int) -> None:
         """
         Binding of CAEN_PLU_DeleteFlashSector()
         """
-        lib.delete_flash_sector(self.handle, fpga.value, sector)
+        lib.delete_flash_sector(self.handle, fpga, sector)
 
     def write_flash_data(self, fpga: FPGA, address: int, data: bytes) -> None:
         """
@@ -365,7 +382,7 @@ class Device:
         length = len(data)
         l_data_length = length // ct.sizeof(ct.c_uint32)
         l_data = (ct.c_uint32 * l_data_length).from_buffer_copy(data)
-        lib.write_flash_data(self.handle, fpga.value, address, l_data, l_data_length)
+        lib.write_flash_data(self.handle, fpga, address, l_data, l_data_length)
 
     def read_flash_data(self, fpga: FPGA, address: int, length: int) -> bytes:
         """
@@ -373,7 +390,7 @@ class Device:
         """
         l_data_length = length // ct.sizeof(ct.c_uint32)
         l_data = (ct.c_uint32 * l_data_length)()
-        lib.read_flash_data(self.handle, fpga.value, address, l_data, l_data_length)
+        lib.read_flash_data(self.handle, fpga, address, l_data, l_data_length)
         return bytes(l_data)
 
     def get_serial_number(self) -> str:
@@ -412,6 +429,10 @@ class Device:
             l_b.revis1,
             l_b.revis0,
             tuple(l_b.reserved),
+            l_b.sernum0_v2,
+            l_b.sernum1_v2,
+            l_b.sernum2_v2,
+            l_b.sernum3_v2,
             l_b.sernum1,
             l_b.sernum0,
         )
@@ -433,5 +454,5 @@ class Device:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         """Called when exiting from `with` block"""
-        if self.opened:
+        if self.__opened:
             self.close()

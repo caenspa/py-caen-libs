@@ -14,8 +14,9 @@ __license__ = 'MIT-0'
 # SPDX-License-Identifier: MIT-0
 __contact__ = 'https://www.caen.it/'
 
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 import sys
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+
 from caen_libs import caenvme as vme
 
 # Parse arguments
@@ -104,6 +105,35 @@ with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetn
         except vme.Error as ex:
             print(f'Failed: {ex}')
 
+    def read_register():
+        """Read register"""
+        global device
+        try:
+            address = int(input('Set address: 0x'), 16)
+        except ValueError as ex:
+            print(f'Invalid input: {ex}')
+            return
+        try:
+            value = device.registers[address]
+        except vme.Error as ex:
+            print(f'Failed: {ex}')
+            return
+        print(f'Value: {value:08x}')
+
+    def write_register():
+        """Write register"""
+        global device
+        try:
+            address = int(input('Set address: 0x'), 16)
+            value = int(input('Set value: 0x'), 16)
+        except ValueError as ex:
+            print(f'Invalid input: {ex}')
+            return
+        try:
+            device.registers[address] = value
+        except vme.Error as ex:
+            print(f'Failed: {ex}')
+
     def blt_read_cycle():
         """BLT read cycle"""
         global device, vme_base_address, address_modifier, data_width, size
@@ -144,6 +174,8 @@ with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetn
         'd': set_data_width,
         'r': read_cycle,
         'w': write_cycle,
+        'R': read_register,
+        'W': write_register,
         't': blt_read_cycle,
         'q': quit,
     }

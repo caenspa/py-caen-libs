@@ -7,11 +7,11 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-from contextlib import contextmanager
 import ctypes as ct
-from dataclasses import dataclass, field
-from enum import Flag, IntEnum, unique
 import sys
+from contextlib import contextmanager
+from dataclasses import dataclass
+from enum import IntEnum, IntFlag, unique
 from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
 from caen_libs import _utils
@@ -240,7 +240,7 @@ else:
     _CaenBool = ct.c_int  # CAEN_BOOL
 
 
-class IRQLevels(Flag):
+class IRQLevels(IntFlag):
     """
     Binding of ::CVIRQLevels
     """
@@ -406,6 +406,7 @@ _c_int32_p = _P(ct.c_int32)
 _c_uint32_p = _P(ct.c_uint32)
 _display_p = _P(_DisplayRaw)
 
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -565,13 +566,16 @@ class Device:
 
     # Public members
     handle: int
-    opened: bool = field(repr=False)
     board_type: BoardType
     arg: Union[int, str]
     conet_node: int
 
+    def __post_init__(self) -> None:
+        self.__opened = True
+        self.__registers = _utils.Registers(self.read_register, self.write_register)
+
     def __del__(self) -> None:
-        if self.opened:
+        if self.__opened:
             self.close()
 
     # C API bindings
@@ -586,7 +590,7 @@ class Device:
         l_arg = _get_l_arg(board_type, arg)
         l_handle = ct.c_int32()
         lib.init2(board_type, l_arg, conet_node, l_handle)
-        return cls(l_handle.value, True, board_type, arg, conet_node)
+        return cls(l_handle.value, board_type, arg, conet_node)
 
     def connect(self) -> None:
         """
@@ -594,20 +598,20 @@ class Device:
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
-        if self.opened:
+        if self.__opened:
             raise RuntimeError('Already connected.')
         l_arg = _get_l_arg(self.board_type, self.arg)
         l_handle = ct.c_int32()
         lib.init2(self.board_type, l_arg, self.conet_node, l_handle)
         self.handle = l_handle.value
-        self.opened = True
+        self.__opened = True
 
     def close(self) -> None:
         """
         Binding of CAENVME_End()
         """
         lib.end(self.handle)
-        self.opened = False
+        self.__opened = False
 
     def board_fw_release(self) -> str:
         """
@@ -778,7 +782,7 @@ class Device:
         Binding of CAENVME_IACKCycle()
         """
         l_data = dw.ctypes()
-        lib.iack_cycle(self.handle, levels.value, l_data, dw)
+        lib.iack_cycle(self.handle, levels, l_data, dw)
         return l_data.value
 
     def irq_check(self) -> IRQLevels:
@@ -793,19 +797,19 @@ class Device:
         """
         Binding of CAENVME_IRQEnable()
         """
-        lib.irq_enable(self.handle, mask.value)
+        lib.irq_enable(self.handle, mask)
 
     def irq_disable(self, mask: IRQLevels) -> None:
         """
         Binding of CAENVME_IRQDisable()
         """
-        lib.irq_disable(self.handle, mask.value)
+        lib.irq_disable(self.handle, mask)
 
     def irq_wait(self, mask: IRQLevels, timeout: int) -> None:
         """
         Binding of CAENVME_IRQWait()
         """
-        lib.irq_wait(self.handle, mask.value, timeout)
+        lib.irq_wait(self.handle, mask, timeout)
 
     def set_pulser_conf(self, pul_sel: PulserSelect, period: int, width: int, unit: TimeUnits, pulse_no: int, start: IOSources, reset: IOSources) -> None:
         """
@@ -888,6 +892,11 @@ class Device:
         Binding of CAENVME_WriteRegister()
         """
         lib.write_register(self.handle, address, value)
+
+    @property
+    def registers(self) -> _utils.Registers:
+        """Utility to simplify register access"""
+        return self.__registers
 
     def write_flash_page(self, page_num: int, data: bytes) -> None:
         """
@@ -1241,5 +1250,5 @@ class Device:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         """Called when exiting from `with` block"""
-        if self.opened:
+        if self.__opened:
             self.close()

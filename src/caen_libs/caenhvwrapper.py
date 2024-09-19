@@ -7,15 +7,16 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-from contextlib import contextmanager
 import ctypes as ct
 import ctypes.wintypes as ctw
-from dataclasses import dataclass, field
-from enum import IntEnum, unique
 import os
 import socket
 import sys
-from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Sequence, Tuple, Type, TypeVar, Union
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from enum import IntEnum, unique
+from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
+                    Sequence, Tuple, Type, TypeVar, Union)
 
 from caen_libs import _utils
 
@@ -177,9 +178,9 @@ class EventData:
     """
     type: EventType
     item_id: str
-    board_index: int = field(default=-1)
-    channel_index: int = field(default=-1)
-    value: Union[str, float, int] = field(default=-1)
+    board_index: int
+    channel_index: int
+    value: Union[str, float, int]
 
 
 @dataclass(frozen=True)
@@ -297,6 +298,7 @@ class ParamProp:
     unit: Optional[ParamUnit] = field(default=None)
     exp: Optional[int] = field(default=None)
     decimal: Optional[int] = field(default=None)
+    resol: Optional[int] = field(default=None)
     onstate: Optional[str] = field(default=None)
     offstate: Optional[str] = field(default=None)
     enum: Optional[Tuple[str, ...]] = field(default=None)
@@ -412,6 +414,7 @@ _PARAM_TYPE_EVENT_ARG: Dict[ParamType, Callable] = {
     ParamType.ENUM:         lambda v: v.IntValue,
     ParamType.CMD:          lambda v: v.IntValue,
 }
+
 
 class _Lib(_utils.Lib):
 
@@ -537,7 +540,14 @@ class _Lib(_utils.Lib):
             self.__free_event_data(value)
 
 
-lib = _Lib('CAENHVWrapper')
+# Library name is platform dependent
+if sys.platform == 'win32':
+    _LIB_NAME = 'CAENHVWrapper'
+else:
+    _LIB_NAME = 'caenhvwrapper'
+
+
+lib = _Lib(_LIB_NAME)
 
 
 @dataclass
@@ -548,7 +558,6 @@ class Device:
 
     # Public members
     handle: int
-    opened: bool = field(repr=False)
     system_type: SystemType
     link_type: LinkType
     arg: str
@@ -559,6 +568,7 @@ class Device:
     MAX_PARAM_NAME: ClassVar[int] = 10  # From CAENHVWrapper.h
     MAX_CH_NAME: ClassVar[int] = 12  # From CAENHVWrapper.h
     MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
+    MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
 
     # Static private members
     __node_cache_manager: ClassVar[_utils.CacheManager] = _utils.CacheManager()
@@ -566,12 +576,13 @@ class Device:
 
     def __post_init__(self):
         # Internal events related stuff
+        self.__opened = True
         self.__port = 0
         self.__skt_server = None
         self.__skt_client = None
 
     def __del__(self) -> None:
-        if self.opened:
+        if self.__opened:
             self.close()
 
     # C API bindings
@@ -584,8 +595,8 @@ class Device:
         Binding of CAENHV_InitSystem()
         """
         l_handle = ct.c_int()
-        lib.init_system(system_type.value, link_type.value, arg.encode(), username.encode(), password.encode(), l_handle)
-        return cls(l_handle.value, True, system_type, link_type, arg, username, password)
+        lib.init_system(system_type, link_type, arg.encode(), username.encode(), password.encode(), l_handle)
+        return cls(l_handle.value, system_type, link_type, arg, username, password)
 
     def connect(self) -> None:
         """
@@ -593,12 +604,12 @@ class Device:
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
-        if self.opened:
+        if self.__opened:
             raise RuntimeError('Already connected.')
         l_handle = ct.c_int()
         lib.init_system(self.system_type, self.link_type, self.arg.encode(), self.username.encode(), self.password.encode(), l_handle)
         self.handle = l_handle.value
-        self.opened = True
+        self.__opened = True
 
     @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
     def close(self) -> None:
@@ -608,7 +619,7 @@ class Device:
         This will also clear class cache.
         """
         lib.deinit_system(self.handle)
-        self.opened = False
+        self.__opened = False
 
     @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
     def get_crate_map(self) -> Tuple[Optional[Board], ...]:
@@ -687,7 +698,7 @@ class Device:
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
-        if param_type == ParamType.STRING and self.__char_p_p_str_bd_param_arg():
+        if param_type is ParamType.STRING and self.__char_p_p_str_bd_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_size = ct.sizeof(l_data)
@@ -697,7 +708,7 @@ class Device:
             l_data_proxy = l_data
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data_proxy)
-        if param_type == ParamType.STRING:
+        if param_type is ParamType.STRING:
             if self.__char_p_p_str_bd_param_arg():
                 return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
@@ -711,8 +722,8 @@ class Device:
 
         The CAEN HV Wrapper is not consistent, since it allows to pass an array of values as input, to
         be set respectively to the slots in the slot_list, but this is done only on some system
-        types (notably, on ST4527 and R6060 it uses only the first value of the array for all channels
-        in the slot_list). To make their behavior homogeneous, we to the same also for systems
+        types (notably, on SY4527 and R6060 it uses only the first value of the array for all channels
+        in the slot_list). To make their behavior homogeneous, we do the same also on systems
         supporting different values, setting the same value on all slots.
         The trick is not done on parameters of STRING type because the systems that accept an array
         as input do not have any writable parameter of that type. The trick is not done on CMD type
@@ -815,7 +826,7 @@ class Device:
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
-        if param_type == ParamType.STRING and self.__char_p_p_str_ch_param_arg():
+        if param_type is ParamType.STRING and self.__char_p_p_str_ch_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_size = ct.sizeof(l_data)
@@ -825,7 +836,7 @@ class Device:
             l_data_proxy = l_data
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data_proxy)
-        if param_type == ParamType.STRING:
+        if param_type is ParamType.STRING:
             if self.__char_p_p_str_ch_param_arg():
                 return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
@@ -987,65 +998,101 @@ class Device:
 
     # Private utilities
 
+    _R = TypeVar('_R', bound='ct._CData')
+
+    def __get_prop(self, slot: int, name: str, prop_name: bytes, channel: Optional[int], var_type: Callable[..., _R], *args, **kwargs) -> _R:
+        """
+        Get single parameter property.
+
+        If args are defined, they are used to construct the value passed to the
+        C library, and could be used to catch errors (see comment in __get_param_type)
+        If default is set in kwargs, it returns var_type(default) in case of
+        PARAMPROPNOTFOUND error.
+        """
+        l_value = var_type(*args)
+        try:
+            if channel is None:
+                lib.get_bd_param_prop(self.handle, slot, name.encode(), prop_name, ct.byref(l_value))
+            else:
+                lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), prop_name, ct.byref(l_value))
+        except Error as ex:
+            if ex.code is ErrorCode.PARAMPROPNOTFOUND:
+                default = kwargs.get('default')
+                if default is not None:
+                    return var_type(default)
+            raise ex
+        return l_value
+
     def __get_param_prop(self, slot: int, name: str, channel: Optional[int] = None) -> ParamProp:
         """
         Get all parameter properties.
         Cannot be cached since minval/maxval may depend on the value of other parameters.
         """
-        def _get(prop_name: str, prop_type: Type):
-            l_value = prop_type()
-            try:
-                if channel is None:
-                    lib.get_bd_param_prop(self.handle, slot, name.encode(), prop_name.encode(), ct.byref(l_value))
-                else:
-                    lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), prop_name.encode(), ct.byref(l_value))
-            except Error:
-                # Ignore errors, return empty value
-                return prop_type()
-            return l_value
-        param_type = ParamType(_get('Type', ct.c_uint).value)
-        param_mode = ParamMode(_get('Mode', ct.c_uint).value)
-        if param_type is None or param_mode is None:
-            raise RuntimeError('Missing parameter property Type or Mode')
+        # Mandatory values (raise if name is not valid)
+        param_type = self.__get_param_type(slot, name, channel)
+        param_mode = self.__get_param_mode(slot, name, channel)
         res = ParamProp(param_type, param_mode)
-        if param_type == ParamType.NUMERIC:
-            res.minval = _get('Minval', ct.c_float).value
-            res.maxval = _get('Maxval', ct.c_float).value
-            res.unit = ParamUnit(_get('Unit', ct.c_ushort).value)
-            res.exp = _get('Exp', ct.c_short).value
-            res.decimal = _get('Decimal', ct.c_short).value
-        elif param_type == ParamType.ONOFF:
-            res.onstate = _get('Onstate', ct.c_char * _STR_SIZE).value.decode()
-            res.offstate = _get('Offstate', ct.c_char * _STR_SIZE).value.decode()
-        elif param_type == ParamType.ENUM:
-            res.minval = _get('Minval', ct.c_float).value
-            res.maxval = _get('Maxval', ct.c_float).value
-            if res.minval is not None and res.maxval is not None:
-                n_enums = int(res.maxval - res.minval)
-                n_allocated_values = n_enums + 1  # In case library tries to set an empty string after the last
-                l_value = _get('Enum', ct.c_char * (self.MAX_ENUM_NAME * n_allocated_values))
-                enum = tuple(_utils.str_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
-                res.enum = enum
+        # Optional values
+        if param_type is ParamType.NUMERIC:
+            # Always defined
+            res.unit = ParamUnit(self.__get_prop(slot, name, b'Unit', channel, ct.c_ushort).value)
+            res.exp = self.__get_prop(slot, name, b'Exp', channel, ct.c_short).value
+            # Not defined on some old systems
+            res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float, default=0.).value
+            res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float, default=0.).value
+            res.decimal = self.__get_prop(slot, name, b'Decimal', channel, ct.c_short, default=0).value
+            if self.__resol_param_prop():
+                res.resol = self.__get_prop(slot, name, b'Resol', channel, ct.c_short, default=1).value
+        elif param_type is ParamType.ONOFF:
+            res.onstate = self.__get_prop(slot, name, b'Onstate', channel, ct.c_char * _STR_SIZE).value.decode()
+            res.offstate = self.__get_prop(slot, name, b'Offstate', channel, ct.c_char * _STR_SIZE).value.decode()
+        elif param_type is ParamType.ENUM:
+            res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float).value
+            res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float).value
+            n_enums = int(res.maxval - res.minval + 1)
+            assert n_enums <= self.MAX_ENUM_VALS
+            l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.MAX_ENUM_NAME * self.MAX_ENUM_VALS))
+            res.enum = tuple(_utils.str_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
         return res
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
         """Simplified version of __get_param_prop used internally to retrieve just param type."""
-        l_uint = ct.c_uint()
-        if channel is None:
-            lib.get_bd_param_prop(self.handle, slot, name.encode(), b'Type', ct.byref(l_uint))
-        else:
-            lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), b'Type', ct.byref(l_uint))
-        return ParamType(l_uint.value)
+        # Initialize arg to -1 to detect errors because library functions return
+        # in case of non-existing parameter. We detect this error as the value is
+        # not modified by the library, and we map it to a library Error value.
+        # The check is not done on all the properties because, in case of invalid
+        # parameter, it will fail in the very first call.
+        bad_value = -1
+        assert bad_value not in ParamType
+        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, bad_value).value
+        if value == bad_value:
+            raise Error('Parameter not found', ErrorCode.PARAMNOTFOUND.value, '__get_param_mode')
+        return ParamType(value)
+
+    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    def __get_param_mode(self, slot: int, name: str, channel: Optional[int] = None) -> ParamMode:
+        """Simplified version of __get_param_prop used internally to retrieve just param mode."""
+        # See comment on __get_param_type
+        bad_value = -1
+        assert bad_value not in ParamMode
+        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, bad_value).value
+        if value == bad_value:
+            raise Error('Parameter not found', ErrorCode.PARAMNOTFOUND.value, '__get_param_mode')
+        return ParamMode(value)
 
     def __check_events_support(self) -> None:
-        """SY1524/SY2527 have a legacy version of events not supported by this binding"""
+        """SY1527/SY2527 have a legacy version of events not supported by this binding"""
         if self.system_type in (SystemType.SY1527, SystemType.SY2527):
             raise RuntimeError('Legacy events not supported by this binding.')
 
     def __library_event_thread(self) -> bool:
         """Devices with polling thread within library"""
         return self.system_type not in (SystemType.SY4527, SystemType.SY5527, SystemType.R6060)
+
+    def __resol_param_prop(self) -> bool:
+        """Devices with weird Resol parameter property on numeric data"""
+        return self.system_type in (SystemType.V8100,)
 
     def __new_events_format(self) -> bool:
         """Devices with new events format, with socket opened within the library"""
@@ -1116,39 +1163,39 @@ class Device:
                     arg.extend(char)
                 assert self.arg == arg.decode()
 
+    def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
+        """
+        Same of __get_param_type, with a workaround for Name: even if not being
+        a real channel parameter, i.e. get_ch_param_prop does not work, changes
+        are sent as events of type PARAMETER.
+        """
+        if channel is not None and name == 'Name':
+            return ParamType.STRING
+        return self.__get_param_type(slot, name, channel)
+
+    def __decode_event_value(self, event_type: EventType, board_index: int, channel_index: int, item_id: str, value: _IdValueRaw) -> Union[str, float, int]:
+        if event_type is not EventType.PARAMETER:
+            return -1
+        if board_index == -1:
+            prop_type = self.get_sys_prop_info(item_id).type
+            return _SYS_PROP_TYPE_EVENT_ARG[prop_type](value)
+        param_type = self.__extended_get_param_type(board_index, item_id, channel_index if channel_index != -1 else None)
+        return _PARAM_TYPE_EVENT_ARG[param_type](value)
+
     def __decode_event_data(self, event_data: ct._Pointer, n_events: int) -> Iterator[EventData]:
         for i in range(n_events):
             event: _EventDataRaw = event_data[i]
             item_id = event.ItemID.decode()
-            if not item_id and self.__library_event_thread():
+            if not item_id:
                 # There could be empty events, expecially from library event thread, to be ignored.
+                assert self.__library_event_thread()
                 continue
             event_type = EventType(event.Type)
             system_handle = event.SystemHandle
+            assert system_handle == self.handle  # should always be the same
             board_index = event.BoardIndex
             channel_index = event.ChannelIndex
-            assert system_handle == self.handle  # should always be the same
-            if event_type != EventType.PARAMETER:
-                yield EventData(event_type, item_id, board_index, channel_index)
-                continue
-            if board_index == -1:
-                # System prop
-                prop_type = self.get_sys_prop_info(item_id).type
-                value = _SYS_PROP_TYPE_EVENT_ARG[prop_type](event.Value)
-            else:
-                if channel_index == -1:
-                    # Board param
-                    param_type = self.__get_param_type(board_index, item_id)
-                else:
-                    # Channel param
-                    if item_id == 'Name':
-                        # Workaround for Name: even if not being a real channel parameter, i.e.
-                        # get_ch_param_prop does not work, changes are sent as events of type
-                        # PARAMETER.
-                        param_type = ParamType.STRING
-                    else:
-                        param_type = self.__get_param_type(board_index, item_id, channel_index)
-                value = _PARAM_TYPE_EVENT_ARG[param_type](event.Value)
+            value = self.__decode_event_value(event_type, board_index, channel_index, item_id, event.Value)
             yield EventData(event_type, item_id, board_index, channel_index, value)
 
     # Python utilities
@@ -1168,7 +1215,7 @@ class Device:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         """Called when exiting from `with` block"""
-        if self.opened:
+        if self.__opened:
             self.close()
 
     def __hash__(self) -> int:
