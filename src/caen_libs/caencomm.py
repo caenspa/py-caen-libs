@@ -322,16 +322,6 @@ class Device:
         lib.read16(self.handle, address, l_value)
         return l_value.value
 
-    @property
-    def reg32(self) -> _utils.Registers:
-        """Utility to simplify 32-bit register access"""
-        return self.__reg32
-
-    @property
-    def reg16(self) -> _utils.Registers:
-        """Utility to simplify 32-bit register access"""
-        return self.__reg16
-
     def multi_write32(self, address: Sequence[int], data: Sequence[int]) -> None:
         """
         Binding of CAENComm_MultiWrite32()
@@ -385,6 +375,16 @@ class Device:
             failed_cycles = {i: ErrorCode(ec).name for i, ec in enumerate(l_error_code) if ec}
             raise RuntimeError(f'multi_read16 failed at cycles {failed_cycles}')
         return l_data[:]
+
+    @property
+    def reg32(self) -> _utils.Registers:
+        """Utility to simplify 32-bit register access"""
+        return self.__reg32
+
+    @property
+    def reg16(self) -> _utils.Registers:
+        """Utility to simplify 16-bit register access"""
+        return self.__reg16
 
     def blt_read(self, address: int, blt_size: int) -> List[int]:
         """

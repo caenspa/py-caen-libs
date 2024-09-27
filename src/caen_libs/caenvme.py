@@ -1031,6 +1031,14 @@ class Device:
         lib.get_timeout(self.handle, l_value)
         return VMETimeouts(l_value.value)
 
+    def get_fifo_mode(self) -> int:
+        """
+        Binding of CAENVME_GetFIFOMode()
+        """
+        l_value = ct.c_short()
+        lib.get_fifo_mode(self.handle, l_value)
+        return l_value.value
+
     def system_reset(self) -> None:
         """
         Binding of CAENVME_SystemReset()

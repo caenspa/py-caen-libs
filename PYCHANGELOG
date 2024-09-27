@@ -11,25 +11,37 @@
 -----------------------------------------------------------------------------
 
 
+v1.2.0 (XX/XX/2024)
+-------------------
+
+New features:
+- Improved register class, introduced in v1.1.0, with functions to
+    directly call get/set/multi_get/multi_set without `__getitem__`
+    and `__setitem__`.
+
+Fixes:
+- Add missing binding of `CAENVME_GetFIFOMode` from `caenvme`.
+
+
 v1.1.0 (19/09/2024)
 -------------------
 
 New features:
 - Support for Resol parameter property on caenhvwrapper for VME8100.
 - Support for 32-bit PID on CAENComm demo.
-- New way to access registers by using __getitem__ and __setitem__.
+- New way to access registers by using `__getitem__` and `__setitem__`.
     This enables also read-modify-write operations in a single line
-    of code,using in-place operators like "dev.reg32[0x40] &= 0xFF".
-    It has been added in caenvme (registers), caencomm (reg16 and
-    reg32) and caenplu (registers). Slicing is supported.
+    of code,using in-place operators like `dev.reg32[0x40] &= 0xFF`.
+    It has been added in `caenvme` (registers), `caencomm` (reg16 and
+    reg32) and `caenplu` (registers). Slicing is supported.
 
 Fixes:
-- Fix caenhvwrapper load on Linux.
-- Classes inheriting enum.Flag now inherit enum.IntFlag to improve
-    the support of unknown flags. This applies to caenvme.IRQLevels,
-    caencomm.IRQLevels and all the classes on caenhvwrapperflags.
-- Fix decode of caenhvwrapper.ParamProp.enum.
-- Fix error detection on caenhvwrapper.Device.get_XX_param_prop()
+- Fix `caenhvwrapper` load on Linux.
+- Classes inheriting `enum.Flag` now inherit enum.IntFlag to improve
+    the support of unknown flags. This applies to `caenvme.IRQLevels`,
+    `caencomm.IRQLevels` and all the classes on `caenhvwrapperflags`.
+- Fix decode of `caenhvwrapper.ParamProp.enum.`
+- Fix error detection on `caenhvwrapper.Device.get_XX_param_prop()`
 
 Changes:
 - Removed opened member from device class.
@@ -39,11 +51,11 @@ v1.0.3 (02/07/2024)
 -------------------
 
 New features:
-- Better support of caenhvwrapper error messages.
+- Better support of `caenhvwrapper` error messages.
 
 Fixes:
-- Fix caenhvwrapper.exec_comm.
-- Fix support of non PARAMETER events on caenhvwrapper (regression
+- Fix `caenhvwrapper.exec_comm`.
+- Fix support of non PARAMETER events on `caenhvwrapper` (regression
     introduced on v1.0.1).
 
 
@@ -58,10 +70,10 @@ v1.0.1 (25/06/2024)
 -------------------
 
 Changes:
-- On caenhvwrapper and caenplu some functions now return tuples instead of
+- On `caenhvwrapper` and `caenplu` some functions now return tuples instead of
     lists.
 - Examples moved to examples folder.
-- Renamed some (unused) values on caenvme.AddressModifiers.
+- Renamed some (unused) values on `caenvme.AddressModifiers`.
 
 New features:
 - Update `[project.urls]` on pyproject.tolm, with new public repositories

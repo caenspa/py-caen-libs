@@ -194,6 +194,39 @@ class AnalogMonitorOutputMode(IntEnum):
     VOLTAGE_LEVEL       = 4
 
 
+@unique
+class AnalogMonitorMagnify(IntEnum):
+    """
+    Binding of CAEN_DGTZ_AnalogMonitorMagnify_t
+    """
+    MAGNIFY_1X  = 0
+    MAGNIFY_2X  = 1
+    MAGNIFY_4X  = 2
+    MAGNIFY_8X  = 3
+
+
+@unique
+class AnalogMonitorInspectorInverter(IntEnum):
+    """
+    Binding of CAEN_DGTZ_AnalogMonitorInspectorInverter_t
+    """
+    P_1X  = 0
+    N_1X  = 1
+
+
+@unique
+class ReadMode(IntEnum):
+    """
+    Binding of CAEN_DGTZ_ReadMode_t
+    """
+    SLAVE_TERMINATED_READOUT_MBLT   = 0
+    SLAVE_TERMINATED_READOUT_2eVME  = 1
+    SLAVE_TERMINATED_READOUT_2eSST  = 2
+    POLLING_MBLT                    = 3
+    POLLING_2eVME                   = 4
+    POLLING_2eSST                   = 5
+
+
 class Error(RuntimeError):
     """
     Raised when a wrapped C API function returns
@@ -222,6 +255,7 @@ _c_uint32_p = _P(ct.c_uint32)
 _c_void_p_p = _P(ct.c_void_p)
 _event_info_p = _P(_EventInfoRaw)
 
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -231,7 +265,7 @@ class _Lib(_utils.Lib):
     def __load_api(self) -> None:
         # Load API not related to devices
         self.__sw_release = self.__get('SWRelease', ct.c_char_p)
-        self.__free_readout_buffer = self.__get('FreeReadoutBuffer', _c_char_p_p)
+        self.free_readout_buffer = self.__get('FreeReadoutBuffer', _c_char_p_p)
         self.__get_dpp_virtual_probe_name = self.__get('GetDPP_VirtualProbeName', ct.c_int, _c_char_p)
 
         # Load API
@@ -289,7 +323,6 @@ class _Lib(_utils.Lib):
         self.get_run_synchronization_mode = self.__get('GetRunSynchronizationMode', ct.c_int, _c_int_p)
         self.set_analog_mon_output = self.__get('SetAnalogMonOutput', ct.c_int, ct.c_int)
         self.get_analog_mon_output = self.__get('GetAnalogMonOutput', ct.c_int, _c_int_p)
-        # TODO
         self.set_analog_inspection_mon_params = self.__get('SetAnalogInspectionMonParams', ct.c_int, ct.c_uint32, ct.c_uint32, ct.c_int, ct.c_int)
         self.get_analog_inspection_mon_params = self.__get('GetAnalogInspectionMonParams', ct.c_int, _c_uint32_p, _c_uint32_p, _c_int_p, _c_int_p)
         self.disable_event_aligned_readout = self.__get('DisableEventAlignedReadout', ct.c_int)
@@ -302,6 +335,7 @@ class _Lib(_utils.Lib):
         self.malloc_readout_buffer = self.__get('MallocReadoutBuffer', ct.c_int, _c_char_p_p, _c_uint32_p)
         self.read_data = self.__get('ReadData', ct.c_int, ct.c_int, _c_char_p, _c_uint32_p)
         self.get_num_events = self.__get('GetNumEvents', ct.c_int, _c_char_p, ct.c_uint32, _c_uint32_p)
+        # TODO
         self.get_event_info = self.__get('GetEventInfo', ct.c_int, _c_char_p, ct.c_uint32, ct.c_int32, _event_info_p, _c_char_p_p)
         self.decode_event = self.__get('DecodeEvent', ct.c_int, _c_char_p, _c_void_p_p)
         self.free_event = self.__get('FreeEvent', ct.c_int, _c_void_p_p)
@@ -440,6 +474,9 @@ class Device:
 
     def __post_init__(self) -> None:
         self.__opened = True
+        self.__readout_buffer = _c_char_p()
+        self.__readout_buffer_size = 0
+        self.__readout_buffer_occupancy = 0
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
     def __del__(self) -> None:
@@ -462,7 +499,7 @@ class Device:
 
     def connect(self) -> None:
         """
-        Binding of CAENComm_OpenDevice2()
+        Binding of CAEN_DGTZ_OpenDigitizer2()
         New instances should be created with open().
         This is meant to reconnect a device closed with close().
         """
@@ -745,7 +782,7 @@ class Device:
         lib.set_channel_trigger_threshold(self.handle, channel, value)
 
     def get_channel_trigger_threshold(self, channel: int) -> int:
-        """ 
+        """
         Binding of CAEN_DGTZ_GetChannelTriggerThreshold()
         """
         l_value = ct.c_uint32()
@@ -759,7 +796,7 @@ class Device:
         lib.set_channel_pulse_polarity(self.handle, channel, pol)
 
     def get_channel_pulse_polarity(self, channel: int) -> PulsePolarity:
-        """ 
+        """
         Binding of CAEN_DGTZ_GetChannelPulsePolarity()
         """
         l_value = ct.c_int()
@@ -773,7 +810,7 @@ class Device:
         lib.set_group_trigger_threshold(self.handle, channel, value)
 
     def get_group_trigger_threshold(self, channel: int) -> int:
-        """ 
+        """
         Binding of CAEN_DGTZ_GetGroupTriggerThreshold()
         """
         l_value = ct.c_uint32()
@@ -787,7 +824,7 @@ class Device:
         lib.set_zero_suppression_mode(self.handle, channel, mode)
 
     def get_zero_suppression_mode(self, channel: int) -> ZSMode:
-        """ 
+        """
         Binding of CAEN_DGTZ_GetZeroSuppressionMode()
         """
         l_value = ct.c_int()
@@ -801,7 +838,7 @@ class Device:
         lib.set_channel_zs_params(self.handle, channel, weight, threshold, n_samples)
 
     def get_channel_zs_params(self, channel: int) -> Tuple[ThresholdWeight, int, int]:
-        """ 
+        """
         Binding of CAEN_DGTZ_GetChannelZSParams()
         """
         l_weigth = ct.c_int()
@@ -817,7 +854,7 @@ class Device:
         lib.set_acquisition_mode(self.handle, channel, mode)
 
     def get_acquisition_mode(self, channel: int) -> AcqMode:
-        """ 
+        """
         Binding of CAEN_DGTZ_GetAcquisitionMode()
         """
         l_value = ct.c_int()
@@ -831,7 +868,7 @@ class Device:
         lib.set_run_synchronization_mode(self.handle, channel, mode)
 
     def get_run_synchronization_mode(self, channel: int) -> RunSyncMode:
-        """ 
+        """
         Binding of CAEN_DGTZ_GetRunSynchronizationMode()
         """
         l_value = ct.c_int()
@@ -845,12 +882,108 @@ class Device:
         lib.set_analog_mon_output(self.handle, channel, mode)
 
     def get_analog_mon_output(self, channel: int) -> AnalogMonitorOutputMode:
-        """ 
+        """
         Binding of CAEN_DGTZ_GetAnalogMonOutput()
         """
         l_value = ct.c_int()
         lib.get_analog_mon_output(self.handle, channel, l_value)
         return AnalogMonitorOutputMode(l_value.value)
+
+    def set_analog_inspection_mon_params(self, channelmask: int, offset: int, mf: AnalogMonitorMagnify, ami: AnalogMonitorInspectorInverter) -> None:
+        """
+        Binding of CAEN_DGTZ_SetAnalogInspectionMonParams()
+        """
+        lib.set_analog_inspection_mon_params(self.handle, channelmask, offset, mf, ami)
+
+    def get_analog_inspection_mon_params(self, channelmask: int, offset: int) -> Tuple[AnalogMonitorMagnify, AnalogMonitorInspectorInverter]:
+        """
+        Binding of CAEN_DGTZ_GetAnalogInspectionMonParams()
+        """
+        l_mf = ct.c_int()
+        l_ami = ct.c_int()
+        lib.get_analog_inspection_mon_params(self.handle, channelmask, offset, l_mf, l_ami)
+        return AnalogMonitorMagnify(l_mf.value), AnalogMonitorInspectorInverter(l_ami.value)
+
+    def disable_event_aligned_readout(self) -> None:
+        """
+        Binding of CAEN_DGTZ_DisableEventAlignedReadout()
+        """
+        lib.get_analog_inspection_mon_params(self.handle)
+
+    def set_event_packaging(self, mode: EnaDis) -> None:
+        """
+        Binding of CAEN_DGTZ_SetEventPackaging()
+        """
+        lib.set_event_packaging(self.handle, mode)
+
+    def get_event_packaging(self) -> EnaDis:
+        """
+        Binding of CAEN_DGTZ_GetEventPackaging()
+        """
+        l_value = ct.c_int()
+        lib.get_event_packaging(self.handle, l_value)
+        return EnaDis(l_value.value)
+
+    def set_max_num_aggregates_blt(self, num_aggr: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetMaxNumAggregatesBLT()
+        """
+        lib.set_max_num_aggregates_blt(self.handle, num_aggr)
+
+    def get_max_num_aggregates_blt(self) -> int:
+        """
+        Binding of CAEN_DGTZ_GetMaxNumAggregatesBLT()
+        """
+        l_value = ct.c_uint32()
+        lib.get_max_num_aggregates_blt(self.handle, l_value)
+        return l_value.value
+
+    def set_max_num_events_blt(self, num_events: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetMaxNumEventsBLT()
+        """
+        lib.set_max_num_events_blt(self.handle, num_events)
+
+    def get_max_num_events_blt(self) -> int:
+        """
+        Binding of CAEN_DGTZ_GetMaxNumEventsBLT()
+        """
+        l_value = ct.c_uint32()
+        lib.get_max_num_events_blt(self.handle, l_value)
+        return l_value.value
+
+    def malloc_readout_buffer(self) -> None:
+        """
+        Binding of CAEN_DGTZ_MallocReadoutBuffer()
+        """
+        l_buffer = _c_char_p()
+        l_size = ct.c_uint32()
+        lib.malloc_readout_buffer(self.handle, l_buffer, l_size)
+        self.__readout_buffer = l_buffer
+        self.__readout_buffer_size = l_size.value
+
+    def free_readout_buffer(self) -> None:
+        """
+        Binding of CAEN_DGTZ_FreeReadoutBuffer()
+        """
+        lib.free_readout_buffer(self.__readout_buffer)
+
+    def read_data(self, mode: ReadMode) -> None:
+        """
+        Binding of CAEN_DGTZ_ReadData()
+        """
+        l_size = ct.c_uint32()
+        lib.read_data(self.handle, mode, self.__readout_buffer, l_size)
+        self.__readout_buffer_occupancy = l_size.value
+        assert self.__readout_buffer_occupancy <= self.__readout_buffer_size
+
+    def get_num_events(self) -> int:
+        """
+        Binding of GetNumEvents()
+        """
+        l_value = ct.c_uint32()
+        lib.get_num_events(self.handle, self.__readout_buffer, self.__readout_buffer_occupancy, l_value)
+        return l_value.value
 
     # Python utilities
 

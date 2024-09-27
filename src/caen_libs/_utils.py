@@ -250,12 +250,43 @@ def str_from_n_char_array_p(data: ct._Pointer, string_size: int, n_strings: int)
 
 @dataclass(frozen=True)
 class Registers:
-    """Class to simplify syntax for registers access"""
+    """
+    Class to simplify syntax for registers access with
+    square brackets operators, slices and in-place operators.
+    """
 
     getter: Callable[[int], int]
     setter: Callable[[int, int], None]
     multi_getter: Optional[Callable[[Sequence[int]], List[int]]] = field(default=None)
     multi_setter: Optional[Callable[[Sequence[int], Sequence[int]], None]] = field(default=None)
+
+    def get(self, address: int) -> int:
+        """Get value"""
+        return self.getter(address)
+
+    def set(self, address: int, value: int) -> None:
+        """Set value"""
+        return self.setter(address, value)
+
+    def multi_get(self, addresses: Sequence[int]) -> List[int]:
+        """Get multiple value"""
+        if self.multi_getter is not None:
+            return self.multi_getter(addresses)
+        return [self.get(i) for i in addresses]
+
+    def multi_set(self, addresses: Sequence[int], values: Sequence[int]) -> None:
+        """Set multiple value"""
+        if self.multi_setter is not None:
+            return self.multi_setter(addresses, values)
+        for a, v in zip(addresses, values):
+            self.set(a, v)
+
+    @staticmethod
+    def __get_addresses(key: slice) -> Sequence[int]:
+        if key.start is None or key.stop is None:
+            raise ValueError('Both start and stop must be specified.')
+        step = 1 if key.step is None else key.step
+        return range(key.start, key.stop, step)
 
     @overload
     def __getitem__(self, address: int) -> int: ...
@@ -264,15 +295,10 @@ class Registers:
 
     def __getitem__(self, address):
         if isinstance(address, int):
-            return self.getter(address)
+            return self.get(address)
         if isinstance(address, slice):
-            if address.start is None or address.stop is None:
-                raise ValueError('Both start and stop must be specified.')
-            step = 1 if address.step is None else address.step
-            addresses = range(address.start, address.stop, step)
-            if self.multi_getter is not None:
-                return self.multi_getter(addresses)
-            return [self.getter(i) for i in addresses]
+            addresses = self.__get_addresses(address)
+            return self.multi_get(addresses)
         raise TypeError('Invalid argument type.')
 
     @overload
@@ -282,16 +308,10 @@ class Registers:
 
     def __setitem__(self, address, value):
         if isinstance(address, int):
-            return self.setter(address, value)
+            return self.set(address, value)
         if isinstance(address, slice) and isinstance(value, Sequence):
-            if address.start is None or address.stop is None:
-                raise ValueError('Both start and stop must be specified.')
-            step = 1 if address.step is None else address.step
-            addresses = range(address.start, address.stop, step)
+            addresses = self.__get_addresses(address)
             if len(value) != len(addresses):
                 raise ValueError('Invalid value size.')
-            if self.multi_setter is not None:
-                return self.multi_setter(addresses, value)
-            for a, v in zip(addresses, value):
-                self.setter(a, v)
+            return self.multi_set(addresses, value)
         raise TypeError('Invalid argument type.')
