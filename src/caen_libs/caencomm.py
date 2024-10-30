@@ -13,29 +13,7 @@ from dataclasses import dataclass
 from enum import IntEnum, IntFlag, unique
 from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
-from caen_libs import _utils
-
-
-@unique
-class ErrorCode(IntEnum):
-    """
-    Binding of ::CAENComm_ErrorCode
-    """
-    SUCCESS = 0
-    VME_BUS_ERROR = -1
-    COMM_ERROR = -2
-    GENERIC_ERROR = -3
-    INVALID_PARAM = -4
-    INVALID_LINK_TYPE = -5
-    INVALID_HANDLER = -6
-    COMM_TIMEOUT = -7
-    DEVICE_NOT_FOUND = -8
-    MAX_DEVICES_ERROR = -9
-    DEVICE_ALREADY_OPEN = -10
-    NOT_SUPPORTED = -11
-    UNUSED_BRIDGE = -12
-    TERMINATED = -13
-    UNSUPPORTED_BASE_ADDRESS = -14
+from caen_libs import error, _utils
 
 
 @unique
@@ -77,21 +55,42 @@ class IRQLevels(IntFlag):
     L7 = 0x40
 
 
-class Error(RuntimeError):
+class Error(error.Error):
     """
     Raised when a wrapped C API function returns
     negative values.
     """
 
-    code: ErrorCode  ## Error code as instance of ErrorCode
-    message: str  ## Message description
-    func: str  ## Name of failed function
+    @unique
+    class Code(IntEnum):
+        """
+        Binding of ::CAENComm_ErrorCode
+        """
+        SUCCESS = 0
+        VME_BUS_ERROR = -1
+        COMM_ERROR = -2
+        GENERIC_ERROR = -3
+        INVALID_PARAM = -4
+        INVALID_LINK_TYPE = -5
+        INVALID_HANDLER = -6
+        COMM_TIMEOUT = -7
+        DEVICE_NOT_FOUND = -8
+        MAX_DEVICES_ERROR = -9
+        DEVICE_ALREADY_OPEN = -10
+        NOT_SUPPORTED = -11
+        UNUSED_BRIDGE = -12
+        TERMINATED = -13
+        UNSUPPORTED_BASE_ADDRESS = -14
+
+    code: Code
 
     def __init__(self, message: str, res: int, func: str) -> None:
-        self.code = ErrorCode(res)
-        self.message = message
-        self.func = func
-        super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
+        self.code = Error.Code(res)
+        super().__init__(message, self.code.name, func)
+
+
+# For backward compatibility. Deprecated.
+ErrorCode = Error.Code
 
 
 # Utility definitions
@@ -332,7 +331,7 @@ class Device:
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_write32(self.handle, l_address, n_cycles, l_data, l_error_code)
         if any(l_error_code):
-            failed_cycles = {i: ErrorCode(ec).name for i, ec in enumerate(l_error_code) if ec}
+            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
             raise RuntimeError(f'multi_write32 failed at cycles {failed_cycles}')
 
     def multi_write16(self, address: Sequence[int], data: Sequence[int]) -> None:
@@ -345,7 +344,7 @@ class Device:
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_write16(self.handle, l_address, n_cycles, l_data, l_error_code)
         if any(l_error_code):
-            failed_cycles = {i: ErrorCode(ec).name for i, ec in enumerate(l_error_code) if ec}
+            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
             raise RuntimeError(f'multi_write16 failed at cycles {failed_cycles}')
 
     def multi_read32(self, address: Sequence[int]) -> List[int]:
@@ -358,7 +357,7 @@ class Device:
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_read32(self.handle, l_address, n_cycles, l_data, l_error_code)
         if any(l_error_code):
-            failed_cycles = {i: ErrorCode(ec).name for i, ec in enumerate(l_error_code) if ec}
+            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
             raise RuntimeError(f'multi_read32 failed at cycles {failed_cycles}')
         return l_data[:]
 
@@ -372,7 +371,7 @@ class Device:
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_read16(self.handle, l_address, n_cycles, l_data, l_error_code)
         if any(l_error_code):
-            failed_cycles = {i: ErrorCode(ec).name for i, ec in enumerate(l_error_code) if ec}
+            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
             raise RuntimeError(f'multi_read16 failed at cycles {failed_cycles}')
         return l_data[:]
 

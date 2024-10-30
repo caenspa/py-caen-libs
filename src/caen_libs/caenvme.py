@@ -14,23 +14,7 @@ from dataclasses import dataclass
 from enum import IntEnum, IntFlag, unique
 from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
 
-from caen_libs import _utils
-
-
-@unique
-class ErrorCode(IntEnum):
-    """
-    Binding of ::CVErrorCodes
-    """
-    SUCCESS = 0
-    BUS_ERROR = -1
-    COMM_ERROR = -2
-    GENERIC_ERROR = -3
-    INVALID_PARAM = -4
-    TIMEOUT_ERROR = -5
-    ALREADY_OPEN_ERROR = -6
-    MAX_BOARD_COUNT_ERROR = -7
-    NOT_SUPPORTED = -8
+from caen_libs import error, _utils
 
 
 @unique
@@ -378,21 +362,36 @@ class ContinuosRun(IntEnum):
     ON  = 0
 
 
-class Error(RuntimeError):
+class Error(error.Error):
     """
     Raised when a wrapped C API function returns
     negative values.
     """
 
-    code: ErrorCode  ## Error code as instance of ErrorCode
-    message: str  ## Message description
-    func: str  ## Name of failed function
+    @unique
+    class Code(IntEnum):
+        """
+        Binding of ::CVErrorCodes
+        """
+        SUCCESS = 0
+        BUS_ERROR = -1
+        COMM_ERROR = -2
+        GENERIC_ERROR = -3
+        INVALID_PARAM = -4
+        TIMEOUT_ERROR = -5
+        ALREADY_OPEN_ERROR = -6
+        MAX_BOARD_COUNT_ERROR = -7
+        NOT_SUPPORTED = -8
+
+    code: Code
 
     def __init__(self, message: str, res: int, func: str) -> None:
-        self.code = ErrorCode(res)
-        self.message = message
-        self.func = func
-        super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
+        self.code = Error.Code(res)
+        super().__init__(message, self.code.name, func)
+
+
+# For backward compatibility. Deprecated.
+ErrorCode = Error.Code
 
 
 # Utility definitions
@@ -670,7 +669,7 @@ class Device:
         l_ecs = (ct.c_int * n_cycles)()
         lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
-            failed_cycles = {i: ErrorCode(ec).name for i, ec in enumerate(l_ecs) if ec}
+            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_ecs) if ec}
             raise RuntimeError(f'multi_read failed at cycles {failed_cycles}')
         return l_data[:]
 
@@ -686,7 +685,7 @@ class Device:
         l_ecs = (ct.c_int * n_cycles)()
         lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
-            failed_cycles = {i: ErrorCode(ec).name for i, ec in enumerate(l_ecs) if ec}
+            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_ecs) if ec}
             raise RuntimeError(f'multi_write failed at cycles {failed_cycles}')
 
     def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:

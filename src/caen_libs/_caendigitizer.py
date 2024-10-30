@@ -9,49 +9,7 @@ from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import Callable, Optional, Tuple, Type, TypeVar, Union
 
-from caen_libs import _utils
-
-
-@unique
-class ErrorCode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_ErrorCode
-    """
-    SUCCESS                         = 0
-    COMM_ERROR                      = -1
-    GENERIC_ERROR                   = -2
-    INVALID_PARAM                   = -3
-    INVALID_LINK_TYPE               = -4
-    INVALID_HANDLE                  = -5
-    MAX_DEVICES_ERROR               = -6
-    BAD_BOARD_TYPE                  = -7
-    BAD_INTERRUPT_LEV               = -8
-    BAD_EVENT_NUMBER                = -9
-    READ_DEVICE_REGISTER_FAIL       = -10
-    WRITE_DEVICE_REGISTER_FAIL      = -11
-    INVALID_CHANNEL_NUMBER          = -13
-    CHANNEL_BUSY                    = -14
-    FPIO_MODE_INVALID               = -15
-    WRONG_ACQ_MODE                  = -16
-    FUNCTION_NOT_ALLOWED            = -17
-    TIMEOUT                         = -18
-    INVALID_BUFFER                  = -19
-    EVENT_NOT_FOUND                 = -20
-    INVALID_EVENT                   = -21
-    OUT_OF_MEMORY                   = -22
-    CALIBRATION_ERROR               = -23
-    DIGITIZER_NOT_FOUND             = -24
-    DIGITIZER_ALREADY_OPEN          = -25
-    DIGITIZER_NOT_READY             = -26
-    INTERRUPT_NOT_CONFIGURED        = -27
-    DIGITIZER_MEMORY_CORRUPTED      = -28
-    DPP_FIRMWARE_NOT_SUPPORTED      = -29
-    INVALID_LICENSE                 = -30
-    INVALID_DIGITIZER_STATUS        = -31
-    UNSUPPORTED_TRACE               = -32
-    INVALID_PROBE                   = -33
-    UNSUPPORTED_BASE_ADDRESS        = -34
-    NOT_YET_IMPLEMENTED             = -99
+from caen_libs import error, _utils
 
 
 @unique
@@ -227,20 +185,62 @@ class ReadMode(IntEnum):
     POLLING_2eSST                   = 5
 
 
-class Error(RuntimeError):
+class Error(error.Error):
     """
     Raised when a wrapped C API function returns
     negative values.
     """
 
-    code: ErrorCode  ## Error code as instance of ErrorCode
-    message: str  ## Message description
-    func: str  ## Name of failed function
+    @unique
+    class Code(IntEnum):
+        """
+        Binding of ::CAEN_DGTZ_ErrorCode
+        """
+        SUCCESS                         = 0
+        COMM_ERROR                      = -1
+        GENERIC_ERROR                   = -2
+        INVALID_PARAM                   = -3
+        INVALID_LINK_TYPE               = -4
+        INVALID_HANDLE                  = -5
+        MAX_DEVICES_ERROR               = -6
+        BAD_BOARD_TYPE                  = -7
+        BAD_INTERRUPT_LEV               = -8
+        BAD_EVENT_NUMBER                = -9
+        READ_DEVICE_REGISTER_FAIL       = -10
+        WRITE_DEVICE_REGISTER_FAIL      = -11
+        INVALID_CHANNEL_NUMBER          = -13
+        CHANNEL_BUSY                    = -14
+        FPIO_MODE_INVALID               = -15
+        WRONG_ACQ_MODE                  = -16
+        FUNCTION_NOT_ALLOWED            = -17
+        TIMEOUT                         = -18
+        INVALID_BUFFER                  = -19
+        EVENT_NOT_FOUND                 = -20
+        INVALID_EVENT                   = -21
+        OUT_OF_MEMORY                   = -22
+        CALIBRATION_ERROR               = -23
+        DIGITIZER_NOT_FOUND             = -24
+        DIGITIZER_ALREADY_OPEN          = -25
+        DIGITIZER_NOT_READY             = -26
+        INTERRUPT_NOT_CONFIGURED        = -27
+        DIGITIZER_MEMORY_CORRUPTED      = -28
+        DPP_FIRMWARE_NOT_SUPPORTED      = -29
+        INVALID_LICENSE                 = -30
+        INVALID_DIGITIZER_STATUS        = -31
+        UNSUPPORTED_TRACE               = -32
+        INVALID_PROBE                   = -33
+        UNSUPPORTED_BASE_ADDRESS        = -34
+        NOT_YET_IMPLEMENTED             = -99
 
-    def __init__(self, res: int, func: str) -> None:
-        self.code = ErrorCode(res)
-        self.func = func
-        super().__init__(f'{self.func} failed: {self.code.name}')
+    code: Code
+
+    def __init__(self, message: str, res: int, func: str) -> None:
+        self.code = Error.Code(res)
+        super().__init__(message, self.code.name, func)
+
+
+# For backward compatibility. Deprecated.
+ErrorCode = Error.Code
 
 
 # Utility definitions
@@ -420,7 +420,7 @@ class _Lib(_utils.Lib):
 
     def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
         if res < 0:
-            raise Error(res, func.__name__)
+            raise Error(self.decode_error(res), res, func.__name__)
         return res
 
     def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
@@ -436,6 +436,12 @@ class _Lib(_utils.Lib):
         return func
 
     # C API bindings
+
+    def decode_error(self, error_code: int) -> str:
+        """
+        There is no function to decode error, we just use the enumeration name.
+        """
+        return Error.Code(error_code).name
 
     def sw_release(self) -> str:
         """

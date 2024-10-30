@@ -18,9 +18,17 @@ New features:
 - Improved register class, introduced in v1.1.0, with functions to
     directly call get/set/multi_get/multi_set without `__getitem__`
     and `__setitem__`.
+- Introduced a new base class `error.BaseError` for handling errors
+    across submodules.
 
 Fixes:
 - Add missing binding of `CAENVME_GetFIFOMode` from `caenvme`.
+
+Changes:
+- Submodule-specific `ErrorCode` classes have been renamed to `Error.Code`
+    for consistency.
+- The old `ErrorCode` names are now deprecated and will be removed in a
+    future version.
 
 
 v1.1.0 (19/09/2024)

@@ -18,61 +18,7 @@ from enum import IntEnum, unique
 from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
                     Sequence, Tuple, Type, TypeVar, Union)
 
-from caen_libs import _utils
-
-
-@unique
-class ErrorCode(IntEnum):
-    """
-    Binding of ::CAENHVRESULT
-    """
-    UNKNOWN                 = 0xDEADFACE  # Special value for Python binding
-    OK                      = 0
-    SYSERR                  = 1
-    WRITEERR                = 2
-    READERR                 = 3
-    TIMEERR                 = 4
-    DOWN                    = 5
-    NOTPRES                 = 6
-    SLOTNOTPRES             = 7
-    NOSERIAL                = 8
-    MEMORYFAULT             = 9
-    OUTOFRANGE              = 10
-    EXECCOMNOTIMPL          = 11
-    GETPROPNOTIMPL          = 12
-    SETPROPNOTIMPL          = 13
-    PROPNOTFOUND            = 14
-    EXECNOTFOUND            = 15
-    NOTSYSPROP              = 16
-    NOTGETPROP              = 17
-    NOTSETPROP              = 18
-    NOTEXECOMM              = 19
-    SYSCONFCHANGE           = 20
-    PARAMPROPNOTFOUND       = 21
-    PARAMNOTFOUND           = 22
-    NODATA                  = 23
-    DEVALREADYOPEN          = 24
-    TOOMANYDEVICEOPEN       = 25
-    INVALIDPARAMETER        = 26
-    FUNCTIONNOTAVAILABLE    = 27
-    SOCKETERROR             = 28
-    COMMUNICATIONERROR      = 29
-    NOTYETIMPLEMENTED       = 30
-    CONNECTED               = 0x1000 + 1
-    NOTCONNECTED            = 0x1000 + 2
-    OS                      = 0x1000 + 3
-    LOGINFAILED             = 0x1000 + 4
-    LOGOUTFAILED            = 0x1000 + 5
-    LINKNOTSUPPORTED        = 0x1000 + 6
-    USERPASSFAILED          = 0x1000 + 7
-
-    @classmethod
-    def _missing_(cls, _):
-        """
-        Sometimes library returns values not contained in the enumerator.
-        Yes, they are bugs.
-        """
-        return cls.UNKNOWN
+from caen_libs import error, _utils
 
 
 @unique
@@ -304,21 +250,74 @@ class ParamProp:
     enum: Optional[Tuple[str, ...]] = field(default=None)
 
 
-class Error(RuntimeError):
+class Error(error.Error):
     """
     Raised when a wrapped C API function returns
     negative values.
     """
 
-    code: ErrorCode  ## Error code as instance of ErrorCode
-    message: str  ## Message description
-    func: str  ## Name of failed function
+    @unique
+    class Code(IntEnum):
+        """
+        Binding of ::CAENHVRESULT
+        """
+        UNKNOWN                 = 0xDEADFACE  # Special value for Python binding
+        OK                      = 0
+        SYSERR                  = 1
+        WRITEERR                = 2
+        READERR                 = 3
+        TIMEERR                 = 4
+        DOWN                    = 5
+        NOTPRES                 = 6
+        SLOTNOTPRES             = 7
+        NOSERIAL                = 8
+        MEMORYFAULT             = 9
+        OUTOFRANGE              = 10
+        EXECCOMNOTIMPL          = 11
+        GETPROPNOTIMPL          = 12
+        SETPROPNOTIMPL          = 13
+        PROPNOTFOUND            = 14
+        EXECNOTFOUND            = 15
+        NOTSYSPROP              = 16
+        NOTGETPROP              = 17
+        NOTSETPROP              = 18
+        NOTEXECOMM              = 19
+        SYSCONFCHANGE           = 20
+        PARAMPROPNOTFOUND       = 21
+        PARAMNOTFOUND           = 22
+        NODATA                  = 23
+        DEVALREADYOPEN          = 24
+        TOOMANYDEVICEOPEN       = 25
+        INVALIDPARAMETER        = 26
+        FUNCTIONNOTAVAILABLE    = 27
+        SOCKETERROR             = 28
+        COMMUNICATIONERROR      = 29
+        NOTYETIMPLEMENTED       = 30
+        CONNECTED               = 0x1000 + 1
+        NOTCONNECTED            = 0x1000 + 2
+        OS                      = 0x1000 + 3
+        LOGINFAILED             = 0x1000 + 4
+        LOGOUTFAILED            = 0x1000 + 5
+        LINKNOTSUPPORTED        = 0x1000 + 6
+        USERPASSFAILED          = 0x1000 + 7
+
+        @classmethod
+        def _missing_(cls, _):
+            """
+            Sometimes library returns values not contained in the enumerator.
+            Yes, they are bugs.
+            """
+            return cls.UNKNOWN
+
+    code: Code
 
     def __init__(self, message: str, res: int, func: str) -> None:
-        self.code = ErrorCode(res)
-        self.message = message
-        self.func = func
-        super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
+        self.code = Error.Code(res)
+        super().__init__(message, self.code.name, func)
+
+
+## For backward compatibility. Deprecated.
+ErrorCode = Error.Code
 
 
 # Utility definitions
@@ -459,7 +458,7 @@ class _Lib(_utils.Lib):
         self.__get_error = self.__get_str('GetError', ct.c_int)
 
     def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
-        if res != ErrorCode.OK:
+        if res != Error.Code.OK:
             raise Error('details not available', res, func.__name__)
         return res
 
@@ -473,9 +472,9 @@ class _Lib(_utils.Lib):
         The handle is obtained assuming it is the first argument
         of the failed function.
         """
-        if res != ErrorCode.OK:
+        if res != Error.Code.OK:
             handle = func_args[0]  # first argument is always handle
-            raise Error(self.__get_error(handle), res, func.__name__)
+            raise Error(self.get_error(handle), res, func.__name__)
         return res
 
     def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
@@ -502,6 +501,12 @@ class _Lib(_utils.Lib):
         return func
 
     # C API bindings
+
+    def get_error(self, error_code: int) -> str:
+        """
+        Binding of CAENHV_GetError()
+        """
+        return self.__get_error(error_code)
 
     def sw_release(self) -> str:
         """
@@ -1016,7 +1021,7 @@ class Device:
             else:
                 lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), prop_name, ct.byref(l_value))
         except Error as ex:
-            if ex.code is ErrorCode.PARAMPROPNOTFOUND:
+            if ex.code is Error.Code.PARAMPROPNOTFOUND:
                 default = kwargs.get('default')
                 if default is not None:
                     return var_type(default)
@@ -1067,7 +1072,7 @@ class Device:
         assert bad_value not in ParamType
         value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, bad_value).value
         if value == bad_value:
-            raise Error('Parameter not found', ErrorCode.PARAMNOTFOUND.value, '__get_param_mode')
+            raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamType(value)
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
@@ -1078,7 +1083,7 @@ class Device:
         assert bad_value not in ParamMode
         value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, bad_value).value
         if value == bad_value:
-            raise Error('Parameter not found', ErrorCode.PARAMNOTFOUND.value, '__get_param_mode')
+            raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamMode(value)
 
     def __check_events_support(self) -> None:
