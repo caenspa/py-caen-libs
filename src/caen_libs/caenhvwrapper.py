@@ -316,7 +316,7 @@ class Error(error.Error):
         super().__init__(message, self.code.name, func)
 
 
-## For backward compatibility. Deprecated.
+# For backward compatibility. Deprecated.
 ErrorCode = Error.Code
 
 
@@ -330,6 +330,7 @@ _c_ushort_p = _P(ct.c_ushort)
 _c_ushort_p_p = _P(_c_ushort_p)
 _c_int_p = _P(ct.c_int)
 _c_uint_p = _P(ct.c_uint)
+_c_uint_p_p = _P(_c_uint_p)
 _system_status_p = _P(_SystemStatusRaw)
 _event_data_p = _P(_EventDataRaw)
 _event_data_p_p = _P(_event_data_p)
@@ -431,7 +432,8 @@ class _Lib(_utils.Lib):
         # Load API
         self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p)
         self.deinit_system = self.__get('DeinitSystem', ct.c_int)
-        self.get_crate_map = self.__get('GetCrateMap', ct.c_int, _c_ushort_p, _c_ushort_p_p, _c_char_p_p, _c_char_p_p, _c_ushort_p_p, _c_ubyte_p_p, _c_ubyte_p_p)
+        ser_num_type = _c_uint_p_p if self.support_32bit_pid() else _c_ushort_p_p
+        self.get_crate_map = self.__get('GetCrateMap', ct.c_int, _c_ushort_p, _c_ushort_p_p, _c_char_p_p, _c_char_p_p, ser_num_type, _c_ubyte_p_p, _c_ubyte_p_p)
         self.get_sys_prop_list = self.__get('GetSysPropList', ct.c_int, _c_ushort_p, _c_char_p_p)
         self.get_sys_prop_info = self.__get('GetSysPropInfo', ct.c_int, _c_char_p, _c_uint_p, _c_uint_p)
         self.get_sys_prop = self.__get('GetSysProp', ct.c_int, _c_char_p, ct.c_void_p)
@@ -500,6 +502,10 @@ class _Lib(_utils.Lib):
         func.errcheck = lambda res, func, args: res.decode()
         return func
 
+    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
+        ver = self.sw_release()
+        return _utils.version_to_tuple(ver) >= target
+
     # C API bindings
 
     def get_error(self, error_code: int) -> str:
@@ -513,6 +519,12 @@ class _Lib(_utils.Lib):
         Binding of CAENHVLibSwRel()
         """
         return self.__sw_rel()
+
+    def support_32bit_pid(self) -> bool:
+        """
+        Check if library support 32-bit PID
+        """
+        return self.__ver_at_least((7, 0, 0))
 
     @contextmanager
     def auto_ptr(self, pointer_type: Type):
@@ -638,7 +650,7 @@ class Device:
         g_nocl = lib.auto_ptr(ct.c_ushort)
         g_ml = lib.auto_ptr(ct.c_char)
         g_dl = lib.auto_ptr(ct.c_char)
-        g_snl = lib.auto_ptr(ct.c_ushort)
+        g_snl = lib.auto_ptr(ct.c_uint if lib.support_32bit_pid() else ct.c_ushort)
         g_frminl = lib.auto_ptr(ct.c_ubyte)
         g_frmaxl = lib.auto_ptr(ct.c_ubyte)
         with g_nocl as l_nocl, g_ml as l_ml, g_dl as l_dl, g_snl as l_snl, g_frminl as l_frminl, g_frmaxl as l_frmaxl:

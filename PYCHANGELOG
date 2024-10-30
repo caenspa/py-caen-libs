@@ -20,6 +20,7 @@ New features:
     and `__setitem__`.
 - Introduced a new base class `error.BaseError` for handling errors
     across submodules.
+- Support for 32-bit PID introduced with CAEN HV Wrapper 7.0.
 
 Fixes:
 - Add missing binding of `CAENVME_GetFIFOMode` from `caenvme`.

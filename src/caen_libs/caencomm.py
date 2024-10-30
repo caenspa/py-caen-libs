@@ -162,6 +162,10 @@ class _Lib(_utils.Lib):
         func.errcheck = self.__api_errcheck
         return func
 
+    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
+        ver = self.sw_release()
+        return _utils.version_to_tuple(ver) >= target
+
     # C API bindings
 
     def decode_error(self, error_code: int) -> str:
@@ -217,10 +221,6 @@ class _Lib(_utils.Lib):
         Binding of CAENComm_RebootDevice()
         """
         self.__reboot_device(link_number, use_backup)
-
-    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
-        ver = self.sw_release()
-        return _utils.version_to_tuple(ver) >= target
 
 
 lib = _Lib('CAENComm')
