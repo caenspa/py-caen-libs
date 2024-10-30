@@ -49,7 +49,6 @@ class Lib:
             loader_variadic = ct.cdll
             path = f'lib{self.name}.so'
 
-        ## Library path on the filesystem
         self.__path = path
 
         # Load library
