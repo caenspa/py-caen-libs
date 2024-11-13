@@ -1075,11 +1075,12 @@ class Device:
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
         """Simplified version of __get_param_prop used internally to retrieve just param type."""
-        # Initialize arg to -1 to detect errors because library functions return
-        # in case of non-existing parameter. We detect this error as the value is
-        # not modified by the library, and we map it to a library Error value.
-        # The check is not done on all the properties because, in case of invalid
-        # parameter, it will fail in the very first call.
+        # Initialize arg to -1 to detect errors because library functions, at least
+        # on some modules like N1470, return success even if the parameter does not
+        # exist. We detect this error as the value is not modified by the library,
+        # and we map it to a library Error value. The check is not done on all the
+        # properties because, in case of invalid parameter, it will fail in the very
+        # first call.
         bad_value = -1
         if sys.version_info >= (3, 12):
             assert bad_value not in ParamType
