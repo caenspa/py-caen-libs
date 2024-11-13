@@ -1081,7 +1081,10 @@ class Device:
         # The check is not done on all the properties because, in case of invalid
         # parameter, it will fail in the very first call.
         bad_value = -1
-        assert bad_value not in ParamType
+        if sys.version_info >= (3, 12):
+            assert bad_value not in ParamType
+        else:
+            assert bad_value not in set(ParamType)
         value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, bad_value).value
         if value == bad_value:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
@@ -1092,7 +1095,10 @@ class Device:
         """Simplified version of __get_param_prop used internally to retrieve just param mode."""
         # See comment on __get_param_type
         bad_value = -1
-        assert bad_value not in ParamMode
+        if sys.version_info >= (3, 12):
+            assert bad_value not in ParamType
+        else:
+            assert bad_value not in set(ParamType)
         value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, bad_value).value
         if value == bad_value:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')

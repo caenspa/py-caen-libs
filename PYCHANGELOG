@@ -24,6 +24,7 @@ New features:
 
 Fixes:
 - Add missing binding of `CAENVME_GetFIFOMode` from `caenvme`.
+- Fix asserion failing on Python < 3.12 on many `caenhvwrapper` methods.
 
 Changes:
 - Submodule-specific `ErrorCode` classes have been renamed to `Error.Code`
