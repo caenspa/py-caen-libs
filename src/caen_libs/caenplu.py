@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import Callable, Tuple, Type, TypeVar, Union
 
-from caen_libs import error, _utils
+from caen_libs import error, _string, _utils
 
 
 @unique
@@ -251,7 +251,7 @@ class _Lib(_utils.Lib):
         l_device_sn_length = 512  # Undocumented but, hopefully, long enough
         l_device_sn = ct.create_string_buffer(l_device_sn_length)
         self.__usb_enumerate_serial_number(l_num_devs, l_device_sn, l_device_sn_length)
-        return tuple(_utils.str_from_char(l_device_sn, l_num_devs.value))
+        return tuple(_string.from_char(l_device_sn, l_num_devs.value))
 
 
 # Library name is platform dependent

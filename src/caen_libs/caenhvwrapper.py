@@ -18,7 +18,7 @@ from enum import IntEnum, unique
 from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
                     Sequence, Tuple, Type, TypeVar, Union)
 
-from caen_libs import error, _utils
+from caen_libs import error, _cache, _string, _utils
 
 
 @unique
@@ -192,6 +192,7 @@ class ParamType(IntEnum):
     """
     Binding of ::PARAM_TYPE_*
     """
+    INVALID     = -1  # Special value for Python binding
     NUMERIC     = 0
     ONOFF       = 1
     CHSTATUS    = 2
@@ -535,8 +536,7 @@ class _Lib(_utils.Lib):
         when freeing, in case callee function does not set the pointer.
         """
         value = _P(pointer_type)()
-        if __debug__:
-            assert bool(value) is False  # Must be NULL
+        assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -551,8 +551,7 @@ class _Lib(_utils.Lib):
         when freeing, in case callee function does not set the pointer.
         """
         value = _P(_EventDataRaw)()
-        if __debug__:
-            assert bool(value) is False  # Must be NULL
+        assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -590,7 +589,7 @@ class Device:
     MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
 
     # Static private members
-    __node_cache_manager: ClassVar[_utils.CacheManager] = _utils.CacheManager()
+    __node_cache_manager: ClassVar[_cache.CacheManager] = _cache.CacheManager()
     __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
 
     def __post_init__(self):
@@ -630,7 +629,7 @@ class Device:
         self.handle = l_handle.value
         self.__opened = True
 
-    @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
+    @_cache.lru_cache_clear(cache_manager=__node_cache_manager)
     def close(self) -> None:
         """
         Binding of CAENHV_DeinitSystem()
@@ -640,7 +639,7 @@ class Device:
         lib.deinit_system(self.handle)
         self.__opened = False
 
-    @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
+    @_cache.lru_cache_clear(cache_manager=__node_cache_manager)
     def get_crate_map(self) -> Tuple[Optional[Board], ...]:
         """
         Binding of CAENHV_GetCrateMap()
@@ -657,8 +656,8 @@ class Device:
         g_frmaxl = lib.auto_ptr(ct.c_ubyte)
         with g_nocl as l_nocl, g_ml as l_ml, g_dl as l_dl, g_snl as l_snl, g_frminl as l_frminl, g_frmaxl as l_frmaxl:
             lib.get_crate_map(self.handle, l_nos, l_nocl, l_ml, l_dl, l_snl, l_frminl, l_frmaxl)
-            ml = tuple(_utils.str_from_char_p(l_ml, l_nos.value))
-            dl = tuple(_utils.str_from_char_p(l_dl, l_nos.value))
+            ml = tuple(_string.from_char_p(l_ml, l_nos.value))
+            dl = tuple(_string.from_char_p(l_dl, l_nos.value))
             return tuple(
                 Board(
                     ml[i],
@@ -669,7 +668,7 @@ class Device:
                 ) if l_nocl[i] != 0 else None for i in range(l_nos.value)
             )
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
+    @_cache.lru_cache_method(cache_manager=__node_cache_manager)
     def get_sys_prop_list(self) -> Tuple[str, ...]:
         """
         Binding of CAENHV_GetSysPropList()
@@ -678,9 +677,9 @@ class Device:
         g_prop_name_list = lib.auto_ptr(ct.c_char)
         with g_prop_name_list as l_pnl:
             lib.get_sys_prop_list(self.handle, l_num_prop, l_pnl)
-            return tuple(_utils.str_from_char_p(l_pnl, l_num_prop.value))
+            return tuple(_string.from_char_p(l_pnl, l_num_prop.value))
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
+    @_cache.lru_cache_method(cache_manager=__node_cache_manager)
     def get_sys_prop_info(self, name: str) -> SysProp:
         """
         Binding of CAENHV_GetSysPropInfo()
@@ -721,8 +720,7 @@ class Device:
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_size = ct.sizeof(l_data)
-            if __debug__:
-                assert p_size % _STR_SIZE == 0
+            assert p_size % _STR_SIZE == 0
             l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
         else:
             l_data_proxy = l_data
@@ -730,9 +728,9 @@ class Device:
         lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data_proxy)
         if param_type is ParamType.STRING:
             if self.__char_p_p_str_bd_param_arg():
-                return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
+                return list(_string.from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
-                return list(_utils.str_from_char(l_data, n_indexes))
+                return list(_string.from_char(l_data, n_indexes))
         else:
             return l_data[:]
 
@@ -764,7 +762,7 @@ class Device:
         """
         return self.__get_param_prop(slot, name)
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
+    @_cache.lru_cache_method(cache_manager=__node_cache_manager)
     def get_bd_param_info(self, slot: int) -> Tuple[str, ...]:
         """
         Binding of CAENHV_GetBdParamInfo()
@@ -772,7 +770,7 @@ class Device:
         g_value = lib.auto_ptr(ct.c_char)
         with g_value as l_value:
             lib.get_bd_param_info(self.handle, slot, l_value)
-            return tuple(_utils.str_from_char_array(l_value.contents, self.MAX_PARAM_NAME))
+            return tuple(_string.from_char_array(l_value.contents, self.MAX_PARAM_NAME))
 
     def test_bd_presence(self, slot: int) -> Board:
         """
@@ -802,7 +800,7 @@ class Device:
         """
         return self.__get_param_prop(slot, name, channel)
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    @_cache.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def get_ch_param_info(self, slot: int, channel: int) -> Tuple[str, ...]:
         """
         Binding of CAENHV_GetChParamInfo()
@@ -811,7 +809,7 @@ class Device:
         with g_value as l_value:
             l_size = ct.c_int()
             lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
-            return tuple(_utils.str_from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value))
+            return tuple(_string.from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value))
 
     def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> Tuple[str, ...]:
         """
@@ -824,7 +822,7 @@ class Device:
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
         l_value = (ct.c_char * (self.MAX_CH_NAME * n_allocated_values))()
         lib.get_ch_name(self.handle, slot, n_indexes, l_index_list, l_value)
-        return tuple(_utils.str_from_n_char_array(l_value, self.MAX_CH_NAME, n_indexes))
+        return tuple(_string.from_n_char_array(l_value, self.MAX_CH_NAME, n_indexes))
 
     def set_ch_name(self, slot: int, channel_list: Sequence[int], name: str) -> None:
         """
@@ -858,9 +856,9 @@ class Device:
         lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data_proxy)
         if param_type is ParamType.STRING:
             if self.__char_p_p_str_ch_param_arg():
-                return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
+                return list(_string.from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
-                return list(_utils.str_from_char(l_data, n_indexes))
+                return list(_string.from_char(l_data, n_indexes))
         else:
             return l_data[:]
 
@@ -879,7 +877,7 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
+    @_cache.lru_cache_method(cache_manager=__node_cache_manager)
     def get_exec_comm_list(self) -> Tuple[str, ...]:
         """
         Binding of CAENHV_GetExecCommList()
@@ -888,7 +886,7 @@ class Device:
         g_comm_name_list = lib.auto_ptr(ct.c_char)
         with g_comm_name_list as l_cnl:
             lib.get_exec_comm_list(self.handle, l_num_comm, l_cnl)
-            return tuple(_utils.str_from_char_p(l_cnl, l_num_comm.value))
+            return tuple(_string.from_char_p(l_cnl, l_num_comm.value))
 
     def exec_comm(self, name: str) -> None:
         """
@@ -1072,10 +1070,10 @@ class Device:
             n_enums = int(res.maxval - res.minval + 1)
             assert n_enums <= self.MAX_ENUM_VALS
             l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.MAX_ENUM_NAME * self.MAX_ENUM_VALS))
-            res.enum = tuple(_utils.str_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
+            res.enum = tuple(_string.from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
         return res
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    @_cache.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
         """Simplified version of __get_param_prop used internally to retrieve just param type."""
         # Initialize arg to -1 to detect errors because library functions, at least
@@ -1084,29 +1082,17 @@ class Device:
         # and we map it to a library Error value. The check is not done on all the
         # properties because, in case of invalid parameter, it will fail in the very
         # first call.
-        bad_value = -1
-        if __debug__:
-            if sys.version_info >= (3, 12):
-                assert bad_value not in ParamType
-            else:
-                assert bad_value not in set(ParamType)
-        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, bad_value).value
-        if value == bad_value:
-            raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
+        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, ParamType.INVALID).value
+        if value == ParamType.INVALID:
+            raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_type')
         return ParamType(value)
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    @_cache.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_mode(self, slot: int, name: str, channel: Optional[int] = None) -> ParamMode:
         """Simplified version of __get_param_prop used internally to retrieve just param mode."""
         # See comment on __get_param_type
-        bad_value = -1
-        if __debug__:
-            if sys.version_info >= (3, 12):
-                assert bad_value not in ParamType
-            else:
-                assert bad_value not in set(ParamType)
-        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, bad_value).value
-        if value == bad_value:
+        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, ParamType.INVALID).value
+        if value == ParamType.INVALID:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamMode(value)
 
