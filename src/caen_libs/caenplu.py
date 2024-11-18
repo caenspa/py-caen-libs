@@ -14,26 +14,7 @@ from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import Callable, Tuple, Type, TypeVar, Union
 
-from caen_libs import _utils
-
-
-@unique
-class ErrorCode(IntEnum):
-    """
-    Binding of ::CAEN_PLU_ERROR_CODE
-    """
-    OK = 0
-    GENERIC = -1
-    INTERFACE = -2
-    FPGA = -3
-    TRANSFER_MAX_LENGTH = -4
-    NOTCONNECTED = -5
-    NO_DATA_AVAILABLE = -6
-    TOO_MANY_DEVICES_CONNECTED = -7
-    INVALID_HANDLE = -8
-    INVALID_HARDWARE = -9
-    INVALID_PARAMETERS = -10
-    TERMINATED = -13
+from caen_libs import error, _utils
 
 
 @unique
@@ -144,21 +125,39 @@ class BoardInfo(ct.Structure):
     sernum0: int
 
 
-class Error(RuntimeError):
+class Error(error.Error):
     """
     Raised when a wrapped C API function returns
     negative values.
     """
 
-    code: ErrorCode  ## Error code as instance of ErrorCode
-    message: str  ## Message description
-    func: str  ## Name of failed function
+    @unique
+    class Code(IntEnum):
+        """
+        Binding of ::CAEN_PLU_ERROR_CODE
+        """
+        OK = 0
+        GENERIC = -1
+        INTERFACE = -2
+        FPGA = -3
+        TRANSFER_MAX_LENGTH = -4
+        NOTCONNECTED = -5
+        NO_DATA_AVAILABLE = -6
+        TOO_MANY_DEVICES_CONNECTED = -7
+        INVALID_HANDLE = -8
+        INVALID_HARDWARE = -9
+        INVALID_PARAMETERS = -10
+        TERMINATED = -13
+
+    code: Code
 
     def __init__(self, message: str, res: int, func: str) -> None:
-        self.code = ErrorCode(res)
-        self.message = message
-        self.func = func
-        super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
+        self.code = Error.Code(res)
+        super().__init__(message, self.code.name, func)
+
+
+# For backward compatibility. Deprecated.
+ErrorCode = Error.Code
 
 
 # Utility definitions
@@ -222,7 +221,7 @@ class _Lib(_utils.Lib):
         """
         There is no function to decode error, we just use the enumeration name.
         """
-        return ErrorCode(error_code).name
+        return Error.Code(error_code).name
 
     def usb_enumerate(self) -> Tuple[USBDevice, ...]:
         """

@@ -18,61 +18,7 @@ from enum import IntEnum, unique
 from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
                     Sequence, Tuple, Type, TypeVar, Union)
 
-from caen_libs import _utils
-
-
-@unique
-class ErrorCode(IntEnum):
-    """
-    Binding of ::CAENHVRESULT
-    """
-    UNKNOWN                 = 0xDEADFACE  # Special value for Python binding
-    OK                      = 0
-    SYSERR                  = 1
-    WRITEERR                = 2
-    READERR                 = 3
-    TIMEERR                 = 4
-    DOWN                    = 5
-    NOTPRES                 = 6
-    SLOTNOTPRES             = 7
-    NOSERIAL                = 8
-    MEMORYFAULT             = 9
-    OUTOFRANGE              = 10
-    EXECCOMNOTIMPL          = 11
-    GETPROPNOTIMPL          = 12
-    SETPROPNOTIMPL          = 13
-    PROPNOTFOUND            = 14
-    EXECNOTFOUND            = 15
-    NOTSYSPROP              = 16
-    NOTGETPROP              = 17
-    NOTSETPROP              = 18
-    NOTEXECOMM              = 19
-    SYSCONFCHANGE           = 20
-    PARAMPROPNOTFOUND       = 21
-    PARAMNOTFOUND           = 22
-    NODATA                  = 23
-    DEVALREADYOPEN          = 24
-    TOOMANYDEVICEOPEN       = 25
-    INVALIDPARAMETER        = 26
-    FUNCTIONNOTAVAILABLE    = 27
-    SOCKETERROR             = 28
-    COMMUNICATIONERROR      = 29
-    NOTYETIMPLEMENTED       = 30
-    CONNECTED               = 0x1000 + 1
-    NOTCONNECTED            = 0x1000 + 2
-    OS                      = 0x1000 + 3
-    LOGINFAILED             = 0x1000 + 4
-    LOGOUTFAILED            = 0x1000 + 5
-    LINKNOTSUPPORTED        = 0x1000 + 6
-    USERPASSFAILED          = 0x1000 + 7
-
-    @classmethod
-    def _missing_(cls, _):
-        """
-        Sometimes library returns values not contained in the enumerator.
-        Yes, they are bugs.
-        """
-        return cls.UNKNOWN
+from caen_libs import error, _utils
 
 
 @unique
@@ -304,21 +250,74 @@ class ParamProp:
     enum: Optional[Tuple[str, ...]] = field(default=None)
 
 
-class Error(RuntimeError):
+class Error(error.Error):
     """
     Raised when a wrapped C API function returns
     negative values.
     """
 
-    code: ErrorCode  ## Error code as instance of ErrorCode
-    message: str  ## Message description
-    func: str  ## Name of failed function
+    @unique
+    class Code(IntEnum):
+        """
+        Binding of ::CAENHVRESULT
+        """
+        UNKNOWN                 = 0xDEADFACE  # Special value for Python binding
+        OK                      = 0
+        SYSERR                  = 1
+        WRITEERR                = 2
+        READERR                 = 3
+        TIMEERR                 = 4
+        DOWN                    = 5
+        NOTPRES                 = 6
+        SLOTNOTPRES             = 7
+        NOSERIAL                = 8
+        MEMORYFAULT             = 9
+        OUTOFRANGE              = 10
+        EXECCOMNOTIMPL          = 11
+        GETPROPNOTIMPL          = 12
+        SETPROPNOTIMPL          = 13
+        PROPNOTFOUND            = 14
+        EXECNOTFOUND            = 15
+        NOTSYSPROP              = 16
+        NOTGETPROP              = 17
+        NOTSETPROP              = 18
+        NOTEXECOMM              = 19
+        SYSCONFCHANGE           = 20
+        PARAMPROPNOTFOUND       = 21
+        PARAMNOTFOUND           = 22
+        NODATA                  = 23
+        DEVALREADYOPEN          = 24
+        TOOMANYDEVICEOPEN       = 25
+        INVALIDPARAMETER        = 26
+        FUNCTIONNOTAVAILABLE    = 27
+        SOCKETERROR             = 28
+        COMMUNICATIONERROR      = 29
+        NOTYETIMPLEMENTED       = 30
+        CONNECTED               = 0x1000 + 1
+        NOTCONNECTED            = 0x1000 + 2
+        OS                      = 0x1000 + 3
+        LOGINFAILED             = 0x1000 + 4
+        LOGOUTFAILED            = 0x1000 + 5
+        LINKNOTSUPPORTED        = 0x1000 + 6
+        USERPASSFAILED          = 0x1000 + 7
+
+        @classmethod
+        def _missing_(cls, _):
+            """
+            Sometimes library returns values not contained in the enumerator.
+            Yes, they are bugs.
+            """
+            return cls.UNKNOWN
+
+    code: Code
 
     def __init__(self, message: str, res: int, func: str) -> None:
-        self.code = ErrorCode(res)
-        self.message = message
-        self.func = func
-        super().__init__(f'{self.func} failed: {self.message} ({self.code.name})')
+        self.code = Error.Code(res)
+        super().__init__(message, self.code.name, func)
+
+
+# For backward compatibility. Deprecated.
+ErrorCode = Error.Code
 
 
 # Utility definitions
@@ -331,6 +330,7 @@ _c_ushort_p = _P(ct.c_ushort)
 _c_ushort_p_p = _P(_c_ushort_p)
 _c_int_p = _P(ct.c_int)
 _c_uint_p = _P(ct.c_uint)
+_c_uint_p_p = _P(_c_uint_p)
 _system_status_p = _P(_SystemStatusRaw)
 _event_data_p = _P(_EventDataRaw)
 _event_data_p_p = _P(_event_data_p)
@@ -432,7 +432,8 @@ class _Lib(_utils.Lib):
         # Load API
         self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p)
         self.deinit_system = self.__get('DeinitSystem', ct.c_int)
-        self.get_crate_map = self.__get('GetCrateMap', ct.c_int, _c_ushort_p, _c_ushort_p_p, _c_char_p_p, _c_char_p_p, _c_ushort_p_p, _c_ubyte_p_p, _c_ubyte_p_p)
+        ser_num_type = _c_uint_p_p if self.support_32bit_pid() else _c_ushort_p_p
+        self.get_crate_map = self.__get('GetCrateMap', ct.c_int, _c_ushort_p, _c_ushort_p_p, _c_char_p_p, _c_char_p_p, ser_num_type, _c_ubyte_p_p, _c_ubyte_p_p)
         self.get_sys_prop_list = self.__get('GetSysPropList', ct.c_int, _c_ushort_p, _c_char_p_p)
         self.get_sys_prop_info = self.__get('GetSysPropInfo', ct.c_int, _c_char_p, _c_uint_p, _c_uint_p)
         self.get_sys_prop = self.__get('GetSysProp', ct.c_int, _c_char_p, ct.c_void_p)
@@ -459,7 +460,7 @@ class _Lib(_utils.Lib):
         self.__get_error = self.__get_str('GetError', ct.c_int)
 
     def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
-        if res != ErrorCode.OK:
+        if res != Error.Code.OK:
             raise Error('details not available', res, func.__name__)
         return res
 
@@ -473,9 +474,9 @@ class _Lib(_utils.Lib):
         The handle is obtained assuming it is the first argument
         of the failed function.
         """
-        if res != ErrorCode.OK:
+        if res != Error.Code.OK:
             handle = func_args[0]  # first argument is always handle
-            raise Error(self.__get_error(handle), res, func.__name__)
+            raise Error(self.get_error(handle), res, func.__name__)
         return res
 
     def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
@@ -501,13 +502,29 @@ class _Lib(_utils.Lib):
         func.errcheck = lambda res, func, args: res.decode()
         return func
 
+    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
+        ver = self.sw_release()
+        return _utils.version_to_tuple(ver) >= target
+
     # C API bindings
+
+    def get_error(self, error_code: int) -> str:
+        """
+        Binding of CAENHV_GetError()
+        """
+        return self.__get_error(error_code)
 
     def sw_release(self) -> str:
         """
         Binding of CAENHVLibSwRel()
         """
         return self.__sw_rel()
+
+    def support_32bit_pid(self) -> bool:
+        """
+        Check if library support 32-bit PID
+        """
+        return self.__ver_at_least((7, 0, 0))
 
     @contextmanager
     def auto_ptr(self, pointer_type: Type):
@@ -518,7 +535,8 @@ class _Lib(_utils.Lib):
         when freeing, in case callee function does not set the pointer.
         """
         value = _P(pointer_type)()
-        assert bool(value) is False  # Must be NULL
+        if __debug__:
+            assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -533,7 +551,8 @@ class _Lib(_utils.Lib):
         when freeing, in case callee function does not set the pointer.
         """
         value = _P(_EventDataRaw)()
-        assert bool(value) is False  # Must be NULL
+        if __debug__:
+            assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -633,7 +652,7 @@ class Device:
         g_nocl = lib.auto_ptr(ct.c_ushort)
         g_ml = lib.auto_ptr(ct.c_char)
         g_dl = lib.auto_ptr(ct.c_char)
-        g_snl = lib.auto_ptr(ct.c_ushort)
+        g_snl = lib.auto_ptr(ct.c_uint if lib.support_32bit_pid() else ct.c_ushort)
         g_frminl = lib.auto_ptr(ct.c_ubyte)
         g_frmaxl = lib.auto_ptr(ct.c_ubyte)
         with g_nocl as l_nocl, g_ml as l_ml, g_dl as l_dl, g_snl as l_snl, g_frminl as l_frminl, g_frmaxl as l_frmaxl:
@@ -702,7 +721,8 @@ class Device:
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_size = ct.sizeof(l_data)
-            assert p_size % _STR_SIZE == 0
+            if __debug__:
+                assert p_size % _STR_SIZE == 0
             l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
         else:
             l_data_proxy = l_data
@@ -1016,7 +1036,7 @@ class Device:
             else:
                 lib.get_ch_param_prop(self.handle, slot, channel, name.encode(), prop_name, ct.byref(l_value))
         except Error as ex:
-            if ex.code is ErrorCode.PARAMPROPNOTFOUND:
+            if ex.code is Error.Code.PARAMPROPNOTFOUND:
                 default = kwargs.get('default')
                 if default is not None:
                     return var_type(default)
@@ -1058,16 +1078,21 @@ class Device:
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
         """Simplified version of __get_param_prop used internally to retrieve just param type."""
-        # Initialize arg to -1 to detect errors because library functions return
-        # in case of non-existing parameter. We detect this error as the value is
-        # not modified by the library, and we map it to a library Error value.
-        # The check is not done on all the properties because, in case of invalid
-        # parameter, it will fail in the very first call.
+        # Initialize arg to -1 to detect errors because library functions, at least
+        # on some modules like N1470, return success even if the parameter does not
+        # exist. We detect this error as the value is not modified by the library,
+        # and we map it to a library Error value. The check is not done on all the
+        # properties because, in case of invalid parameter, it will fail in the very
+        # first call.
         bad_value = -1
-        assert bad_value not in ParamType
+        if __debug__:
+            if sys.version_info >= (3, 12):
+                assert bad_value not in ParamType
+            else:
+                assert bad_value not in set(ParamType)
         value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, bad_value).value
         if value == bad_value:
-            raise Error('Parameter not found', ErrorCode.PARAMNOTFOUND.value, '__get_param_mode')
+            raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamType(value)
 
     @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
@@ -1075,10 +1100,14 @@ class Device:
         """Simplified version of __get_param_prop used internally to retrieve just param mode."""
         # See comment on __get_param_type
         bad_value = -1
-        assert bad_value not in ParamMode
+        if __debug__:
+            if sys.version_info >= (3, 12):
+                assert bad_value not in ParamType
+            else:
+                assert bad_value not in set(ParamType)
         value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, bad_value).value
         if value == bad_value:
-            raise Error('Parameter not found', ErrorCode.PARAMNOTFOUND.value, '__get_param_mode')
+            raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamMode(value)
 
     def __check_events_support(self) -> None:
