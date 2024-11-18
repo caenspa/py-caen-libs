@@ -721,7 +721,8 @@ class Device:
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_size = ct.sizeof(l_data)
-            assert p_size % _STR_SIZE == 0
+            if __debug__:
+                assert p_size % _STR_SIZE == 0
             l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
         else:
             l_data_proxy = l_data

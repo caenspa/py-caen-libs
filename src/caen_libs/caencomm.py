@@ -150,8 +150,9 @@ class _Lib(_utils.Lib):
     def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
         min_version = kwargs.get('min_version')
         if min_version is not None:
-            # This feature requires __sw_release to be already defined
-            assert self.__sw_release is not None
+            if __debug__:
+                # This feature requires __sw_release to be already defined
+                assert self.__sw_release is not None
             if not self.__ver_at_least(min_version):
                 def fallback(*args, **kwargs):
                     raise RuntimeError(f'{name} requires {self.name} >= {min_version}. Please update it.')
