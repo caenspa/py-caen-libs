@@ -535,7 +535,8 @@ class _Lib(_utils.Lib):
         when freeing, in case callee function does not set the pointer.
         """
         value = _P(pointer_type)()
-        assert bool(value) is False  # Must be NULL
+        if __debug__:
+            assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -550,7 +551,8 @@ class _Lib(_utils.Lib):
         when freeing, in case callee function does not set the pointer.
         """
         value = _P(_EventDataRaw)()
-        assert bool(value) is False  # Must be NULL
+        if __debug__:
+            assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -1082,10 +1084,11 @@ class Device:
         # properties because, in case of invalid parameter, it will fail in the very
         # first call.
         bad_value = -1
-        if sys.version_info >= (3, 12):
-            assert bad_value not in ParamType
-        else:
-            assert bad_value not in set(ParamType)
+        if __debug__:
+            if sys.version_info >= (3, 12):
+                assert bad_value not in ParamType
+            else:
+                assert bad_value not in set(ParamType)
         value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, bad_value).value
         if value == bad_value:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
@@ -1096,10 +1099,11 @@ class Device:
         """Simplified version of __get_param_prop used internally to retrieve just param mode."""
         # See comment on __get_param_type
         bad_value = -1
-        if sys.version_info >= (3, 12):
-            assert bad_value not in ParamType
-        else:
-            assert bad_value not in set(ParamType)
+        if __debug__:
+            if sys.version_info >= (3, 12):
+                assert bad_value not in ParamType
+            else:
+                assert bad_value not in set(ParamType)
         value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, bad_value).value
         if value == bad_value:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
