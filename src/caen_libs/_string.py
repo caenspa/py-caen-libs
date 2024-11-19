@@ -14,7 +14,9 @@ from typing import Iterator, Union
 def from_char(data: Union[ct.c_char, ct.Array], n_strings: int) -> Iterator[str]:
     """
     Split a buffer into a list of N string.
-    Strings are separated by the null terminator.
+    Strings are separated by the null terminator:
+        e.g. S1\0 STR2\0 (n_strings == 2)
+    String sizes are not bounded.
     For ct.c_char and arrays of it.
 
     Note: ct.Array is not subscriptable on Python 3.8, could be ct.Array[ct.c_char]
@@ -38,7 +40,9 @@ def from_char_p(data: ct._Pointer, n_strings: int) -> Iterator[str]:
 def from_char_array(data: Union[ct.c_char, ct.Array], string_size: int) -> Iterator[str]:
     """
     Split a buffer of fixed size string.
-    Size is deduced by the first zero size string found.
+    Size is deduced by the first zero size string found:
+        e.g. S1\0\0\0 STR2\0 \0 (string_size == 5)
+    Each string cannot be longer than string_size - 1.
     For ct.c_char and arrays of it.
     """
     data_addr = ct.addressof(data)
@@ -46,6 +50,7 @@ def from_char_array(data: Union[ct.c_char, ct.Array], string_size: int) -> Itera
         value = ct.string_at(data_addr)
         if len(value) == 0:
             return
+        assert len(value) < string_size
         data_addr += string_size
         yield value.decode()
 
@@ -53,12 +58,15 @@ def from_char_array(data: Union[ct.c_char, ct.Array], string_size: int) -> Itera
 def from_n_char_array(data: Union[ct.c_char, ct.Array], string_size: int, n_strings: int) -> Iterator[str]:
     """
     Split a buffer of fixed size string.
-    Size is passed as parameter.
+    Size is passed as parameter:
+        e.g. S1\0\0\0 STR2\0 (string_size == 5, n_strings == 2)
+    Each string cannot be longer than string_size - 1.
     For ct.c_char and arrays of it.
     """
     data_addr = ct.addressof(data)
     for _ in range(n_strings):
         value = ct.string_at(data_addr)
+        assert len(value) < string_size
         data_addr += string_size
         yield value.decode()
 
