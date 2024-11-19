@@ -9,10 +9,11 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 import sys
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import Callable, Tuple, Type, TypeVar, Union
+from typing import TypeVar, Union
 
 from caen_libs import error, _string, _utils
 
@@ -116,7 +117,7 @@ class BoardInfo(ct.Structure):
     revis2: int
     revis1: int
     revis0: int
-    reserved: Tuple[int, ...]
+    reserved: tuple[int, ...]
     sernum0_v2: int
     sernum1_v2: int
     sernum2_v2: int
@@ -203,12 +204,12 @@ class _Lib(_utils.Lib):
         self.get_serial_number = self.__get('GetSerialNumber', ct.c_int, ct.c_char_p, ct.c_uint32)
         self.connection_status = self.__get('ConnectionStatus', ct.c_int, _c_int_p)
 
-    def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
+    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type) -> Callable[..., int]:
+    def __get(self, name: str, *args: type) -> Callable[..., int]:
         func = getattr(self.lib, f'CAEN_PLU_{name}')
         func.argtypes = args
         func.restype = ct.c_int
@@ -223,7 +224,7 @@ class _Lib(_utils.Lib):
         """
         return Error.Code(error_code).name
 
-    def usb_enumerate(self) -> Tuple[USBDevice, ...]:
+    def usb_enumerate(self) -> tuple[USBDevice, ...]:
         """
         Binding of CAEN_PLU_USBEnumerate()
         """
@@ -240,7 +241,7 @@ class _Lib(_utils.Lib):
             ) for i in l_data[:l_num_devs.value]
         )
 
-    def usb_enumerate_serial_number(self) -> Tuple[str, ...]:
+    def usb_enumerate_serial_number(self) -> tuple[str, ...]:
         """
         Binding of CAEN_PLU_USBEnumerateSerialNumber()
 
@@ -304,7 +305,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: Type[_T], connection_mode: ConnectionModes, arg: Union[int, str], conet_node: int, vme_base_address: Union[int, str]) -> _T:
+    def open(cls: type[_T], connection_mode: ConnectionModes, arg: Union[int, str], conet_node: int, vme_base_address: Union[int, str]) -> _T:
         """
         Binding of CAEN_PLU_OpenDevice2()
         """

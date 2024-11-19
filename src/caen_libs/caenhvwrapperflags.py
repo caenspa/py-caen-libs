@@ -8,7 +8,6 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 from enum import IntFlag
-from typing import Dict, Type
 
 from caen_libs import caenhvwrapper as hv
 
@@ -179,14 +178,14 @@ class _ChStatusSMARTHV(IntFlag):
     CAL_ERR     = 0x00010000
 
 
-_BD_STATUS_TYPE: Dict[hv.SystemType, Type[IntFlag]] = {
+_BD_STATUS_TYPE: dict[hv.SystemType, type[IntFlag]] = {
     hv.SystemType.N1470:    _BdStatusN1470,
     hv.SystemType.DT55XXE:  _BdStatusDT55XXE,
     hv.SystemType.SMARTHV:  _BdStatusSMARTHV,
 }
 
 
-_CH_STATUS_TYPE: Dict[hv.SystemType, Type[IntFlag]] = {
+_CH_STATUS_TYPE: dict[hv.SystemType, type[IntFlag]] = {
     hv.SystemType.SY4527:   _ChStatusSY4527,
     hv.SystemType.SY5527:   _ChStatusSY4527,
     hv.SystemType.V65XX:    _ChStatusV65XX,

@@ -4,10 +4,11 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import Callable, Optional, Tuple, Type, TypeVar, Union
+from typing import Optional, TypeVar, Union
 
 from caen_libs import error, _utils
 
@@ -418,12 +419,12 @@ class _Lib(_utils.Lib):
         self.vme_irq_check = self.__get('VMEIRQCheck', ct.c_int, _c_uint8_p)
         self.vme_iack_cycle = self.__get('VMEIACKCycle', ct.c_int, ct.c_uint8, _c_int32_p)
 
-    def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
+    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
+    def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         l_lib = self.lib if not kwargs.get('variadic', False) else self.lib_variadic
         if kwargs.get('private', False):
             func_name = f'_CAEN_DGTZ_{name}'
@@ -494,7 +495,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: Type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
+    def open(cls: type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
         """
         Binding of CAEN_DGTZ_OpenDigitizer2()
         """
@@ -587,7 +588,7 @@ class Device:
         """
         lib.set_interrupt_config(self.handle, state, level, status_id, event_number, mode)
 
-    def get_interrupt_config(self) -> Tuple[EnaDis, int, int, int, IRQMode]:
+    def get_interrupt_config(self) -> tuple[EnaDis, int, int, int, IRQMode]:
         """
         Binding of CAEN_DGTZ_GetInterruptConfig()
         """
@@ -843,7 +844,7 @@ class Device:
         """
         lib.set_channel_zs_params(self.handle, channel, weight, threshold, n_samples)
 
-    def get_channel_zs_params(self, channel: int) -> Tuple[ThresholdWeight, int, int]:
+    def get_channel_zs_params(self, channel: int) -> tuple[ThresholdWeight, int, int]:
         """
         Binding of CAEN_DGTZ_GetChannelZSParams()
         """
@@ -901,7 +902,7 @@ class Device:
         """
         lib.set_analog_inspection_mon_params(self.handle, channelmask, offset, mf, ami)
 
-    def get_analog_inspection_mon_params(self, channelmask: int, offset: int) -> Tuple[AnalogMonitorMagnify, AnalogMonitorInspectorInverter]:
+    def get_analog_inspection_mon_params(self, channelmask: int, offset: int) -> tuple[AnalogMonitorMagnify, AnalogMonitorInspectorInverter]:
         """
         Binding of CAEN_DGTZ_GetAnalogInspectionMonParams()
         """

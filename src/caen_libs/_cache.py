@@ -8,11 +8,11 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 from functools import _lru_cache_wrapper, lru_cache, wraps
-from typing import List, Optional
+from typing import Optional
 from weakref import ReferenceType, ref
 
 
-class CacheManager(List[_lru_cache_wrapper]):
+class CacheManager(list[_lru_cache_wrapper]):
     """
     A simple list of functions returned by `@lru_cache` decorator.
 
@@ -49,7 +49,6 @@ def lru_cache_method(cache_manager: Optional[CacheManager] = None, maxsize: int 
     def wrapper(method):
 
         @lru_cache(maxsize, typed)
-        # ReferenceType is not subscriptable on Python <= 3.8
         def cached_method(self_ref: ReferenceType, *args, **kwargs):
             self = self_ref()
             assert self is not None  # this function is always called by inner()
@@ -81,7 +80,6 @@ def lru_cache_clear(cache_manager: CacheManager):
 
     def wrapper(method):
 
-        # ReferenceType is not subscriptable on Python <= 3.8
         def not_cached_method(self_ref: ReferenceType, *args, **kwargs):
             self = self_ref()
             assert self is not None  # this function is always called by inner()

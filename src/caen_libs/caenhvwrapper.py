@@ -12,13 +12,13 @@ import ctypes.wintypes as ctw
 import os
 import socket
 import sys
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
-                    Sequence, Tuple, Type, TypeVar, Union)
+from typing import Any, ClassVar, Optional, TypeVar, Union
 
-from caen_libs import error, _cache, _string, _utils
+from caen_libs import _cache, _string, _utils, error
 
 
 @unique
@@ -84,7 +84,7 @@ class SystemStatus:
     Binding of ::CAENHV_SYSTEMSTATUS_t
     """
     system: EventStatus
-    board: Tuple[EventStatus, ...]
+    board: tuple[EventStatus, ...]
 
 
 @unique
@@ -192,7 +192,7 @@ class ParamType(IntEnum):
     """
     Binding of ::PARAM_TYPE_*
     """
-    INVALID     = -1  # Special value for Python binding
+    _INVALID    = 0xBAAAAAAD  # Special value for Python binding
     NUMERIC     = 0
     ONOFF       = 1
     CHSTATUS    = 2
@@ -248,7 +248,7 @@ class ParamProp:
     resol: Optional[int] = field(default=None)
     onstate: Optional[str] = field(default=None)
     offstate: Optional[str] = field(default=None)
-    enum: Optional[Tuple[str, ...]] = field(default=None)
+    enum: Optional[tuple[str, ...]] = field(default=None)
 
 
 class Error(error.Error):
@@ -341,7 +341,7 @@ else:
     _socket = ct.c_int
 
 
-_SYS_PROP_TYPE_GET_ARG: Dict[SysPropType, Callable] = {
+_SYS_PROP_TYPE_GET_ARG: dict[SysPropType, Callable] = {
     SysPropType.STR:        lambda v: v.value.decode(),
     SysPropType.REAL:       lambda v: ct.cast(v, _P(ct.c_float)).contents.value,
     SysPropType.UINT2:      lambda v: ct.cast(v, _P(ct.c_uint16)).contents.value,
@@ -352,7 +352,7 @@ _SYS_PROP_TYPE_GET_ARG: Dict[SysPropType, Callable] = {
 }
 
 
-_SYS_PROP_TYPE_SET_ARG: Dict[SysPropType, Callable] = {
+_SYS_PROP_TYPE_SET_ARG: dict[SysPropType, Callable] = {
     SysPropType.STR:        lambda v: v.encode(),
     SysPropType.REAL:       lambda v: ct.pointer(ct.c_float(v)),
     SysPropType.UINT2:      lambda v: ct.pointer(ct.c_uint16(v)),
@@ -366,7 +366,7 @@ _SYS_PROP_TYPE_SET_ARG: Dict[SysPropType, Callable] = {
 _STR_SIZE = 1024  # Undocumented but, hopefully, long enough
 
 
-_PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
+_PARAM_TYPE_GET_ARG: dict[ParamType, Callable[[int], ct.Array]] = {
     # c_int is replaced by c_uint on some systems, but should be the same.
     ParamType.NUMERIC:      lambda n: (ct.c_float * n)(),
     ParamType.ONOFF:        lambda n: (ct.c_int * n)(),
@@ -379,7 +379,7 @@ _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
 }
 
 
-_PARAM_TYPE_SET_ARG: Dict[ParamType, Callable[[Any, int], Any]] = {
+_PARAM_TYPE_SET_ARG: dict[ParamType, Callable[[Any, int], Any]] = {
     # We generate an array with the same value for the reason described
     # in the caller docstring.
     # c_int is replaced by c_uint on some systems, but should be the same.
@@ -394,7 +394,7 @@ _PARAM_TYPE_SET_ARG: Dict[ParamType, Callable[[Any, int], Any]] = {
 }
 
 
-_SYS_PROP_TYPE_EVENT_ARG: Dict[SysPropType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
+_SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
     SysPropType.STR:        lambda v: v.StringValue.decode(),
     SysPropType.REAL:       lambda v: v.FloatValue,
     SysPropType.UINT2:      lambda v: v.IntValue,
@@ -405,7 +405,7 @@ _SYS_PROP_TYPE_EVENT_ARG: Dict[SysPropType, Callable[[_IdValueRaw], Union[str, f
 }
 
 
-_PARAM_TYPE_EVENT_ARG: Dict[ParamType, Callable] = {
+_PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable] = {
     ParamType.NUMERIC:      lambda v: v.FloatValue,
     ParamType.ONOFF:        lambda v: v.IntValue,
     ParamType.CHSTATUS:     lambda v: v.IntValue,
@@ -460,12 +460,12 @@ class _Lib(_utils.Lib):
         self.unsubscribe_channel_params = self.__get('UnSubscribeChannelParams', ct.c_int, ct.c_short, ct.c_ushort, ct.c_ushort, _c_char_p, ct.c_uint, _c_char_p)
         self.__get_error = self.__get_str('GetError', ct.c_int)
 
-    def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
+    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
         if res != Error.Code.OK:
             raise Error('details not available', res, func.__name__)
         return res
 
-    def __api_handle_errcheck(self, res: int, func: Callable, func_args: Tuple) -> int:
+    def __api_handle_errcheck(self, res: int, func: Callable, func_args: tuple) -> int:
         """
         Binding of CAENHV_GetError()
 
@@ -480,7 +480,7 @@ class _Lib(_utils.Lib):
             raise Error(self.get_error(handle), res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
+    def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         # Use lib_variadic as API is __cdecl
         func = getattr(self.lib_variadic, f'CAENHV_{name}')
         func.argtypes = args
@@ -491,7 +491,7 @@ class _Lib(_utils.Lib):
             func.errcheck = self.__api_errcheck
         return func
 
-    def __get_str(self, name: str, *args: Type, **kwargs) -> Callable[..., str]:
+    def __get_str(self, name: str, *args: type, **kwargs) -> Callable[..., str]:
         # Use lib_variadic as API is __cdecl
         if kwargs.get('legacy', False):
             func_name = f'CAENHV{name}'
@@ -503,7 +503,7 @@ class _Lib(_utils.Lib):
         func.errcheck = lambda res, func, args: res.decode()
         return func
 
-    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
+    def __ver_at_least(self, target: tuple[int, ...]) -> bool:
         ver = self.sw_release()
         return _utils.version_to_tuple(ver) >= target
 
@@ -528,7 +528,7 @@ class _Lib(_utils.Lib):
         return self.__ver_at_least((7, 0, 0))
 
     @contextmanager
-    def auto_ptr(self, pointer_type: Type):
+    def auto_ptr(self, pointer_type):
         """
         Context manager to auto free on scope exit.
 
@@ -608,7 +608,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: Type[_T], system_type: SystemType, link_type: LinkType, arg: str, username: str = '', password: str = '') -> _T:
+    def open(cls: type[_T], system_type: SystemType, link_type: LinkType, arg: str, username: str = '', password: str = '') -> _T:
         """
         Binding of CAENHV_InitSystem()
         """
@@ -640,7 +640,7 @@ class Device:
         self.__opened = False
 
     @_cache.lru_cache_clear(cache_manager=__node_cache_manager)
-    def get_crate_map(self) -> Tuple[Optional[Board], ...]:
+    def get_crate_map(self) -> tuple[Optional[Board], ...]:
         """
         Binding of CAENHV_GetCrateMap()
 
@@ -669,7 +669,7 @@ class Device:
             )
 
     @_cache.lru_cache_method(cache_manager=__node_cache_manager)
-    def get_sys_prop_list(self) -> Tuple[str, ...]:
+    def get_sys_prop_list(self) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetSysPropList()
         """
@@ -706,7 +706,7 @@ class Device:
         l_value = _SYS_PROP_TYPE_SET_ARG[prop_type](value)
         lib.set_sys_prop(self.handle, name.encode(), l_value)
 
-    def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[List[str], List[float], List[int]]:
+    def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[list[str], list[float], list[int]]:
         """
         Binding of CAENHV_GetBdParam()
         """
@@ -763,7 +763,7 @@ class Device:
         return self.__get_param_prop(slot, name)
 
     @_cache.lru_cache_method(cache_manager=__node_cache_manager)
-    def get_bd_param_info(self, slot: int) -> Tuple[str, ...]:
+    def get_bd_param_info(self, slot: int) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetBdParamInfo()
         """
@@ -801,7 +801,7 @@ class Device:
         return self.__get_param_prop(slot, name, channel)
 
     @_cache.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
-    def get_ch_param_info(self, slot: int, channel: int) -> Tuple[str, ...]:
+    def get_ch_param_info(self, slot: int, channel: int) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetChParamInfo()
         """
@@ -811,7 +811,7 @@ class Device:
             lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
             return tuple(_string.from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value))
 
-    def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> Tuple[str, ...]:
+    def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetChName()
         """
@@ -834,7 +834,7 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_name(self.handle, slot, n_indexes, l_index_list, name.encode())
 
-    def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[List[str], List[float], List[int]]:
+    def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[list[str], list[float], list[int]]:
         """
         Binding of CAENHV_GetChParam()
         """
@@ -878,7 +878,7 @@ class Device:
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 
     @_cache.lru_cache_method(cache_manager=__node_cache_manager)
-    def get_exec_comm_list(self) -> Tuple[str, ...]:
+    def get_exec_comm_list(self) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetExecCommList()
         """
@@ -993,7 +993,7 @@ class Device:
             failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
 
-    def get_event_data(self) -> Tuple[Tuple[EventData, ...], SystemStatus]:
+    def get_event_data(self) -> tuple[tuple[EventData, ...], SystemStatus]:
         """
         Binding of CAENHV_GetEventData()
 
@@ -1082,8 +1082,9 @@ class Device:
         # and we map it to a library Error value. The check is not done on all the
         # properties because, in case of invalid parameter, it will fail in the very
         # first call.
-        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, ParamType.INVALID).value
-        if value == ParamType.INVALID:
+        # pylint: disable=W0212
+        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, ParamType._INVALID).value
+        if value == ParamType._INVALID:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_type')
         return ParamType(value)
 
@@ -1091,8 +1092,9 @@ class Device:
     def __get_param_mode(self, slot: int, name: str, channel: Optional[int] = None) -> ParamMode:
         """Simplified version of __get_param_prop used internally to retrieve just param mode."""
         # See comment on __get_param_type
-        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, ParamType.INVALID).value
-        if value == ParamType.INVALID:
+        # pylint: disable=W0212
+        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, ParamType._INVALID).value
+        if value == ParamType._INVALID:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamMode(value)
 

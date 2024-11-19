@@ -8,10 +8,11 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
+from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import IntEnum, IntFlag, unique
-from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
+from typing import TypeVar, Union
 
 from caen_libs import error, _utils
 
@@ -142,12 +143,12 @@ class _Lib(_utils.Lib):
         # Load API available only on recent library versions
         self.__reboot_device = self.__get('RebootDevice', ct.c_int, ct.c_int, min_version=(1, 7, 0))
 
-    def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
+    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
+    def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         min_version = kwargs.get('min_version')
         if min_version is not None:
             # This feature requires __sw_release to be already defined
@@ -162,7 +163,7 @@ class _Lib(_utils.Lib):
         func.errcheck = self.__api_errcheck
         return func
 
-    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
+    def __ver_at_least(self, target: tuple[int, ...]) -> bool:
         ver = self.sw_release()
         return _utils.version_to_tuple(ver) >= target
 
@@ -263,7 +264,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: Type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
+    def open(cls: type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
         """
         Binding of CAENComm_OpenDevice2()
         """
@@ -347,7 +348,7 @@ class Device:
             failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
             raise RuntimeError(f'multi_write16 failed at cycles {failed_cycles}')
 
-    def multi_read32(self, address: Sequence[int]) -> List[int]:
+    def multi_read32(self, address: Sequence[int]) -> list[int]:
         """
         Binding of CAENComm_MultiRead32()
         """
@@ -361,7 +362,7 @@ class Device:
             raise RuntimeError(f'multi_read32 failed at cycles {failed_cycles}')
         return l_data[:]
 
-    def multi_read16(self, address: Sequence[int]) -> List[int]:
+    def multi_read16(self, address: Sequence[int]) -> list[int]:
         """
         Binding of CAENComm_MultiRead16()
         """
@@ -385,7 +386,7 @@ class Device:
         """Utility to simplify 16-bit register access"""
         return self.__reg16
 
-    def blt_read(self, address: int, blt_size: int) -> List[int]:
+    def blt_read(self, address: int, blt_size: int) -> list[int]:
         """
         Binding of CAENComm_BLTRead()
         """
@@ -394,7 +395,7 @@ class Device:
         lib.blt_read(self.handle, address, l_data, blt_size, l_nw)
         return l_data[:l_nw.value]
 
-    def mblt_read(self, address: int, blt_size: int) -> List[int,]:
+    def mblt_read(self, address: int, blt_size: int) -> list[int,]:
         """
         Binding of CAENComm_MBLTRead()
         """

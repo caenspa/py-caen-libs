@@ -8,9 +8,10 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
-from dataclasses import dataclass, field
 import sys
-from typing import Any, Callable, List, Optional, Sequence, Tuple, overload
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Optional, overload
 
 if sys.platform == 'win32':
     _LibNotFoundClass = FileNotFoundError
@@ -92,7 +93,7 @@ class Lib:
         return self.path
 
 
-def version_to_tuple(version: str) -> Tuple[int, ...]:
+def version_to_tuple(version: str) -> tuple[int, ...]:
     """Version string in the form N.N.N to tuple (N, N, N)"""
     return tuple(map(int, version.split('.')))
 
@@ -106,7 +107,7 @@ class Registers:
 
     getter: Callable[[int], int]
     setter: Callable[[int, int], None]
-    multi_getter: Optional[Callable[[Sequence[int]], List[int]]] = field(default=None)
+    multi_getter: Optional[Callable[[Sequence[int]], list[int]]] = field(default=None)
     multi_setter: Optional[Callable[[Sequence[int], Sequence[int]], None]] = field(default=None)
 
     def get(self, address: int) -> int:
@@ -117,7 +118,7 @@ class Registers:
         """Set value"""
         return self.setter(address, value)
 
-    def multi_get(self, addresses: Sequence[int]) -> List[int]:
+    def multi_get(self, addresses: Sequence[int]) -> list[int]:
         """Get multiple value"""
         if self.multi_getter is not None:
             return self.multi_getter(addresses)
@@ -140,7 +141,7 @@ class Registers:
     @overload
     def __getitem__(self, address: int) -> int: ...
     @overload
-    def __getitem__(self, address: slice) -> List[int]: ...
+    def __getitem__(self, address: slice) -> list[int]: ...
 
     def __getitem__(self, address):
         if isinstance(address, int):
