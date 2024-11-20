@@ -12,7 +12,7 @@ from typing import Optional
 from weakref import ReferenceType, ref
 
 
-class CacheManager(list[_lru_cache_wrapper]):
+class Manager(list[_lru_cache_wrapper]):
     """
     A simple list of functions returned by `@lru_cache` decorator.
 
@@ -32,7 +32,7 @@ class CacheManager(list[_lru_cache_wrapper]):
 # Omitted because very verbose.
 
 
-def lru_cache_method(cache_manager: Optional[CacheManager] = None, maxsize: int = 128, typed: bool = False):
+def cached(cache_manager: Optional[Manager] = None, maxsize: int = 128, typed: bool = False):
     """
     LRU cache decorator that keeps a weak reference to self.
 
@@ -56,9 +56,7 @@ def lru_cache_method(cache_manager: Optional[CacheManager] = None, maxsize: int 
 
         @wraps(method)
         def inner(self, *args, **kwargs):
-            # Ignore MyPy type checks because of bugs on lru_cache support.
-            # See https://stackoverflow.com/a/73517689/3287591.
-            return cached_method(ref(self), *args, **kwargs)  # type: ignore
+            return cached_method(ref(self), *args, **kwargs)
 
         # Optionally store a reference to lru_cache decorated function to
         # simplify cache management. See CacheManager documentation.
@@ -70,7 +68,7 @@ def lru_cache_method(cache_manager: Optional[CacheManager] = None, maxsize: int 
     return wrapper
 
 
-def lru_cache_clear(cache_manager: CacheManager):
+def clear(cache_manager: Manager):
     """
     LRU cache decorator that clear cache.
 
@@ -87,10 +85,8 @@ def lru_cache_clear(cache_manager: CacheManager):
 
         @wraps(method)
         def inner(self, *args, **kwargs):
-            # Ignore MyPy type checks because of bugs on lru_cache support.
-            # See https://stackoverflow.com/a/73517689/3287591.
             cache_manager.clear_all()
-            return not_cached_method(ref(self), *args, **kwargs)  # type: ignore
+            return not_cached_method(ref(self), *args, **kwargs)
 
         return inner
 

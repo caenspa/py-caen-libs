@@ -589,7 +589,7 @@ class Device:
     MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
 
     # Static private members
-    __node_cache_manager: ClassVar[_cache.CacheManager] = _cache.CacheManager()
+    __node_cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
     __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
 
     def __post_init__(self):
@@ -629,7 +629,7 @@ class Device:
         self.handle = l_handle.value
         self.__opened = True
 
-    @_cache.lru_cache_clear(cache_manager=__node_cache_manager)
+    @_cache.clear(cache_manager=__node_cache_manager)
     def close(self) -> None:
         """
         Binding of CAENHV_DeinitSystem()
@@ -639,7 +639,7 @@ class Device:
         lib.deinit_system(self.handle)
         self.__opened = False
 
-    @_cache.lru_cache_clear(cache_manager=__node_cache_manager)
+    @_cache.clear(cache_manager=__node_cache_manager)
     def get_crate_map(self) -> tuple[Optional[Board], ...]:
         """
         Binding of CAENHV_GetCrateMap()
@@ -668,7 +668,7 @@ class Device:
                 ) if l_nocl[i] != 0 else None for i in range(l_nos.value)
             )
 
-    @_cache.lru_cache_method(cache_manager=__node_cache_manager)
+    @_cache.cached(cache_manager=__node_cache_manager)
     def get_sys_prop_list(self) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetSysPropList()
@@ -679,7 +679,7 @@ class Device:
             lib.get_sys_prop_list(self.handle, l_num_prop, l_pnl)
             return tuple(_string.from_char_p(l_pnl, l_num_prop.value))
 
-    @_cache.lru_cache_method(cache_manager=__node_cache_manager)
+    @_cache.cached(cache_manager=__node_cache_manager)
     def get_sys_prop_info(self, name: str) -> SysProp:
         """
         Binding of CAENHV_GetSysPropInfo()
@@ -762,7 +762,7 @@ class Device:
         """
         return self.__get_param_prop(slot, name)
 
-    @_cache.lru_cache_method(cache_manager=__node_cache_manager)
+    @_cache.cached(cache_manager=__node_cache_manager)
     def get_bd_param_info(self, slot: int) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetBdParamInfo()
@@ -800,7 +800,7 @@ class Device:
         """
         return self.__get_param_prop(slot, name, channel)
 
-    @_cache.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    @_cache.cached(cache_manager=__node_cache_manager, maxsize=4096)
     def get_ch_param_info(self, slot: int, channel: int) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetChParamInfo()
@@ -877,7 +877,7 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 
-    @_cache.lru_cache_method(cache_manager=__node_cache_manager)
+    @_cache.cached(cache_manager=__node_cache_manager)
     def get_exec_comm_list(self) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetExecCommList()
@@ -1073,7 +1073,7 @@ class Device:
             res.enum = tuple(_string.from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
         return res
 
-    @_cache.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    @_cache.cached(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
         """Simplified version of __get_param_prop used internally to retrieve just param type."""
         # Initialize arg to -1 to detect errors because library functions, at least
@@ -1088,7 +1088,7 @@ class Device:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_type')
         return ParamType(value)
 
-    @_cache.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
+    @_cache.cached(cache_manager=__node_cache_manager, maxsize=4096)
     def __get_param_mode(self, slot: int, name: str, channel: Optional[int] = None) -> ParamMode:
         """Simplified version of __get_param_prop used internally to retrieve just param mode."""
         # See comment on __get_param_type
