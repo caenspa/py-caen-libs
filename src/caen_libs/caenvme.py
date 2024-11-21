@@ -157,11 +157,11 @@ class OutputSelect(IntEnum):
     """
     Binding of ::CVOutputSelect
     """
-    O0 = 0  # Identifies the output line 0
-    O1 = 1  # Identifies the output line 1
-    O2 = 2  # Identifies the output line 2
-    O3 = 3  # Identifies the output line 3
-    O4 = 4  # Identifies the output line 4
+    O0 = 0  # Output line 0
+    O1 = 1  # Output line 1
+    O2 = 2  # Output line 2
+    O3 = 3  # Output line 3
+    O4 = 4  # Output line 4
 
 
 @unique
@@ -169,8 +169,8 @@ class InputSelect(IntEnum):
     """
     Binding of ::CVInputSelect
     """
-    I0 = 0  # Identifies the input line 0
-    I1 = 1  # Identifies the input line 1
+    I0 = 0  # Input line 0
+    I1 = 1  # Input line 1
 
 
 @unique
@@ -194,11 +194,11 @@ class TimeUnits(IntEnum):
     """
     Binding of ::CVTimeUnits
     """
-    T25_NS   = 0  # Time unit is 25 nanoseconds
-    T1600_NS = 1  # Time unit is 1.6 microseconds
-    T410_US  = 2  # Time unit is 410 microseconds
-    T104_MS  = 3  # Time unit is 104 milliseconds
-    T25_US   = 4  # Time unit is 25 microseconds
+    T25_NS   = 0  # 25 nanoseconds
+    T1600_NS = 1  # 1.6 microseconds
+    T410_US  = 2  # 410 microseconds
+    T104_MS  = 3  # 104 milliseconds
+    T25_US   = 4  # 25 microseconds
 
 
 @unique

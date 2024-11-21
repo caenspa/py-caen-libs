@@ -714,7 +714,7 @@ class Device:
         if n_indexes == 0:
             return []  # type: ignore
         first_index = slot_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(first_index, name)
+        param_type = self.__get_param_type(first_index, name, None)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
         if param_type is ParamType.STRING and self.__char_p_p_str_bd_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
@@ -751,7 +751,7 @@ class Device:
         if n_indexes == 0:
             return
         first_index = slot_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(first_index, name)
+        param_type = self.__get_param_type(first_index, name, None)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
@@ -760,7 +760,7 @@ class Device:
         """
         Binding of CAENHV_GetBdParamProp()
         """
-        return self.__get_param_prop(slot, name)
+        return self.__get_param_prop(slot, name, None)
 
     @_cache.cached(cache_manager=__cache_manager)
     def get_bd_param_info(self, slot: int) -> tuple[str, ...]:
@@ -898,100 +898,37 @@ class Device:
         """
         Binding of CAENHV_SubscribeSystemParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        self.__init_events_server()
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'subscribe_system_params failed at params {failed_params}')
+        self.__subscribe_params(param_list, None, None)
 
     def subscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
         """
         Binding of CAENHV_SubscribeBoardParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        self.__init_events_server()
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'subscribe_board_params failed at params {failed_params}')
+        self.__subscribe_params(param_list, slot, None)
 
     def subscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
         """
         Binding of CAENHV_SubscribeChannelParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        self.__init_events_server()
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'subscribe_channel_params failed at params {failed_params}')
+        return self.__subscribe_params(param_list, slot, channel)
 
     def unsubscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
         Binding of CAENHV_UnSubscribeSystemParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'unsubscribe_system_params failed at params {failed_params}')
+        return self.__unsubscribe_params(param_list, None, None)
 
     def unsubscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
         """
         Binding of CAENHV_UnSubscribeBoardParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'unsubscribe_board_params failed at params {failed_params}')
+        return self.__unsubscribe_params(param_list, slot, None)
 
     def unsubscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
         """
-        Binding of CAENHV_SubscribeChannelParams()
+        Binding of CAENHV_UnSubscribeChannelParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
+        return self.__unsubscribe_params(param_list, slot, channel)
 
     def get_event_data(self) -> tuple[tuple[EventData, ...], SystemStatus]:
         """
@@ -1041,7 +978,7 @@ class Device:
             raise ex
         return l_value
 
-    def __get_param_prop(self, slot: int, name: str, channel: Optional[int] = None) -> ParamProp:
+    def __get_param_prop(self, slot: int, name: str, channel: Optional[int]) -> ParamProp:
         """
         Get all parameter properties.
         Cannot be cached since minval/maxval may depend on the value of other parameters.
@@ -1074,7 +1011,7 @@ class Device:
         return res
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
-    def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
+    def __get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
         """Simplified version of __get_param_prop used internally to retrieve just param type."""
         # Initialize arg to -1 to detect errors because library functions, at least
         # on some modules like N1470, return success even if the parameter does not
@@ -1089,7 +1026,7 @@ class Device:
         return ParamType(value)
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
-    def __get_param_mode(self, slot: int, name: str, channel: Optional[int] = None) -> ParamMode:
+    def __get_param_mode(self, slot: int, name: str, channel: Optional[int]) -> ParamMode:
         """Simplified version of __get_param_prop used internally to retrieve just param mode."""
         # See comment on __get_param_type
         # pylint: disable=W0212
@@ -1122,6 +1059,49 @@ class Device:
     def __char_p_p_str_ch_param_arg(self) -> bool:
         """Devices that requires a char** as argument of get_ch_param of type STRING"""
         return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100)
+
+    def __subscribe_params(self, param_list: Sequence[str], slot: Optional[int], channel: Optional[int]) -> None:
+        """
+        Binding of CAENHV_Subscribe*Params()
+        """
+        param_list_len = len(param_list)
+        if param_list_len == 0:
+            return
+        self.__init_events_server()
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        if slot is None:
+            lib.subscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
+        elif channel is None:
+            lib.subscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
+        else:
+            lib.subscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
+        if any(result_codes):
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
+            raise RuntimeError(f'subscribe failed at params {failed_params}')
+
+    def __unsubscribe_params(self, param_list: Sequence[str], slot: Optional[int], channel: Optional[int]) -> None:
+        """
+        Binding of CAENHV_UnSubscribe*Params()
+        """
+        param_list_len = len(param_list)
+        if param_list_len == 0:
+            return
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        if slot is None:
+            lib.unsubscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
+        elif channel is None:
+            lib.unsubscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
+        else:
+            lib.unsubscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
+        if any(result_codes):
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
+            raise RuntimeError(f'unsubscribe failed at params {failed_params}')
 
     def __init_events_server(self):
         if self.__skt_server is not None:
@@ -1180,7 +1160,7 @@ class Device:
                     arg.extend(char)
                 assert self.arg == arg.decode()
 
-    def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
+    def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
         """
         Same of __get_param_type, with a workaround for Name: even if not being
         a real channel parameter, i.e. get_ch_param_prop does not work, changes

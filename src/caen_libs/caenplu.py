@@ -92,7 +92,7 @@ class _BoardInfoRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(frozen=True)
 class BoardInfo(ct.Structure):
     """
     Binding of ::tBOARDInfo
