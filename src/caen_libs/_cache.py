@@ -17,10 +17,11 @@ class Manager(list[_lru_cache_wrapper]):
     A simple list of functions returned by `@lru_cache` decorator.
 
     To be used with the optional parameter @p cache_manager of
-    lru_cache_method(), that will store a reference to the cached function
-    inside this list. This is a typing-safe way to call `cache_clear` and
-    `cache_info` of the internal cached functions, even if not exposed
-    directly by the inner function returned by lru_cache_method().
+    lru_cache_method(), that will store a reference to the cached
+    function inside this list. This is a typing-safe way to call
+    `cache_clear` and `cache_info` of the internal cached functions,
+    even if not exposed directly by the inner function returned by
+    lru_cache_method().
     """
     def clear_all(self) -> None:
         """Invoke `cache_clear` on all functions in the list"""
@@ -37,8 +38,8 @@ def cached(cache_manager: Optional[Manager] = None, maxsize: int = 128, typed: b
     LRU cache decorator that keeps a weak reference to self.
 
     To be used as decorator on methods that are known to return always
-    the same value. This can improve the performances of some methods
-    by a factor > 1000.
+    the same value. This can improve the performances of some methods by
+    a factor > 1000.
     This wrapper using weak references is required: functools.lru_cache
     holds a reference to all arguments: using directly on the methods it
     would hold a reference to self, introducing subdle memory leaks.
@@ -72,8 +73,8 @@ def clear(cache_manager: Manager):
     """
     LRU cache decorator that clear cache.
 
-    To be used as decorator on methods that are known to invalidate
-    the cache.
+    To be used as decorator on methods that are known to invalidate the
+    cache.
     """
 
     def wrapper(method):

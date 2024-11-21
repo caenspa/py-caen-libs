@@ -253,8 +253,7 @@ class ParamProp:
 
 class Error(error.Error):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     @unique
@@ -305,8 +304,9 @@ class Error(error.Error):
         @classmethod
         def _missing_(cls, _):
             """
-            Sometimes library returns values not contained in the enumerator.
-            Yes, they are bugs.
+            Sometimes library returns values not contained in the
+            enumerator, due to errors in the library itself. We
+            catch them and return UNKNOWN.
             """
             return cls.UNKNOWN
 
@@ -619,8 +619,9 @@ class Device:
     def connect(self) -> None:
         """
         Binding of CAENHV_InitSystem()
-        New instances should be created with open().
-        This is meant to reconnect a device closed with close().
+
+        New instances should be created with open(). This is meant to
+        reconnect a device closed with close().
         """
         if self.__opened:
             raise RuntimeError('Already connected.')
@@ -738,14 +739,17 @@ class Device:
         """
         Binding of CAENHV_SetBdParam()
 
-        The CAEN HV Wrapper is not consistent, since it allows to pass an array of values as input, to
-        be set respectively to the slots in the slot_list, but this is done only on some system
-        types (notably, on SY4527 and R6060 it uses only the first value of the array for all channels
-        in the slot_list). To make their behavior homogeneous, we do the same also on systems
-        supporting different values, setting the same value on all slots.
-        The trick is not done on parameters of STRING type because the systems that accept an array
-        as input do not have any writable parameter of that type. The trick is not done on CMD type
-        because the input value is ignored.
+        The CAEN HV Wrapper is not consistent, since it allows to pass
+        an array of values as input, to be set respectively to the slots
+        in the slot_list, but this is done only on some system types
+        (notably, on SY4527 and R6060 it uses only the first value of
+        the array for all channels in the slot_list). To make their
+        behavior homogeneous, we do the same also on systems supporting
+        different values, setting the same value on all slots. The trick
+        is not done on parameters of STRING type because the systems
+        that accept an array as input do not have any writable parameter
+        of that type. The trick is not done on CMD type because the
+        input value is ignored.
         """
         n_indexes = len(slot_list)
         if n_indexes == 0:
@@ -959,10 +963,10 @@ class Device:
         """
         Get single parameter property.
 
-        If args are defined, they are used to construct the value passed to the
-        C library, and could be used to catch errors (see comment in __get_param_type)
-        If default is set in kwargs, it returns var_type(default) in case of
-        PARAMPROPNOTFOUND error.
+        If args are defined, they are used to construct the value passed
+        to the C library, and could be used to catch errors (see comment
+        in __get_param_type). If default is set in kwargs, it returns
+        var_type(default) in case of PARAMPROPNOTFOUND error.
         """
         l_value = var_type(*args)
         try:
@@ -981,7 +985,8 @@ class Device:
     def __get_param_prop(self, slot: int, name: str, channel: Optional[int]) -> ParamProp:
         """
         Get all parameter properties.
-        Cannot be cached since minval/maxval may depend on the value of other parameters.
+        Cannot be cached since minval/maxval may depend on the value of
+        other parameters.
         """
         # Mandatory values (raise if name is not valid)
         param_type = self.__get_param_type(slot, name, channel)
@@ -1012,7 +1017,10 @@ class Device:
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
     def __get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
-        """Simplified version of __get_param_prop used internally to retrieve just param type."""
+        """
+        Simplified version of __get_param_prop used internally to
+        retrieve just param type.
+        """
         # Initialize arg to -1 to detect errors because library functions, at least
         # on some modules like N1470, return success even if the parameter does not
         # exist. We detect this error as the value is not modified by the library,
@@ -1027,7 +1035,10 @@ class Device:
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
     def __get_param_mode(self, slot: int, name: str, channel: Optional[int]) -> ParamMode:
-        """Simplified version of __get_param_prop used internally to retrieve just param mode."""
+        """
+        Simplified version of __get_param_prop used internally to
+        retrieve just param mode.
+        """
         # See comment on __get_param_type
         # pylint: disable=W0212
         value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, ParamType._INVALID).value
@@ -1036,28 +1047,44 @@ class Device:
         return ParamMode(value)
 
     def __check_events_support(self) -> None:
-        """SY1527/SY2527 have a legacy version of events not supported by this binding"""
+        """
+        SY1527/SY2527 have a legacy version of events not supported by
+        this binding
+        """
         if self.system_type in (SystemType.SY1527, SystemType.SY2527):
-            raise RuntimeError('Legacy events not supported by this binding.')
+            raise NotImplementedError('Legacy events not supported by this binding.')
 
     def __library_event_thread(self) -> bool:
-        """Devices with polling thread within library"""
+        """
+        Devices with polling thread within library
+        """
         return self.system_type not in (SystemType.SY4527, SystemType.SY5527, SystemType.R6060)
 
     def __resol_param_prop(self) -> bool:
-        """Devices with weird Resol parameter property on numeric data"""
+        """
+        Devices with weird Resol parameter property on numeric data
+        """
         return self.system_type in (SystemType.V8100,)
 
     def __new_events_format(self) -> bool:
-        """Devices with new events format, with socket opened within the library"""
+        """
+        Devices with new events format, with socket opened within the
+        library
+        """
         return self.system_type in (SystemType.R6060,)
 
     def __char_p_p_str_bd_param_arg(self) -> bool:
-        """Devices that requires a char** as argument of get_bd_param of type STRING"""
+        """
+        Devices that requires a char** as argument of get_bd_param of
+        type STRING
+        """
         return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E)
 
     def __char_p_p_str_ch_param_arg(self) -> bool:
-        """Devices that requires a char** as argument of get_ch_param of type STRING"""
+        """
+        Devices that requires a char** as argument of get_ch_param of
+        type STRING
+        """
         return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100)
 
     def __subscribe_params(self, param_list: Sequence[str], slot: Optional[int], channel: Optional[int]) -> None:
@@ -1162,9 +1189,9 @@ class Device:
 
     def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
         """
-        Same of __get_param_type, with a workaround for Name: even if not being
-        a real channel parameter, i.e. get_ch_param_prop does not work, changes
-        are sent as events of type PARAMETER.
+        Same of __get_param_type, with a workaround for Name: even if
+        not being a real channel parameter, i.e. get_ch_param_prop does
+        not work, changes are sent as events of type PARAMETER.
         """
         if channel is not None and name == 'Name':
             return ParamType.STRING

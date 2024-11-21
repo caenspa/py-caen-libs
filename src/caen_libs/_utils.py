@@ -21,9 +21,8 @@ else:
 
 class Lib:
     """
-    This class loads the shared library and
-    exposes its functions on its public attributes
-    using ctypes.
+    This class loads the shared library and exposes its functions on its
+    public attributes using ctypes.
     """
 
     def __init__(self, name: str) -> None:
@@ -56,12 +55,10 @@ class Lib:
             self.__lib_variadic = loader_variadic.LoadLibrary(self.path)
         except _LibNotFoundClass as ex:
             raise RuntimeError(
-                f'Library {self.name} not found. '
-                'This module requires the latest version of '
-                'the library to be installed on your system. '
-                'You may find the official installers at '
-                'https://www.caen.it/. '
-                'Please install it and retry.'
+                f'Library {self.name} not found. This module requires '
+                'the latest version of the library to be installed on '
+                'your system. You may find the official installers at '
+                'https://www.caen.it/. Please install it and retry.'
             ) from ex
 
     @property
@@ -101,8 +98,8 @@ def version_to_tuple(version: str) -> tuple[int, ...]:
 @dataclass(frozen=True)
 class Registers:
     """
-    Class to simplify syntax for registers access with
-    square brackets operators, slices and in-place operators.
+    Class to simplify syntax for registers access with square brackets
+    operators, slices and in-place operators.
     """
 
     getter: Callable[[int], int]

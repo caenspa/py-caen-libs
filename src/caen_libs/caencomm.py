@@ -34,7 +34,8 @@ class Info(IntEnum):
     """
     Binding of ::CAENCOMM_INFO
 
-    ::CAENComm_VMELIB_handle missing, since implemented on separated binding.
+    ::CAENComm_VMELIB_handle missing, since implemented on separated
+    binding.
     """
     PCI_BOARD_SN = 0
     PCI_BOARD_FW_REL = 1
@@ -58,8 +59,7 @@ class IRQLevels(IntFlag):
 
 class Error(error.Error):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     @unique
@@ -229,7 +229,7 @@ lib = _Lib('CAENComm')
 
 def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
     if connection_type is ConnectionType.ETH_V4718:
-        assert isinstance(arg, str), 'arg expected to be an instance of str'
+        assert isinstance(arg, str), 'arg expected to be a string'
         return arg.encode()
     else:
         l_link_number = int(arg)
@@ -276,8 +276,9 @@ class Device:
     def connect(self) -> None:
         """
         Binding of CAENComm_OpenDevice2()
-        New instances should be created with open().
-        This is meant to reconnect a device closed with close().
+
+        New instances should be created with open(). This is meant to
+        reconnect a device closed with close().
         """
         if self.__opened:
             raise RuntimeError('Already connected.')

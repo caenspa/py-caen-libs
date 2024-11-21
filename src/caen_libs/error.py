@@ -10,8 +10,7 @@ __license__ = 'LGPL-3.0-or-later'
 
 class Error(RuntimeError):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     message: str  # Message description

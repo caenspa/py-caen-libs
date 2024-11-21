@@ -128,8 +128,7 @@ class BoardInfo(ct.Structure):
 
 class Error(error.Error):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     @unique
@@ -220,7 +219,8 @@ class _Lib(_utils.Lib):
 
     def decode_error(self, error_code: int) -> str:
         """
-        There is no function to decode error, we just use the enumeration name.
+        There is no function to decode error, we just use the
+        enumeration name.
         """
         return Error.Code(error_code).name
 
@@ -245,8 +245,8 @@ class _Lib(_utils.Lib):
         """
         Binding of CAEN_PLU_USBEnumerateSerialNumber()
 
-        Note: the underlying library is bugged, as of version v1.3,
-        if there is more than one board.
+        Note: the underlying library is bugged, as of version v1.3, if
+        there is more than one board.
         """
         l_num_devs = ct.c_uint()
         l_device_sn_length = 512  # Undocumented but, hopefully, long enough
@@ -267,7 +267,7 @@ lib = _Lib(_LIB_NAME)
 
 def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):
     if connection_mode in (ConnectionModes.DIRECT_ETH, ConnectionModes.VME_V4718_ETH):
-        assert isinstance(arg, str), 'arg expected to be an instance of str'
+        assert isinstance(arg, str), 'arg expected to be a string'
         return arg.encode()
     elif connection_mode in (ConnectionModes.DIRECT_USB, ConnectionModes.VME_V1718, ConnectionModes.VME_V2718):
         l_link_number_i = int(arg)
@@ -319,8 +319,9 @@ class Device:
     def connect(self) -> None:
         """
         Binding of CAEN_PLU_OpenDevice2()
-        New instances should be created with open().
-        This is meant to reconnect a device closed with close().
+
+        New instances should be created with open(). This is meant to
+        reconnect a device closed with close().
         """
         if self.__opened:
             raise RuntimeError('Already connected.')

@@ -365,8 +365,7 @@ class ContinuosRun(IntEnum):
 
 class Error(error.Error):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     @unique
@@ -550,7 +549,7 @@ lib = _Lib(_LIB_NAME)
 
 def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
     if board_type in (BoardType.ETH_V4718, BoardType.ETH_V4718_LOCAL):
-        assert isinstance(arg, str), 'arg expected to be an instance of str'
+        assert isinstance(arg, str), 'arg expected to be a string'
         return arg.encode()
     else:
         l_link_number = int(arg)
@@ -595,8 +594,9 @@ class Device:
     def connect(self) -> None:
         """
         Binding of CAENVME_Init2()
-        New instances should be created with open().
-        This is meant to reconnect a device closed with close().
+
+        New instances should be created with open(). This is meant to
+        reconnect a device closed with close().
         """
         if self.__opened:
             raise RuntimeError('Already connected.')

@@ -188,8 +188,7 @@ class ReadMode(IntEnum):
 
 class Error(error.Error):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     @unique
@@ -458,7 +457,7 @@ lib = _Lib('CAENDigitizer')
 
 def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
     if connection_type is ConnectionType.ETH_V4718:
-        assert isinstance(arg, str), 'arg expected to be an instance of str'
+        assert isinstance(arg, str), 'arg expected to be a string'
         return arg.encode()
     else:
         l_link_number = int(arg)
@@ -481,9 +480,9 @@ class Device:
 
     def __post_init__(self) -> None:
         self.__opened = True
-        self.__readout_buffer = _c_char_p()
-        self.__readout_buffer_size = 0
-        self.__readout_buffer_occupancy = 0
+        self.__ro_buff = _c_char_p()
+        self.__ro_buff_size = 0
+        self.__ro_buff_occupancy = 0
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
     def __del__(self) -> None:
@@ -507,8 +506,9 @@ class Device:
     def connect(self) -> None:
         """
         Binding of CAEN_DGTZ_OpenDigitizer2()
-        New instances should be created with open().
-        This is meant to reconnect a device closed with close().
+
+        New instances should be created with open(). This is meant to
+        reconnect a device closed with close().
         """
         if self.__opened:
             raise RuntimeError('Already connected.')
@@ -966,30 +966,30 @@ class Device:
         l_buffer = _c_char_p()
         l_size = ct.c_uint32()
         lib.malloc_readout_buffer(self.handle, l_buffer, l_size)
-        self.__readout_buffer = l_buffer
-        self.__readout_buffer_size = l_size.value
+        self.__ro_buff = l_buffer
+        self.__ro_buff_size = l_size.value
 
     def free_readout_buffer(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeReadoutBuffer()
         """
-        lib.free_readout_buffer(self.__readout_buffer)
+        lib.free_readout_buffer(self.__ro_buff)
 
     def read_data(self, mode: ReadMode) -> None:
         """
         Binding of CAEN_DGTZ_ReadData()
         """
         l_size = ct.c_uint32()
-        lib.read_data(self.handle, mode, self.__readout_buffer, l_size)
-        self.__readout_buffer_occupancy = l_size.value
-        assert self.__readout_buffer_occupancy <= self.__readout_buffer_size
+        lib.read_data(self.handle, mode, self.__ro_buff, l_size)
+        self.__ro_buff_occupancy = l_size.value
+        assert self.__ro_buff_occupancy <= self.__ro_buff_size
 
     def get_num_events(self) -> int:
         """
         Binding of GetNumEvents()
         """
         l_value = ct.c_uint32()
-        lib.get_num_events(self.handle, self.__readout_buffer, self.__readout_buffer_occupancy, l_value)
+        lib.get_num_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, l_value)
         return l_value.value
 
     # Python utilities
