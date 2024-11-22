@@ -10,7 +10,7 @@ __license__ = 'LGPL-3.0-or-later'
 import ctypes as ct
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, IntFlag, unique
 from typing import TypeVar, Union
 
@@ -237,7 +237,7 @@ def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
         return ct.pointer(l_link_number_ct)
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class Device:
     """
     Class representing a device.
@@ -250,8 +250,12 @@ class Device:
     conet_node: int
     vme_base_address: int
 
+    # Private members
+    __opened: bool = field(default=True, repr=False)
+    __reg16: _utils.Registers = field(init=False, repr=False)
+    __reg32: _utils.Registers = field(init=False, repr=False)
+
     def __post_init__(self) -> None:
-        self.__opened = True
         self.__reg16 = _utils.Registers(self.read16, self.write16, self.multi_read16, self.multi_write16)
         self.__reg32 = _utils.Registers(self.read32, self.write32, self.multi_read32, self.multi_write32)
 

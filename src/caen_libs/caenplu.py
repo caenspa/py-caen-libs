@@ -11,7 +11,7 @@ import ctypes as ct
 import sys
 from collections.abc import Callable
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, unique
 from typing import TypeVar, Union
 
@@ -50,7 +50,7 @@ class _USBDeviceRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class USBDevice(ct.Structure):
     """
     Binding of ::tUSBDevice
@@ -92,7 +92,7 @@ class _BoardInfoRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class BoardInfo(ct.Structure):
     """
     Binding of ::tBOARDInfo
@@ -279,7 +279,7 @@ def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):
         return ct.pointer(l_link_number_u32_ct)
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class Device:
     """
     Class representing a device.
@@ -292,8 +292,11 @@ class Device:
     conet_node: int
     vme_base_address: str
 
+    # Private members
+    __opened: bool = field(default=True, repr=False)
+    __registers: _utils.Registers = field(init=False, repr=False)
+
     def __post_init__(self) -> None:
-        self.__opened = True
         self.__registers = _utils.Registers(self.read_reg, self.write_reg)
 
     def __del__(self) -> None:

@@ -78,7 +78,7 @@ class _SystemStatusRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class SystemStatus:
     """
     Binding of ::CAENHV_SYSTEMSTATUS_t
@@ -117,7 +117,7 @@ class _EventDataRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class EventData:
     """
     Binding of ::CAENHVEVENT_TYPE_t
@@ -129,7 +129,7 @@ class EventData:
     value: Union[str, float, int]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class FwVersion:
     """
     Firmware version
@@ -141,7 +141,7 @@ class FwVersion:
         return f'{self.major}.{self.minor}'
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class Board:
     """
     Type returned by ::CAENHV_GetCrateMap
@@ -177,7 +177,7 @@ class SysPropMode(IntEnum):
     RDWR    = 2
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class SysProp:
     """
     Type returned by ::CAENHV_GetSysPropInfo
@@ -233,7 +233,7 @@ class ParamUnit(IntEnum):
     APS     = 12
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class ParamProp:
     """
     Type returned by ::CAENHV_GetBdParamProp
@@ -567,8 +567,7 @@ else:
 
 lib = _Lib(_LIB_NAME)
 
-
-@dataclass
+@dataclass(**_utils.dataclass_slots_weakref)
 class Device:
     """
     Class representing a device.
@@ -588,16 +587,15 @@ class Device:
     MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
     MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
 
+    # Private members
+    __opened: bool = field(default=True, repr=False)
+    __port: int = field(default=0, repr=False)
+    __skt_server: Optional[socket.socket] = field(default=None, repr=False)
+    __skt_client: Optional[socket.socket] = field(default=None, repr=False)
+
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
     __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
-
-    def __post_init__(self):
-        # Internal events related stuff
-        self.__opened = True
-        self.__port = 0
-        self.__skt_server = None
-        self.__skt_client = None
 
     def __del__(self) -> None:
         if self.__opened:

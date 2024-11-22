@@ -6,9 +6,9 @@ __license__ = 'LGPL-3.0-or-later'
 import ctypes as ct
 from collections.abc import Callable
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
 from caen_libs import error, _utils
 
@@ -465,7 +465,7 @@ def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
         return ct.pointer(l_link_number_ct)
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class Device:
     """
     Class representing a device.
@@ -478,11 +478,14 @@ class Device:
     conet_node: int
     vme_base_address: int
 
+    # Private members
+    __opened: bool = field(default=True, repr=False)
+    __ro_buff: Any = field(default_factory=_c_char_p, repr=False)
+    __ro_buff_size: int = field(default=0, repr=False)
+    __ro_buff_occupancy: int = field(default=0, repr=False)
+    __registers: _utils.Registers = field(init=False, repr=False)
+
     def __post_init__(self) -> None:
-        self.__opened = True
-        self.__ro_buff = _c_char_p()
-        self.__ro_buff_size = 0
-        self.__ro_buff_occupancy = 0
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
     def __del__(self) -> None:

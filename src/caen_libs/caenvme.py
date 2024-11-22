@@ -11,7 +11,7 @@ import ctypes as ct
 import sys
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, IntFlag, unique
 from typing import TypeVar, Union
 
@@ -258,7 +258,7 @@ class _DisplayRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class Display:
     """
     Binding of ::CVDisplay
@@ -557,7 +557,7 @@ def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
         return ct.pointer(l_link_number_ct)
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class Device:
     """
     Class representing a device.
@@ -569,8 +569,11 @@ class Device:
     arg: Union[int, str]
     conet_node: int
 
+    # Private members
+    __opened: bool = field(default=True, repr=False)
+    __registers: _utils.Registers = field(init=False, repr=False)
+
     def __post_init__(self) -> None:
-        self.__opened = True
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
     def __del__(self) -> None:

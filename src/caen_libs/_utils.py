@@ -95,7 +95,21 @@ def version_to_tuple(version: str) -> tuple[int, ...]:
     return tuple(map(int, version.split('.')))
 
 
-@dataclass(frozen=True)
+# Slots brings some performance improvements and memory savings.
+if sys.version_info >= (3, 10):
+    dataclass_slots = {'slots': True}
+else:
+    dataclass_slots = {}
+
+
+# Weakref support is required by the cache manager.
+if sys.version_info >= (3, 11):
+    dataclass_slots_weakref = dataclass_slots | {'weakref_slot': True}
+else:
+    dataclass_slots_weakref = {}
+
+
+@dataclass(frozen=True, **dataclass_slots)
 class Registers:
     """
     Class to simplify syntax for registers access with square brackets
