@@ -51,7 +51,7 @@ class Lib:
 
         # Load library
         try:
-            self.__lib = loader.LoadLibrary(path)
+            self.__lib = loader.LoadLibrary(self.path)
             self.__lib_variadic = loader_variadic.LoadLibrary(self.path)
         except _LibNotFoundClass as ex:
             raise RuntimeError(
