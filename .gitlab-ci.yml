@@ -22,7 +22,6 @@ test-unittest:
   variables:
     PYTHONPATH: src
   script:
-    - pip install -r requirements.txt
     - python -m unittest discover -s tests
 
 pypi-upload:
