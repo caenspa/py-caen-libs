@@ -870,7 +870,7 @@ class Device:
         l_out_pol = ct.c_int()
         l_led_pol = ct.c_int()
         l_source = ct.c_int()
-        lib.get_output_conf(out_sel, l_out_pol, l_led_pol, l_source)
+        lib.get_output_conf(self.handle, out_sel, l_out_pol, l_led_pol, l_source)
         return IOPolarity(l_out_pol.value), LEDPolarity(l_led_pol.value), IOSources(l_source.value)
 
     def get_input_conf(self, in_sel: InputSelect) -> tuple[IOPolarity, LEDPolarity]:
@@ -879,7 +879,7 @@ class Device:
         """
         l_in_pol = ct.c_int()
         l_led_pol = ct.c_int()
-        lib.get_input_conf(in_sel, l_in_pol, l_led_pol)
+        lib.get_input_conf(self.handle, in_sel, l_in_pol, l_led_pol)
         return IOPolarity(l_in_pol.value), LEDPolarity(l_led_pol.value)
 
     def read_register(self, address: int) -> int:
