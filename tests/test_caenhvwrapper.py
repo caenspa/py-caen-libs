@@ -1,4 +1,5 @@
 """"Test the caenhvwrapper module."""
+
 import unittest
 from unittest.mock import DEFAULT, patch
 
