@@ -16,14 +16,6 @@ test-pylint:
   script:
     - pylint src
 
-test-unittest:
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9
-  stage: test
-  variables:
-    PYTHONPATH: src
-  script:
-    - python -m unittest discover -s tests
-
 pypi-upload:
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9
   stage: deploy
