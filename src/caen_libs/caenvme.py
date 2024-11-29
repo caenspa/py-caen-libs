@@ -687,7 +687,7 @@ class Device:
         l_ams = (ct.c_int * n_cycles)(*ams)
         l_dws = (ct.c_int * n_cycles)(*dws)
         l_ecs = (ct.c_int * n_cycles)()
-        lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
+        lib.multi_write(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
             failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_ecs) if ec}
             raise RuntimeError(f'multi_write failed at cycles {failed_cycles}')

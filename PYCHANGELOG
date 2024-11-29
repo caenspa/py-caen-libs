@@ -17,6 +17,9 @@ v1.3.0 (XX/XX/2024)
 New features:
 - Dropped support for Python 3.8
 
+Fixes:
+- Fix `caenvme.multi_write`
+
 
 v1.2.0 (18/11/2024)
 -------------------
