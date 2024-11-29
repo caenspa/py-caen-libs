@@ -14,7 +14,7 @@ class TestDevice(unittest.TestCase):
         self.addCleanup(self.device.close)
 
     def test_error_handling(self):
-        self.mock_lib.init2.side_effect = vme.Error("Test error", -1, "Init2")
+        self.mock_lib.init2.side_effect = vme.Error('Test error', -1, 'Init2')
         with self.assertRaises(vme.Error):
             vme.Device.open(vme.BoardType.V2718, 0)
 
