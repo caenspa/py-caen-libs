@@ -19,7 +19,7 @@ test-pylint:
 test-unittest:
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9
   stage: test
-  environment:
+  variables:
     PYTHONPATH: src
   script:
     - pip install -r requirements.txt
