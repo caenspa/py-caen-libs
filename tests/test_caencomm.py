@@ -105,9 +105,11 @@ class TestDevice(unittest.TestCase):
 
     def test_iack_cycle(self):
         """Test iack_cycle"""
-        value = self.device.iack_cycle(comm.IRQLevels.L1)
-        self.assertEqual(value, 0)
-        self.mock_lib.iack_cycle.assert_called_once_with(self.device.handle, comm.IRQLevels.L1, unittest.mock.ANY)
+        for i in set(comm.IRQLevels):
+            value = self.device.iack_cycle(i)
+            self.assertEqual(value, 0)
+            self.mock_lib.iack_cycle.assert_called_with(self.device.handle, i, unittest.mock.ANY)
+            self.mock_lib.iack_cycle.reset_mock()
 
     def test_irq_wait(self):
         """Test irq_wait"""
@@ -116,9 +118,11 @@ class TestDevice(unittest.TestCase):
 
     def test_info(self):
         """Test info"""
-        value = self.device.info(comm.Info.PCI_BOARD_SN)
-        self.assertEqual(value, '')
-        self.mock_lib.info.assert_called_once_with(self.device.handle, comm.Info.PCI_BOARD_SN, unittest.mock.ANY)
+        for i in set(comm.Info):
+            value = self.device.info(i)
+            self.assertEqual(value, '')
+            self.mock_lib.info.assert_called_with(self.device.handle, i, unittest.mock.ANY)
+            self.mock_lib.info.reset_mock()
 
     def test_vme_handle(self):
         """Test vme_handle"""

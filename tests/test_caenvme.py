@@ -211,40 +211,54 @@ class TestDevice(unittest.TestCase):
 
     def test_get_output_conf(self):
         """Test get_output_conf"""
-        conf = self.device.get_output_conf(vme.OutputSelect.O0)
-        self.assertEqual(conf, (0, 0, 0))
-        self.mock_lib.get_output_conf.assert_called_once_with(self.device.handle, vme.OutputSelect.O0, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY)
+        for i in set(vme.OutputSelect):
+            conf = self.device.get_output_conf(i)
+            self.assertEqual(conf, (0, 0, 0))
+            self.mock_lib.get_output_conf.assert_called_with(self.device.handle, i, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY)
+            self.mock_lib.get_output_conf.reset_mock()
 
     def test_get_input_conf(self):
         """Test get_input_conf"""
-        conf = self.device.get_input_conf(vme.InputSelect.I0)
-        self.assertEqual(conf, (0, 0))
-        self.mock_lib.get_input_conf.assert_called_once_with(self.device.handle, vme.InputSelect.I0, unittest.mock.ANY, unittest.mock.ANY)
+        for i in set(vme.InputSelect):
+            conf = self.device.get_input_conf(i)
+            self.assertEqual(conf, (0, 0))
+            self.mock_lib.get_input_conf.assert_called_with(self.device.handle, i, unittest.mock.ANY, unittest.mock.ANY)
+            self.mock_lib.get_input_conf.reset_mock()
 
     def test_set_arbiter_type(self):
         """Test set_arbiter_type"""
-        self.device.set_arbiter_type(vme.ArbiterTypes.PRIORIZED)
-        self.mock_lib.set_arbiter_type.assert_called_once_with(self.device.handle, vme.ArbiterTypes.PRIORIZED)
+        for i in set(vme.ArbiterTypes):
+            self.device.set_arbiter_type(i)
+            self.mock_lib.set_arbiter_type.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_arbiter_type.reset_mock()
 
     def test_set_requester_type(self):
         """Test set_requester_type"""
-        self.device.set_requester_type(vme.RequesterTypes.FAIR)
-        self.mock_lib.set_requester_type.assert_called_once_with(self.device.handle, vme.RequesterTypes.FAIR)
+        for i in set(vme.RequesterTypes):
+            self.device.set_requester_type(i)
+            self.mock_lib.set_requester_type.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_requester_type.reset_mock()
 
     def test_set_release_type(self):
         """Test set_release_type"""
-        self.device.set_release_type(vme.ReleaseTypes.RWD)
-        self.mock_lib.set_release_type.assert_called_once_with(self.device.handle, vme.ReleaseTypes.RWD)
+        for i in set(vme.ReleaseTypes):
+            self.device.set_release_type(i)
+            self.mock_lib.set_release_type.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_release_type.reset_mock()
 
     def test_set_bus_req_level(self):
         """Test set_bus_req_level"""
-        self.device.set_bus_req_level(vme.BusReqLevels.BR0)
-        self.mock_lib.set_bus_req_level.assert_called_once_with(self.device.handle, vme.BusReqLevels.BR0)
+        for i in set(vme.BusReqLevels):
+            self.device.set_bus_req_level(i)
+            self.mock_lib.set_bus_req_level.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_bus_req_level.reset_mock()
 
     def test_set_timeout(self):
         """Test set_timeout"""
-        self.device.set_timeout(vme.VMETimeouts.T50_US)
-        self.mock_lib.set_timeout.assert_called_once_with(self.device.handle, vme.VMETimeouts.T50_US)
+        for i in set(vme.VMETimeouts):
+            self.device.set_timeout(i)
+            self.mock_lib.set_timeout.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_timeout.reset_mock()
 
     def test_set_location_monitor(self):
         """Test set_location_monitor"""
@@ -270,9 +284,11 @@ class TestDevice(unittest.TestCase):
 
     def test_get_release_type(self):
         """Test get_release_type"""
-        value = self.device.get_release_type(vme.ReleaseTypes.RWD)
-        self.assertEqual(value, 0)
-        self.mock_lib.get_release_type.assert_called_once_with(self.device.handle, vme.ReleaseTypes.RWD)
+        for i in set(vme.ReleaseTypes):
+            value = self.device.get_release_type(i)
+            self.assertEqual(value, 0)
+            self.mock_lib.get_release_type.assert_called_with(self.device.handle, i)
+            self.mock_lib.get_release_type.reset_mock()
 
     def test_get_bus_req_level(self):
         """Test get_bus_req_level"""
@@ -314,13 +330,17 @@ class TestDevice(unittest.TestCase):
 
     def test_start_pulser(self):
         """Test start_pulser"""
-        self.device.start_pulser(vme.PulserSelect.A)
-        self.mock_lib.start_pulser.assert_called_once_with(self.device.handle, vme.PulserSelect.A)
+        for i in set(vme.PulserSelect):
+            self.device.start_pulser(i)
+            self.mock_lib.start_pulser.assert_called_with(self.device.handle, i)
+            self.mock_lib.start_pulser.reset_mock()
 
     def test_stop_pulser(self):
         """Test stop_pulser"""
-        self.device.stop_pulser(vme.PulserSelect.A)
-        self.mock_lib.stop_pulser.assert_called_once_with(self.device.handle, vme.PulserSelect.A)
+        for i in set(vme.PulserSelect):
+            self.device.stop_pulser(i)
+            self.mock_lib.stop_pulser.assert_called_with(self.device.handle, i)
+            self.mock_lib.stop_pulser.reset_mock()
 
     def test_read_flash_page(self):
         """Test read_flash_page"""
@@ -335,8 +355,10 @@ class TestDevice(unittest.TestCase):
 
     def test_set_scaler_input_source(self):
         """Test set_scaler_input_source"""
-        self.device.set_scaler_input_source(vme.ScalerSource.IN0)
-        self.mock_lib.set_scaler_input_source.assert_called_once_with(self.device.handle, vme.ScalerSource.IN0)
+        for i in set(vme.ScalerSource):
+            self.device.set_scaler_input_source(i)
+            self.mock_lib.set_scaler_input_source.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_scaler_input_source.reset_mock()
 
     def test_get_scaler_input_source(self):
         """Test get_scaler_input_source"""
@@ -350,8 +372,10 @@ class TestDevice(unittest.TestCase):
 
     def test_set_scaler_gate_source(self):
         """Test set_scaler_gate_source"""
-        self.device.set_scaler_gate_source(vme.ScalerSource.IN0)
-        self.mock_lib.set_scaler_gate_source.assert_called_once_with(self.device.handle, vme.ScalerSource.IN0)
+        for i in set(vme.ScalerSource):
+            self.device.set_scaler_gate_source(i)
+            self.mock_lib.set_scaler_gate_source.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_scaler_gate_source.reset_mock()
 
     def test_get_scaler_gate_source(self):
         """Test get_scaler_gate_source"""
@@ -365,8 +389,10 @@ class TestDevice(unittest.TestCase):
 
     def test_set_scaler_mode(self):
         """Test set_scaler_mode"""
-        self.device.set_scaler_mode(vme.ScalerMode.GATE_MODE)
-        self.mock_lib.set_scaler_mode.assert_called_once_with(self.device.handle, vme.ScalerMode.GATE_MODE)
+        for i in set(vme.ScalerMode):
+            self.device.set_scaler_mode(i)
+            self.mock_lib.set_scaler_mode.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_scaler_mode.reset_mock()
 
     def test_get_scaler_mode(self):
         """Test get_scaler_mode"""
@@ -376,13 +402,17 @@ class TestDevice(unittest.TestCase):
 
     def test_set_scaler_clear_source(self):
         """Test set_scaler_clear_source"""
-        self.device.set_scaler_clear_source(vme.ScalerSource.IN0)
-        self.mock_lib.set_scaler_clear_source.assert_called_once_with(self.device.handle, vme.ScalerSource.IN0)
+        for i in set(vme.ScalerSource):
+            self.device.set_scaler_clear_source(i)
+            self.mock_lib.set_scaler_clear_source.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_scaler_clear_source.reset_mock()
 
     def test_set_scaler_start_source(self):
         """Test set_scaler_start_source"""
-        self.device.set_scaler_start_source(vme.ScalerSource.IN0)
-        self.mock_lib.set_scaler_start_source.assert_called_once_with(self.device.handle, vme.ScalerSource.IN0)
+        for i in set(vme.ScalerSource):
+            self.device.set_scaler_start_source(i)
+            self.mock_lib.set_scaler_start_source.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_scaler_start_source.reset_mock()
 
     def test_get_scaler_start_source(self):
         """Test get_scaler_start_source"""
@@ -396,8 +426,10 @@ class TestDevice(unittest.TestCase):
 
     def test_set_scaler_continuous_run(self):
         """Test set_scaler_continuous_run"""
-        self.device.set_scaler_continuous_run(vme.ContinuosRun.ON)
-        self.mock_lib.set_scaler_continuous_run.assert_called_once_with(self.device.handle, vme.ContinuosRun.ON)
+        for i in set(vme.ContinuosRun):
+            self.device.set_scaler_continuous_run(i)
+            self.mock_lib.set_scaler_continuous_run.assert_called_with(self.device.handle, i)
+            self.mock_lib.set_scaler_continuous_run.reset_mock()
 
     def test_get_scaler_continuous_run(self):
         """Test get_scaler_continuous_run"""
