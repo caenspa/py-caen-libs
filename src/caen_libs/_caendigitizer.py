@@ -4,10 +4,11 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
+from collections.abc import Callable
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Callable, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
 from caen_libs import error, _utils
 
@@ -187,8 +188,7 @@ class ReadMode(IntEnum):
 
 class Error(error.Error):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     @unique
@@ -418,12 +418,12 @@ class _Lib(_utils.Lib):
         self.vme_irq_check = self.__get('VMEIRQCheck', ct.c_int, _c_uint8_p)
         self.vme_iack_cycle = self.__get('VMEIACKCycle', ct.c_int, ct.c_uint8, _c_int32_p)
 
-    def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
+    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
+    def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         l_lib = self.lib if not kwargs.get('variadic', False) else self.lib_variadic
         if kwargs.get('private', False):
             func_name = f'_CAEN_DGTZ_{name}'
@@ -457,7 +457,7 @@ lib = _Lib('CAENDigitizer')
 
 def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
     if connection_type is ConnectionType.ETH_V4718:
-        assert isinstance(arg, str), 'arg expected to be an instance of str'
+        assert isinstance(arg, str), 'arg expected to be a string'
         return arg.encode()
     else:
         l_link_number = int(arg)
@@ -465,7 +465,7 @@ def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
         return ct.pointer(l_link_number_ct)
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class Device:
     """
     Class representing a device.
@@ -478,11 +478,14 @@ class Device:
     conet_node: int
     vme_base_address: int
 
+    # Private members
+    __opened: bool = field(default=True, repr=False)
+    __ro_buff: Any = field(default_factory=_c_char_p, repr=False)
+    __ro_buff_size: int = field(default=0, repr=False)
+    __ro_buff_occupancy: int = field(default=0, repr=False)
+    __registers: _utils.Registers = field(init=False, repr=False)
+
     def __post_init__(self) -> None:
-        self.__opened = True
-        self.__readout_buffer = _c_char_p()
-        self.__readout_buffer_size = 0
-        self.__readout_buffer_occupancy = 0
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
     def __del__(self) -> None:
@@ -494,7 +497,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: Type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
+    def open(cls: type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
         """
         Binding of CAEN_DGTZ_OpenDigitizer2()
         """
@@ -506,8 +509,9 @@ class Device:
     def connect(self) -> None:
         """
         Binding of CAEN_DGTZ_OpenDigitizer2()
-        New instances should be created with open().
-        This is meant to reconnect a device closed with close().
+
+        New instances should be created with open(). This is meant to
+        reconnect a device closed with close().
         """
         if self.__opened:
             raise RuntimeError('Already connected.')
@@ -587,7 +591,7 @@ class Device:
         """
         lib.set_interrupt_config(self.handle, state, level, status_id, event_number, mode)
 
-    def get_interrupt_config(self) -> Tuple[EnaDis, int, int, int, IRQMode]:
+    def get_interrupt_config(self) -> tuple[EnaDis, int, int, int, IRQMode]:
         """
         Binding of CAEN_DGTZ_GetInterruptConfig()
         """
@@ -843,7 +847,7 @@ class Device:
         """
         lib.set_channel_zs_params(self.handle, channel, weight, threshold, n_samples)
 
-    def get_channel_zs_params(self, channel: int) -> Tuple[ThresholdWeight, int, int]:
+    def get_channel_zs_params(self, channel: int) -> tuple[ThresholdWeight, int, int]:
         """
         Binding of CAEN_DGTZ_GetChannelZSParams()
         """
@@ -901,7 +905,7 @@ class Device:
         """
         lib.set_analog_inspection_mon_params(self.handle, channelmask, offset, mf, ami)
 
-    def get_analog_inspection_mon_params(self, channelmask: int, offset: int) -> Tuple[AnalogMonitorMagnify, AnalogMonitorInspectorInverter]:
+    def get_analog_inspection_mon_params(self, channelmask: int, offset: int) -> tuple[AnalogMonitorMagnify, AnalogMonitorInspectorInverter]:
         """
         Binding of CAEN_DGTZ_GetAnalogInspectionMonParams()
         """
@@ -965,30 +969,30 @@ class Device:
         l_buffer = _c_char_p()
         l_size = ct.c_uint32()
         lib.malloc_readout_buffer(self.handle, l_buffer, l_size)
-        self.__readout_buffer = l_buffer
-        self.__readout_buffer_size = l_size.value
+        self.__ro_buff = l_buffer
+        self.__ro_buff_size = l_size.value
 
     def free_readout_buffer(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeReadoutBuffer()
         """
-        lib.free_readout_buffer(self.__readout_buffer)
+        lib.free_readout_buffer(self.__ro_buff)
 
     def read_data(self, mode: ReadMode) -> None:
         """
         Binding of CAEN_DGTZ_ReadData()
         """
         l_size = ct.c_uint32()
-        lib.read_data(self.handle, mode, self.__readout_buffer, l_size)
-        self.__readout_buffer_occupancy = l_size.value
-        assert self.__readout_buffer_occupancy <= self.__readout_buffer_size
+        lib.read_data(self.handle, mode, self.__ro_buff, l_size)
+        self.__ro_buff_occupancy = l_size.value
+        assert self.__ro_buff_occupancy <= self.__ro_buff_size
 
     def get_num_events(self) -> int:
         """
         Binding of GetNumEvents()
         """
         l_value = ct.c_uint32()
-        lib.get_num_events(self.handle, self.__readout_buffer, self.__readout_buffer_occupancy, l_value)
+        lib.get_num_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, l_value)
         return l_value.value
 
     # Python utilities

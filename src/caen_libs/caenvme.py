@@ -9,10 +9,11 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 import sys
+from collections.abc import Callable, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, IntFlag, unique
-from typing import Callable, List, Sequence, Tuple, Type, TypeVar, Union
+from typing import TypeVar, Union
 
 from caen_libs import error, _utils
 
@@ -88,7 +89,7 @@ class DataWidth(IntEnum):
     D64_SWAP = D64 | _DSWAP  # 64 bit, swapped
 
     @property
-    def ctypes(self) -> Type:
+    def ctypes(self):
         """Get underlying ctypes type"""
         types = {
             DataWidth.D8:       ct.c_uint8,
@@ -156,11 +157,11 @@ class OutputSelect(IntEnum):
     """
     Binding of ::CVOutputSelect
     """
-    O0 = 0  # Identifies the output line 0
-    O1 = 1  # Identifies the output line 1
-    O2 = 2  # Identifies the output line 2
-    O3 = 3  # Identifies the output line 3
-    O4 = 4  # Identifies the output line 4
+    O0 = 0  # Output line 0
+    O1 = 1  # Output line 1
+    O2 = 2  # Output line 2
+    O3 = 3  # Output line 3
+    O4 = 4  # Output line 4
 
 
 @unique
@@ -168,8 +169,8 @@ class InputSelect(IntEnum):
     """
     Binding of ::CVInputSelect
     """
-    I0 = 0  # Identifies the input line 0
-    I1 = 1  # Identifies the input line 1
+    I0 = 0  # Input line 0
+    I1 = 1  # Input line 1
 
 
 @unique
@@ -193,11 +194,11 @@ class TimeUnits(IntEnum):
     """
     Binding of ::CVTimeUnits
     """
-    T25_NS   = 0  # Time unit is 25 nanoseconds
-    T1600_NS = 1  # Time unit is 1.6 microseconds
-    T410_US  = 2  # Time unit is 410 microseconds
-    T104_MS  = 3  # Time unit is 104 milliseconds
-    T25_US   = 4  # Time unit is 25 microseconds
+    T25_NS   = 0  # 25 nanoseconds
+    T1600_NS = 1  # 1.6 microseconds
+    T410_US  = 2  # 410 microseconds
+    T104_MS  = 3  # 104 milliseconds
+    T25_US   = 4  # 25 microseconds
 
 
 @unique
@@ -257,7 +258,7 @@ class _DisplayRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class Display:
     """
     Binding of ::CVDisplay
@@ -364,8 +365,7 @@ class ContinuosRun(IntEnum):
 
 class Error(error.Error):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     @unique
@@ -503,12 +503,12 @@ class _Lib(_utils.Lib):
         self.blt_read_async = self.__get('BLTReadAsync', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, linux_only=True)
         self.blt_read_wait = self.__get('BLTReadWait', ct.c_int32, _c_int_p, linux_only=True)
 
-    def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
+    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
         if res < 0:
             raise Error(self.__decode_error(res), res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
+    def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         if kwargs.get('linux_only', False) and sys.platform == 'win32':
             def fallback_win(*args, **kwargs):
                 raise RuntimeError(f'{name} function is Linux only.')
@@ -549,7 +549,7 @@ lib = _Lib(_LIB_NAME)
 
 def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
     if board_type in (BoardType.ETH_V4718, BoardType.ETH_V4718_LOCAL):
-        assert isinstance(arg, str), 'arg expected to be an instance of str'
+        assert isinstance(arg, str), 'arg expected to be a string'
         return arg.encode()
     else:
         l_link_number = int(arg)
@@ -557,7 +557,7 @@ def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
         return ct.pointer(l_link_number_ct)
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class Device:
     """
     Class representing a device.
@@ -569,8 +569,11 @@ class Device:
     arg: Union[int, str]
     conet_node: int
 
+    # Private members
+    __opened: bool = field(default=True, repr=False)
+    __registers: _utils.Registers = field(init=False, repr=False)
+
     def __post_init__(self) -> None:
-        self.__opened = True
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
     def __del__(self) -> None:
@@ -582,7 +585,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: Type[_T], board_type: BoardType, arg: Union[int, str], conet_node: int = 0) -> _T:
+    def open(cls: type[_T], board_type: BoardType, arg: Union[int, str], conet_node: int = 0) -> _T:
         """
         Binding of CAENVME_Init2()
         """
@@ -594,8 +597,9 @@ class Device:
     def connect(self) -> None:
         """
         Binding of CAENVME_Init2()
-        New instances should be created with open().
-        This is meant to reconnect a device closed with close().
+
+        New instances should be created with open(). This is meant to
+        reconnect a device closed with close().
         """
         if self.__opened:
             raise RuntimeError('Already connected.')
@@ -657,7 +661,7 @@ class Device:
         l_value = dw.ctypes(value)
         lib.write_cycle(self.handle, address, ct.byref(l_value), am, dw)
 
-    def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> List[int]:
+    def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> list[int]:
         """
         Binding of CAENVME_MultiRead()
         """
@@ -683,12 +687,12 @@ class Device:
         l_ams = (ct.c_int * n_cycles)(*ams)
         l_dws = (ct.c_int * n_cycles)(*dws)
         l_ecs = (ct.c_int * n_cycles)()
-        lib.multi_read(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
+        lib.multi_write(self.handle, l_addrs, l_data, n_cycles, l_ams, l_dws, l_ecs)
         if any(l_ecs):
             failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_ecs) if ec}
             raise RuntimeError(f'multi_write failed at cycles {failed_cycles}')
 
-    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:
+    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> list[int]:
         """
         Binding of CAENVME_BLTReadCycle()
         """
@@ -698,7 +702,7 @@ class Device:
         lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_data[:l_count.value]
 
-    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:
+    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> list[int]:
         """
         Binding of CAENVME_FIFOBLTReadCycle()
         """
@@ -834,7 +838,7 @@ class Device:
         """
         lib.set_input_conf(self.handle, in_sel, in_pol, led_pol)
 
-    def get_pulser_conf(self, pul_sel: PulserSelect) -> Tuple[int, int, TimeUnits, int, IOSources, IOSources]:
+    def get_pulser_conf(self, pul_sel: PulserSelect) -> tuple[int, int, TimeUnits, int, IOSources, IOSources]:
         """
         Binding of CAENVME_GetPulserConf()
         """
@@ -847,7 +851,7 @@ class Device:
         lib.get_pulser_conf(self.handle, pul_sel, l_period, l_width, l_unit, l_pulse_no, l_start, l_reset)
         return l_period.value, l_width.value, TimeUnits(l_unit.value), l_pulse_no.value, IOSources(l_start.value), IOSources(l_reset.value)
 
-    def get_scaler_conf(self) -> Tuple[int, int, IOSources, IOSources, IOSources]:
+    def get_scaler_conf(self) -> tuple[int, int, IOSources, IOSources, IOSources]:
         """
         Binding of CAENVME_GetScalerConf()
         """
@@ -859,23 +863,23 @@ class Device:
         lib.get_scaler_conf(self.handle, l_limit, l_auto_reset, l_hit, l_gate, l_reset)
         return l_limit.value, l_auto_reset.value, IOSources(l_hit.value), IOSources(l_gate.value), IOSources(l_reset.value)
 
-    def get_output_conf(self, out_sel: OutputSelect) -> Tuple[IOPolarity, LEDPolarity, IOSources]:
+    def get_output_conf(self, out_sel: OutputSelect) -> tuple[IOPolarity, LEDPolarity, IOSources]:
         """
         Binding of CAENVME_GetOutputConf()
         """
         l_out_pol = ct.c_int()
         l_led_pol = ct.c_int()
         l_source = ct.c_int()
-        lib.get_output_conf(out_sel, l_out_pol, l_led_pol, l_source)
+        lib.get_output_conf(self.handle, out_sel, l_out_pol, l_led_pol, l_source)
         return IOPolarity(l_out_pol.value), LEDPolarity(l_led_pol.value), IOSources(l_source.value)
 
-    def get_input_conf(self, in_sel: InputSelect) -> Tuple[IOPolarity, LEDPolarity]:
+    def get_input_conf(self, in_sel: InputSelect) -> tuple[IOPolarity, LEDPolarity]:
         """
         Binding of CAENVME_GetInputConf()
         """
         l_in_pol = ct.c_int()
         l_led_pol = ct.c_int()
-        lib.get_input_conf(in_sel, l_in_pol, l_led_pol)
+        lib.get_input_conf(self.handle, in_sel, l_in_pol, l_led_pol)
         return IOPolarity(l_in_pol.value), LEDPolarity(l_led_pol.value)
 
     def read_register(self, address: int) -> int:
@@ -1223,7 +1227,7 @@ class Device:
         """
         lib.set_scaler_sw_close_gate(self.handle)
 
-    def blt_read_async(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> List[int]:
+    def blt_read_async(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> list[int]:
         """
         Binding of CAENVME_BLTReadAsync()
         """

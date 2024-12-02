@@ -9,12 +9,13 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 import sys
+from collections.abc import Callable
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Callable, Tuple, Type, TypeVar, Union
+from typing import TypeVar, Union
 
-from caen_libs import error, _utils
+from caen_libs import error, _string, _utils
 
 
 @unique
@@ -49,7 +50,7 @@ class _USBDeviceRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class USBDevice(ct.Structure):
     """
     Binding of ::tUSBDevice
@@ -91,7 +92,7 @@ class _BoardInfoRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class BoardInfo(ct.Structure):
     """
     Binding of ::tBOARDInfo
@@ -116,7 +117,7 @@ class BoardInfo(ct.Structure):
     revis2: int
     revis1: int
     revis0: int
-    reserved: Tuple[int, ...]
+    reserved: tuple[int, ...]
     sernum0_v2: int
     sernum1_v2: int
     sernum2_v2: int
@@ -127,8 +128,7 @@ class BoardInfo(ct.Structure):
 
 class Error(error.Error):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     @unique
@@ -203,12 +203,12 @@ class _Lib(_utils.Lib):
         self.get_serial_number = self.__get('GetSerialNumber', ct.c_int, ct.c_char_p, ct.c_uint32)
         self.connection_status = self.__get('ConnectionStatus', ct.c_int, _c_int_p)
 
-    def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
+    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type) -> Callable[..., int]:
+    def __get(self, name: str, *args: type) -> Callable[..., int]:
         func = getattr(self.lib, f'CAEN_PLU_{name}')
         func.argtypes = args
         func.restype = ct.c_int
@@ -219,11 +219,12 @@ class _Lib(_utils.Lib):
 
     def decode_error(self, error_code: int) -> str:
         """
-        There is no function to decode error, we just use the enumeration name.
+        There is no function to decode error, we just use the
+        enumeration name.
         """
         return Error.Code(error_code).name
 
-    def usb_enumerate(self) -> Tuple[USBDevice, ...]:
+    def usb_enumerate(self) -> tuple[USBDevice, ...]:
         """
         Binding of CAEN_PLU_USBEnumerate()
         """
@@ -240,18 +241,18 @@ class _Lib(_utils.Lib):
             ) for i in l_data[:l_num_devs.value]
         )
 
-    def usb_enumerate_serial_number(self) -> Tuple[str, ...]:
+    def usb_enumerate_serial_number(self) -> tuple[str, ...]:
         """
         Binding of CAEN_PLU_USBEnumerateSerialNumber()
 
-        Note: the underlying library is bugged, as of version v1.3,
-        if there is more than one board.
+        Note: the underlying library is bugged, as of version v1.3, if
+        there is more than one board.
         """
         l_num_devs = ct.c_uint()
         l_device_sn_length = 512  # Undocumented but, hopefully, long enough
         l_device_sn = ct.create_string_buffer(l_device_sn_length)
         self.__usb_enumerate_serial_number(l_num_devs, l_device_sn, l_device_sn_length)
-        return tuple(_utils.str_from_char(l_device_sn, l_num_devs.value))
+        return tuple(_string.from_char(l_device_sn, l_num_devs.value))
 
 
 # Library name is platform dependent
@@ -266,7 +267,7 @@ lib = _Lib(_LIB_NAME)
 
 def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):
     if connection_mode in (ConnectionModes.DIRECT_ETH, ConnectionModes.VME_V4718_ETH):
-        assert isinstance(arg, str), 'arg expected to be an instance of str'
+        assert isinstance(arg, str), 'arg expected to be a string'
         return arg.encode()
     elif connection_mode in (ConnectionModes.DIRECT_USB, ConnectionModes.VME_V1718, ConnectionModes.VME_V2718):
         l_link_number_i = int(arg)
@@ -278,7 +279,7 @@ def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):
         return ct.pointer(l_link_number_u32_ct)
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class Device:
     """
     Class representing a device.
@@ -291,8 +292,11 @@ class Device:
     conet_node: int
     vme_base_address: str
 
+    # Private members
+    __opened: bool = field(default=True, repr=False)
+    __registers: _utils.Registers = field(init=False, repr=False)
+
     def __post_init__(self) -> None:
-        self.__opened = True
         self.__registers = _utils.Registers(self.read_reg, self.write_reg)
 
     def __del__(self) -> None:
@@ -304,7 +308,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: Type[_T], connection_mode: ConnectionModes, arg: Union[int, str], conet_node: int, vme_base_address: Union[int, str]) -> _T:
+    def open(cls: type[_T], connection_mode: ConnectionModes, arg: Union[int, str], conet_node: int, vme_base_address: Union[int, str]) -> _T:
         """
         Binding of CAEN_PLU_OpenDevice2()
         """
@@ -318,8 +322,9 @@ class Device:
     def connect(self) -> None:
         """
         Binding of CAEN_PLU_OpenDevice2()
-        New instances should be created with open().
-        This is meant to reconnect a device closed with close().
+
+        New instances should be created with open(). This is meant to
+        reconnect a device closed with close().
         """
         if self.__opened:
             raise RuntimeError('Already connected.')

@@ -12,13 +12,13 @@ import ctypes.wintypes as ctw
 import os
 import socket
 import sys
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional,
-                    Sequence, Tuple, Type, TypeVar, Union)
+from typing import Any, ClassVar, Optional, TypeVar, Union
 
-from caen_libs import error, _utils
+from caen_libs import _cache, _string, _utils, error
 
 
 @unique
@@ -78,13 +78,13 @@ class _SystemStatusRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class SystemStatus:
     """
     Binding of ::CAENHV_SYSTEMSTATUS_t
     """
     system: EventStatus
-    board: Tuple[EventStatus, ...]
+    board: tuple[EventStatus, ...]
 
 
 @unique
@@ -117,7 +117,7 @@ class _EventDataRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class EventData:
     """
     Binding of ::CAENHVEVENT_TYPE_t
@@ -129,7 +129,7 @@ class EventData:
     value: Union[str, float, int]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class FwVersion:
     """
     Firmware version
@@ -141,7 +141,7 @@ class FwVersion:
         return f'{self.major}.{self.minor}'
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class Board:
     """
     Type returned by ::CAENHV_GetCrateMap
@@ -177,7 +177,7 @@ class SysPropMode(IntEnum):
     RDWR    = 2
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class SysProp:
     """
     Type returned by ::CAENHV_GetSysPropInfo
@@ -192,6 +192,7 @@ class ParamType(IntEnum):
     """
     Binding of ::PARAM_TYPE_*
     """
+    _INVALID    = 0xBAAAAAAD  # Special value for Python binding
     NUMERIC     = 0
     ONOFF       = 1
     CHSTATUS    = 2
@@ -232,7 +233,7 @@ class ParamUnit(IntEnum):
     APS     = 12
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class ParamProp:
     """
     Type returned by ::CAENHV_GetBdParamProp
@@ -247,13 +248,12 @@ class ParamProp:
     resol: Optional[int] = field(default=None)
     onstate: Optional[str] = field(default=None)
     offstate: Optional[str] = field(default=None)
-    enum: Optional[Tuple[str, ...]] = field(default=None)
+    enum: Optional[tuple[str, ...]] = field(default=None)
 
 
 class Error(error.Error):
     """
-    Raised when a wrapped C API function returns
-    negative values.
+    Raised when a wrapped C API function returns negative values.
     """
 
     @unique
@@ -304,8 +304,9 @@ class Error(error.Error):
         @classmethod
         def _missing_(cls, _):
             """
-            Sometimes library returns values not contained in the enumerator.
-            Yes, they are bugs.
+            Sometimes library returns values not contained in the
+            enumerator, due to errors in the library itself. We
+            catch them and return UNKNOWN.
             """
             return cls.UNKNOWN
 
@@ -340,7 +341,7 @@ else:
     _socket = ct.c_int
 
 
-_SYS_PROP_TYPE_GET_ARG: Dict[SysPropType, Callable] = {
+_SYS_PROP_TYPE_GET_ARG: dict[SysPropType, Callable] = {
     SysPropType.STR:        lambda v: v.value.decode(),
     SysPropType.REAL:       lambda v: ct.cast(v, _P(ct.c_float)).contents.value,
     SysPropType.UINT2:      lambda v: ct.cast(v, _P(ct.c_uint16)).contents.value,
@@ -351,7 +352,7 @@ _SYS_PROP_TYPE_GET_ARG: Dict[SysPropType, Callable] = {
 }
 
 
-_SYS_PROP_TYPE_SET_ARG: Dict[SysPropType, Callable] = {
+_SYS_PROP_TYPE_SET_ARG: dict[SysPropType, Callable] = {
     SysPropType.STR:        lambda v: v.encode(),
     SysPropType.REAL:       lambda v: ct.pointer(ct.c_float(v)),
     SysPropType.UINT2:      lambda v: ct.pointer(ct.c_uint16(v)),
@@ -365,7 +366,7 @@ _SYS_PROP_TYPE_SET_ARG: Dict[SysPropType, Callable] = {
 _STR_SIZE = 1024  # Undocumented but, hopefully, long enough
 
 
-_PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
+_PARAM_TYPE_GET_ARG: dict[ParamType, Callable[[int], ct.Array]] = {
     # c_int is replaced by c_uint on some systems, but should be the same.
     ParamType.NUMERIC:      lambda n: (ct.c_float * n)(),
     ParamType.ONOFF:        lambda n: (ct.c_int * n)(),
@@ -378,7 +379,7 @@ _PARAM_TYPE_GET_ARG: Dict[ParamType, Callable[[int], ct.Array]] = {
 }
 
 
-_PARAM_TYPE_SET_ARG: Dict[ParamType, Callable[[Any, int], Any]] = {
+_PARAM_TYPE_SET_ARG: dict[ParamType, Callable[[Any, int], Any]] = {
     # We generate an array with the same value for the reason described
     # in the caller docstring.
     # c_int is replaced by c_uint on some systems, but should be the same.
@@ -393,7 +394,7 @@ _PARAM_TYPE_SET_ARG: Dict[ParamType, Callable[[Any, int], Any]] = {
 }
 
 
-_SYS_PROP_TYPE_EVENT_ARG: Dict[SysPropType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
+_SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
     SysPropType.STR:        lambda v: v.StringValue.decode(),
     SysPropType.REAL:       lambda v: v.FloatValue,
     SysPropType.UINT2:      lambda v: v.IntValue,
@@ -404,7 +405,7 @@ _SYS_PROP_TYPE_EVENT_ARG: Dict[SysPropType, Callable[[_IdValueRaw], Union[str, f
 }
 
 
-_PARAM_TYPE_EVENT_ARG: Dict[ParamType, Callable] = {
+_PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
     ParamType.NUMERIC:      lambda v: v.FloatValue,
     ParamType.ONOFF:        lambda v: v.IntValue,
     ParamType.CHSTATUS:     lambda v: v.IntValue,
@@ -459,12 +460,12 @@ class _Lib(_utils.Lib):
         self.unsubscribe_channel_params = self.__get('UnSubscribeChannelParams', ct.c_int, ct.c_short, ct.c_ushort, ct.c_ushort, _c_char_p, ct.c_uint, _c_char_p)
         self.__get_error = self.__get_str('GetError', ct.c_int)
 
-    def __api_errcheck(self, res: int, func: Callable, _: Tuple) -> int:
+    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
         if res != Error.Code.OK:
             raise Error('details not available', res, func.__name__)
         return res
 
-    def __api_handle_errcheck(self, res: int, func: Callable, func_args: Tuple) -> int:
+    def __api_handle_errcheck(self, res: int, func: Callable, func_args: tuple) -> int:
         """
         Binding of CAENHV_GetError()
 
@@ -479,7 +480,7 @@ class _Lib(_utils.Lib):
             raise Error(self.get_error(handle), res, func.__name__)
         return res
 
-    def __get(self, name: str, *args: Type, **kwargs) -> Callable[..., int]:
+    def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         # Use lib_variadic as API is __cdecl
         func = getattr(self.lib_variadic, f'CAENHV_{name}')
         func.argtypes = args
@@ -490,7 +491,7 @@ class _Lib(_utils.Lib):
             func.errcheck = self.__api_errcheck
         return func
 
-    def __get_str(self, name: str, *args: Type, **kwargs) -> Callable[..., str]:
+    def __get_str(self, name: str, *args: type, **kwargs) -> Callable[..., str]:
         # Use lib_variadic as API is __cdecl
         if kwargs.get('legacy', False):
             func_name = f'CAENHV{name}'
@@ -502,7 +503,7 @@ class _Lib(_utils.Lib):
         func.errcheck = lambda res, func, args: res.decode()
         return func
 
-    def __ver_at_least(self, target: Tuple[int, ...]) -> bool:
+    def __ver_at_least(self, target: tuple[int, ...]) -> bool:
         ver = self.sw_release()
         return _utils.version_to_tuple(ver) >= target
 
@@ -527,7 +528,7 @@ class _Lib(_utils.Lib):
         return self.__ver_at_least((7, 0, 0))
 
     @contextmanager
-    def auto_ptr(self, pointer_type: Type):
+    def auto_ptr(self, pointer_type):
         """
         Context manager to auto free on scope exit.
 
@@ -535,8 +536,7 @@ class _Lib(_utils.Lib):
         when freeing, in case callee function does not set the pointer.
         """
         value = _P(pointer_type)()
-        if __debug__:
-            assert bool(value) is False  # Must be NULL
+        assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -551,8 +551,7 @@ class _Lib(_utils.Lib):
         when freeing, in case callee function does not set the pointer.
         """
         value = _P(_EventDataRaw)()
-        if __debug__:
-            assert bool(value) is False  # Must be NULL
+        assert bool(value) is False  # Must be NULL
         try:
             yield value
         finally:
@@ -568,8 +567,7 @@ else:
 
 lib = _Lib(_LIB_NAME)
 
-
-@dataclass
+@dataclass(**_utils.dataclass_slots_weakref)
 class Device:
     """
     Class representing a device.
@@ -589,16 +587,15 @@ class Device:
     MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
     MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
 
-    # Static private members
-    __node_cache_manager: ClassVar[_utils.CacheManager] = _utils.CacheManager()
-    __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
+    # Private members
+    __opened: bool = field(default=True, repr=False)
+    __port: int = field(default=0, repr=False)
+    __skt_server: Optional[socket.socket] = field(default=None, repr=False)
+    __skt_client: Optional[socket.socket] = field(default=None, repr=False)
 
-    def __post_init__(self):
-        # Internal events related stuff
-        self.__opened = True
-        self.__port = 0
-        self.__skt_server = None
-        self.__skt_client = None
+    # Static private members
+    __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
+    __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
 
     def __del__(self) -> None:
         if self.__opened:
@@ -609,7 +606,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: Type[_T], system_type: SystemType, link_type: LinkType, arg: str, username: str = '', password: str = '') -> _T:
+    def open(cls: type[_T], system_type: SystemType, link_type: LinkType, arg: str, username: str = '', password: str = '') -> _T:
         """
         Binding of CAENHV_InitSystem()
         """
@@ -620,8 +617,9 @@ class Device:
     def connect(self) -> None:
         """
         Binding of CAENHV_InitSystem()
-        New instances should be created with open().
-        This is meant to reconnect a device closed with close().
+
+        New instances should be created with open(). This is meant to
+        reconnect a device closed with close().
         """
         if self.__opened:
             raise RuntimeError('Already connected.')
@@ -630,7 +628,7 @@ class Device:
         self.handle = l_handle.value
         self.__opened = True
 
-    @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
+    @_cache.clear(cache_manager=__cache_manager)
     def close(self) -> None:
         """
         Binding of CAENHV_DeinitSystem()
@@ -640,8 +638,8 @@ class Device:
         lib.deinit_system(self.handle)
         self.__opened = False
 
-    @_utils.lru_cache_clear(cache_manager=__node_cache_manager)
-    def get_crate_map(self) -> Tuple[Optional[Board], ...]:
+    @_cache.clear(cache_manager=__cache_manager)
+    def get_crate_map(self) -> tuple[Optional[Board], ...]:
         """
         Binding of CAENHV_GetCrateMap()
 
@@ -657,8 +655,8 @@ class Device:
         g_frmaxl = lib.auto_ptr(ct.c_ubyte)
         with g_nocl as l_nocl, g_ml as l_ml, g_dl as l_dl, g_snl as l_snl, g_frminl as l_frminl, g_frmaxl as l_frmaxl:
             lib.get_crate_map(self.handle, l_nos, l_nocl, l_ml, l_dl, l_snl, l_frminl, l_frmaxl)
-            ml = tuple(_utils.str_from_char_p(l_ml, l_nos.value))
-            dl = tuple(_utils.str_from_char_p(l_dl, l_nos.value))
+            ml = tuple(_string.from_char_p(l_ml, l_nos.value))
+            dl = tuple(_string.from_char_p(l_dl, l_nos.value))
             return tuple(
                 Board(
                     ml[i],
@@ -669,8 +667,8 @@ class Device:
                 ) if l_nocl[i] != 0 else None for i in range(l_nos.value)
             )
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
-    def get_sys_prop_list(self) -> Tuple[str, ...]:
+    @_cache.cached(cache_manager=__cache_manager)
+    def get_sys_prop_list(self) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetSysPropList()
         """
@@ -678,9 +676,9 @@ class Device:
         g_prop_name_list = lib.auto_ptr(ct.c_char)
         with g_prop_name_list as l_pnl:
             lib.get_sys_prop_list(self.handle, l_num_prop, l_pnl)
-            return tuple(_utils.str_from_char_p(l_pnl, l_num_prop.value))
+            return tuple(_string.from_char_p(l_pnl, l_num_prop.value))
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
+    @_cache.cached(cache_manager=__cache_manager)
     def get_sys_prop_info(self, name: str) -> SysProp:
         """
         Binding of CAENHV_GetSysPropInfo()
@@ -707,7 +705,7 @@ class Device:
         l_value = _SYS_PROP_TYPE_SET_ARG[prop_type](value)
         lib.set_sys_prop(self.handle, name.encode(), l_value)
 
-    def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[List[str], List[float], List[int]]:
+    def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[list[str], list[float], list[int]]:
         """
         Binding of CAENHV_GetBdParam()
         """
@@ -715,14 +713,13 @@ class Device:
         if n_indexes == 0:
             return []  # type: ignore
         first_index = slot_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(first_index, name)
+        param_type = self.__get_param_type(first_index, name, None)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
         if param_type is ParamType.STRING and self.__char_p_p_str_bd_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
             p_begin = ct.addressof(l_data)
             p_size = ct.sizeof(l_data)
-            if __debug__:
-                assert p_size % _STR_SIZE == 0
+            assert p_size % _STR_SIZE == 0
             l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
         else:
             l_data_proxy = l_data
@@ -730,9 +727,9 @@ class Device:
         lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data_proxy)
         if param_type is ParamType.STRING:
             if self.__char_p_p_str_bd_param_arg():
-                return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
+                return list(_string.from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
-                return list(_utils.str_from_char(l_data, n_indexes))
+                return list(_string.from_char(l_data, n_indexes))
         else:
             return l_data[:]
 
@@ -740,20 +737,23 @@ class Device:
         """
         Binding of CAENHV_SetBdParam()
 
-        The CAEN HV Wrapper is not consistent, since it allows to pass an array of values as input, to
-        be set respectively to the slots in the slot_list, but this is done only on some system
-        types (notably, on SY4527 and R6060 it uses only the first value of the array for all channels
-        in the slot_list). To make their behavior homogeneous, we do the same also on systems
-        supporting different values, setting the same value on all slots.
-        The trick is not done on parameters of STRING type because the systems that accept an array
-        as input do not have any writable parameter of that type. The trick is not done on CMD type
-        because the input value is ignored.
+        The CAEN HV Wrapper is not consistent, since it allows to pass
+        an array of values as input, to be set respectively to the slots
+        in the slot_list, but this is done only on some system types
+        (notably, on SY4527 and R6060 it uses only the first value of
+        the array for all channels in the slot_list). To make their
+        behavior homogeneous, we do the same also on systems supporting
+        different values, setting the same value on all slots. The trick
+        is not done on parameters of STRING type because the systems
+        that accept an array as input do not have any writable parameter
+        of that type. The trick is not done on CMD type because the
+        input value is ignored.
         """
         n_indexes = len(slot_list)
         if n_indexes == 0:
             return
         first_index = slot_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(first_index, name)
+        param_type = self.__get_param_type(first_index, name, None)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
@@ -762,17 +762,17 @@ class Device:
         """
         Binding of CAENHV_GetBdParamProp()
         """
-        return self.__get_param_prop(slot, name)
+        return self.__get_param_prop(slot, name, None)
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
-    def get_bd_param_info(self, slot: int) -> Tuple[str, ...]:
+    @_cache.cached(cache_manager=__cache_manager)
+    def get_bd_param_info(self, slot: int) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetBdParamInfo()
         """
         g_value = lib.auto_ptr(ct.c_char)
         with g_value as l_value:
             lib.get_bd_param_info(self.handle, slot, l_value)
-            return tuple(_utils.str_from_char_array(l_value.contents, self.MAX_PARAM_NAME))
+            return tuple(_string.from_char_array(l_value.contents, self.MAX_PARAM_NAME))
 
     def test_bd_presence(self, slot: int) -> Board:
         """
@@ -802,8 +802,8 @@ class Device:
         """
         return self.__get_param_prop(slot, name, channel)
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
-    def get_ch_param_info(self, slot: int, channel: int) -> Tuple[str, ...]:
+    @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
+    def get_ch_param_info(self, slot: int, channel: int) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetChParamInfo()
         """
@@ -811,9 +811,9 @@ class Device:
         with g_value as l_value:
             l_size = ct.c_int()
             lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
-            return tuple(_utils.str_from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value))
+            return tuple(_string.from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value))
 
-    def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> Tuple[str, ...]:
+    def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetChName()
         """
@@ -824,7 +824,7 @@ class Device:
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
         l_value = (ct.c_char * (self.MAX_CH_NAME * n_allocated_values))()
         lib.get_ch_name(self.handle, slot, n_indexes, l_index_list, l_value)
-        return tuple(_utils.str_from_n_char_array(l_value, self.MAX_CH_NAME, n_indexes))
+        return tuple(_string.from_n_char_array(l_value, self.MAX_CH_NAME, n_indexes))
 
     def set_ch_name(self, slot: int, channel_list: Sequence[int], name: str) -> None:
         """
@@ -836,7 +836,7 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_name(self.handle, slot, n_indexes, l_index_list, name.encode())
 
-    def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[List[str], List[float], List[int]]:
+    def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[list[str], list[float], list[int]]:
         """
         Binding of CAENHV_GetChParam()
         """
@@ -858,9 +858,9 @@ class Device:
         lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data_proxy)
         if param_type is ParamType.STRING:
             if self.__char_p_p_str_ch_param_arg():
-                return list(_utils.str_from_n_char_array(l_data, _STR_SIZE, n_indexes))
+                return list(_string.from_n_char_array(l_data, _STR_SIZE, n_indexes))
             else:
-                return list(_utils.str_from_char(l_data, n_indexes))
+                return list(_string.from_char(l_data, n_indexes))
         else:
             return l_data[:]
 
@@ -879,8 +879,8 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager)
-    def get_exec_comm_list(self) -> Tuple[str, ...]:
+    @_cache.cached(cache_manager=__cache_manager)
+    def get_exec_comm_list(self) -> tuple[str, ...]:
         """
         Binding of CAENHV_GetExecCommList()
         """
@@ -888,7 +888,7 @@ class Device:
         g_comm_name_list = lib.auto_ptr(ct.c_char)
         with g_comm_name_list as l_cnl:
             lib.get_exec_comm_list(self.handle, l_num_comm, l_cnl)
-            return tuple(_utils.str_from_char_p(l_cnl, l_num_comm.value))
+            return tuple(_string.from_char_p(l_cnl, l_num_comm.value))
 
     def exec_comm(self, name: str) -> None:
         """
@@ -900,102 +900,39 @@ class Device:
         """
         Binding of CAENHV_SubscribeSystemParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        self.__init_events_server()
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'subscribe_system_params failed at params {failed_params}')
+        self.__subscribe_params(param_list, None, None)
 
     def subscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
         """
         Binding of CAENHV_SubscribeBoardParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        self.__init_events_server()
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'subscribe_board_params failed at params {failed_params}')
+        self.__subscribe_params(param_list, slot, None)
 
     def subscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
         """
         Binding of CAENHV_SubscribeChannelParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        self.__init_events_server()
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.subscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'subscribe_channel_params failed at params {failed_params}')
+        return self.__subscribe_params(param_list, slot, channel)
 
     def unsubscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
         Binding of CAENHV_UnSubscribeSystemParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'unsubscribe_system_params failed at params {failed_params}')
+        return self.__unsubscribe_params(param_list, None, None)
 
     def unsubscribe_board_params(self, slot: int, param_list: Sequence[str]) -> None:
         """
         Binding of CAENHV_UnSubscribeBoardParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'unsubscribe_board_params failed at params {failed_params}')
+        return self.__unsubscribe_params(param_list, slot, None)
 
     def unsubscribe_channel_params(self, slot: int, channel: int, param_list: Sequence[str]) -> None:
         """
-        Binding of CAENHV_SubscribeChannelParams()
+        Binding of CAENHV_UnSubscribeChannelParams()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
-            return
-        l_param_name_list = ':'.join(param_list).encode()
-        l_result_codes = (ct.c_char * param_list_len)()
-        lib.unsubscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
-            raise RuntimeError(f'unsubscribe_channel_params failed at params {failed_params}')
+        return self.__unsubscribe_params(param_list, slot, channel)
 
-    def get_event_data(self) -> Tuple[Tuple[EventData, ...], SystemStatus]:
+    def get_event_data(self) -> tuple[tuple[EventData, ...], SystemStatus]:
         """
         Binding of CAENHV_GetEventData()
 
@@ -1024,10 +961,10 @@ class Device:
         """
         Get single parameter property.
 
-        If args are defined, they are used to construct the value passed to the
-        C library, and could be used to catch errors (see comment in __get_param_type)
-        If default is set in kwargs, it returns var_type(default) in case of
-        PARAMPROPNOTFOUND error.
+        If args are defined, they are used to construct the value passed
+        to the C library, and could be used to catch errors (see comment
+        in __get_param_type). If default is set in kwargs, it returns
+        var_type(default) in case of PARAMPROPNOTFOUND error.
         """
         l_value = var_type(*args)
         try:
@@ -1043,10 +980,11 @@ class Device:
             raise ex
         return l_value
 
-    def __get_param_prop(self, slot: int, name: str, channel: Optional[int] = None) -> ParamProp:
+    def __get_param_prop(self, slot: int, name: str, channel: Optional[int]) -> ParamProp:
         """
         Get all parameter properties.
-        Cannot be cached since minval/maxval may depend on the value of other parameters.
+        Cannot be cached since minval/maxval may depend on the value of
+        other parameters.
         """
         # Mandatory values (raise if name is not valid)
         param_type = self.__get_param_type(slot, name, channel)
@@ -1072,68 +1010,123 @@ class Device:
             n_enums = int(res.maxval - res.minval + 1)
             assert n_enums <= self.MAX_ENUM_VALS
             l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.MAX_ENUM_NAME * self.MAX_ENUM_VALS))
-            res.enum = tuple(_utils.str_from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
+            res.enum = tuple(_string.from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
         return res
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
-    def __get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
-        """Simplified version of __get_param_prop used internally to retrieve just param type."""
+    @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
+    def __get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
+        """
+        Simplified version of __get_param_prop used internally to
+        retrieve just param type.
+        """
         # Initialize arg to -1 to detect errors because library functions, at least
         # on some modules like N1470, return success even if the parameter does not
         # exist. We detect this error as the value is not modified by the library,
         # and we map it to a library Error value. The check is not done on all the
         # properties because, in case of invalid parameter, it will fail in the very
         # first call.
-        bad_value = -1
-        if __debug__:
-            if sys.version_info >= (3, 12):
-                assert bad_value not in ParamType
-            else:
-                assert bad_value not in set(ParamType)
-        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, bad_value).value
-        if value == bad_value:
-            raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
+        # pylint: disable=W0212
+        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, ParamType._INVALID).value
+        if value == ParamType._INVALID:
+            raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_type')
         return ParamType(value)
 
-    @_utils.lru_cache_method(cache_manager=__node_cache_manager, maxsize=4096)
-    def __get_param_mode(self, slot: int, name: str, channel: Optional[int] = None) -> ParamMode:
-        """Simplified version of __get_param_prop used internally to retrieve just param mode."""
+    @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
+    def __get_param_mode(self, slot: int, name: str, channel: Optional[int]) -> ParamMode:
+        """
+        Simplified version of __get_param_prop used internally to
+        retrieve just param mode.
+        """
         # See comment on __get_param_type
-        bad_value = -1
-        if __debug__:
-            if sys.version_info >= (3, 12):
-                assert bad_value not in ParamType
-            else:
-                assert bad_value not in set(ParamType)
-        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, bad_value).value
-        if value == bad_value:
+        # pylint: disable=W0212
+        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, ParamType._INVALID).value
+        if value == ParamType._INVALID:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamMode(value)
 
     def __check_events_support(self) -> None:
-        """SY1527/SY2527 have a legacy version of events not supported by this binding"""
+        """
+        SY1527/SY2527 have a legacy version of events not supported by
+        this binding
+        """
         if self.system_type in (SystemType.SY1527, SystemType.SY2527):
-            raise RuntimeError('Legacy events not supported by this binding.')
+            raise NotImplementedError('Legacy events not supported by this binding.')
 
     def __library_event_thread(self) -> bool:
-        """Devices with polling thread within library"""
+        """
+        Devices with polling thread within library
+        """
         return self.system_type not in (SystemType.SY4527, SystemType.SY5527, SystemType.R6060)
 
     def __resol_param_prop(self) -> bool:
-        """Devices with weird Resol parameter property on numeric data"""
+        """
+        Devices with weird Resol parameter property on numeric data
+        """
         return self.system_type in (SystemType.V8100,)
 
     def __new_events_format(self) -> bool:
-        """Devices with new events format, with socket opened within the library"""
+        """
+        Devices with new events format, with socket opened within the
+        library
+        """
         return self.system_type in (SystemType.R6060,)
 
     def __char_p_p_str_bd_param_arg(self) -> bool:
-        """Devices that requires a char** as argument of get_bd_param of type STRING"""
+        """
+        Devices that requires a char** as argument of get_bd_param of
+        type STRING
+        """
         return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E)
 
     def __char_p_p_str_ch_param_arg(self) -> bool:
-        """Devices that requires a char** as argument of get_ch_param of type STRING"""
+        """
+        Devices that requires a char** as argument of get_ch_param of
+        type STRING
+        """
         return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100)
+
+    def __subscribe_params(self, param_list: Sequence[str], slot: Optional[int], channel: Optional[int]) -> None:
+        """
+        Binding of CAENHV_Subscribe*Params()
+        """
+        param_list_len = len(param_list)
+        if param_list_len == 0:
+            return
+        self.__init_events_server()
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        if slot is None:
+            lib.subscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
+        elif channel is None:
+            lib.subscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
+        else:
+            lib.subscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
+        if any(result_codes):
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
+            raise RuntimeError(f'subscribe failed at params {failed_params}')
+
+    def __unsubscribe_params(self, param_list: Sequence[str], slot: Optional[int], channel: Optional[int]) -> None:
+        """
+        Binding of CAENHV_UnSubscribe*Params()
+        """
+        param_list_len = len(param_list)
+        if param_list_len == 0:
+            return
+        l_param_name_list = ':'.join(param_list).encode()
+        l_result_codes = (ct.c_char * param_list_len)()
+        if slot is None:
+            lib.unsubscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
+        elif channel is None:
+            lib.unsubscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
+        else:
+            lib.unsubscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
+        if any(result_codes):
+            # resuls_codes values are not instances of ::CAENHVRESULT
+            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
+            raise RuntimeError(f'unsubscribe failed at params {failed_params}')
 
     def __init_events_server(self):
         if self.__skt_server is not None:
@@ -1192,11 +1185,11 @@ class Device:
                     arg.extend(char)
                 assert self.arg == arg.decode()
 
-    def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int] = None) -> ParamType:
+    def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
         """
-        Same of __get_param_type, with a workaround for Name: even if not being
-        a real channel parameter, i.e. get_ch_param_prop does not work, changes
-        are sent as events of type PARAMETER.
+        Same of __get_param_type, with a workaround for Name: even if
+        not being a real channel parameter, i.e. get_ch_param_prop does
+        not work, changes are sent as events of type PARAMETER.
         """
         if channel is not None and name == 'Name':
             return ParamType.STRING
