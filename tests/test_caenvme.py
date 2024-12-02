@@ -1,7 +1,7 @@
 """Tests for the caen_libs.caenvme module."""
 
 import unittest
-from unittest.mock import DEFAULT, patch
+from unittest.mock import ANY, DEFAULT, patch
 
 import caen_libs.caenvme as vme
 
@@ -35,19 +35,19 @@ class TestDevice(unittest.TestCase):
         """Test board_fw_release"""
         fw_release = self.device.board_fw_release()
         self.assertEqual(fw_release, '')
-        self.mock_lib.board_fw_release.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.board_fw_release.assert_called_once_with(self.device.handle, ANY)
 
     def test_driver_release(self):
         """Test driver_release"""
         driver_release = self.device.driver_release()
         self.assertEqual(driver_release, '')
-        self.mock_lib.driver_release.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.driver_release.assert_called_once_with(self.device.handle, ANY)
 
     def test_read_register(self):
         """Test read_register"""
         value = self.device.read_register(0x1000)
         self.assertEqual(value, 0)
-        self.mock_lib.read_register.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY)
+        self.mock_lib.read_register.assert_called_once_with(self.device.handle, 0x1000, ANY)
 
     def test_write_register(self):
         """Test write_register"""
@@ -58,12 +58,12 @@ class TestDevice(unittest.TestCase):
         """Test read_cycle"""
         value = self.device.read_cycle(0x1000, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
         self.assertEqual(value, 0)
-        self.mock_lib.read_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
+        self.mock_lib.read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
 
     def test_write_cycle(self):
         """Test write_cycle"""
         self.device.write_cycle(0x1000, 0x1234, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
-        self.mock_lib.write_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
+        self.mock_lib.write_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
 
     def test_multi_read(self):
         """Test multi_read"""
@@ -72,7 +72,7 @@ class TestDevice(unittest.TestCase):
         dws = [vme.DataWidth.D32, vme.DataWidth.D32]
         values = self.device.multi_read(addrs, ams, dws)
         self.assertEqual(values, [0, 0])
-        self.mock_lib.multi_read.assert_called_once_with(self.device.handle, unittest.mock.ANY, unittest.mock.ANY, 2, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY)
+        self.mock_lib.multi_read.assert_called_once_with(self.device.handle, ANY, ANY, 2, ANY, ANY, ANY)
 
     def test_multi_write(self):
         """Test multi_write"""
@@ -81,7 +81,7 @@ class TestDevice(unittest.TestCase):
         ams = [vme.AddressModifiers.A32_U_DATA, vme.AddressModifiers.A32_U_DATA]
         dws = [vme.DataWidth.D32, vme.DataWidth.D32]
         self.device.multi_write(addrs, data, ams, dws)
-        self.mock_lib.multi_write.assert_called_once_with(self.device.handle, unittest.mock.ANY, unittest.mock.ANY, 2, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY)
+        self.mock_lib.multi_write.assert_called_once_with(self.device.handle, ANY, ANY, 2, ANY, ANY, ANY)
 
     def test_irq_enable(self):
         """Test irq_enable"""
@@ -102,19 +102,19 @@ class TestDevice(unittest.TestCase):
         """Test blt_read_cycle"""
         values = self.device.blt_read_cycle(0x1000, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
         self.assertEqual(values, [])
-        self.mock_lib.blt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, unittest.mock.ANY)
+        self.mock_lib.blt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, ANY)
 
     def test_fifo_blt_read_cycle(self):
         """Test fifo_blt_read_cycle"""
         values = self.device.fifo_blt_read_cycle(0x1000, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
         self.assertEqual(values, [])
-        self.mock_lib.fifo_blt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, unittest.mock.ANY)
+        self.mock_lib.fifo_blt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, ANY)
 
     def test_mblt_read_cycle(self):
         """Test mblt_read_cycle"""
         values = self.device.mblt_read_cycle(0x1000, 256, vme.AddressModifiers.A32_U_DATA)
         self.assertEqual(values, b'')
-        self.mock_lib.mblt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, 256, vme.AddressModifiers.A32_U_DATA, unittest.mock.ANY)
+        self.mock_lib.mblt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 256, vme.AddressModifiers.A32_U_DATA, ANY)
 
     def test_fifo_mblt_read_cycle(self):
         """Test fifo_mblt_read_cycle"""
@@ -125,7 +125,7 @@ class TestDevice(unittest.TestCase):
         self.mock_lib.fifo_mblt_read_cycle.side_effect = side_effect
         values = self.device.fifo_mblt_read_cycle(0x1000, 256, vme.AddressModifiers.A32_U_DATA)
         self.assertEqual(values, b'\x12\x34')
-        self.mock_lib.fifo_mblt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, 256, vme.AddressModifiers.A32_U_DATA, unittest.mock.ANY)
+        self.mock_lib.fifo_mblt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 256, vme.AddressModifiers.A32_U_DATA, ANY)
 
     def test_blt_write_cycle(self):
         """Test blt_write_cycle"""
@@ -135,25 +135,25 @@ class TestDevice(unittest.TestCase):
         self.mock_lib.blt_write_cycle.side_effect = side_effect
         count = self.device.blt_write_cycle(0x1000, [0x1234, 0x5678], vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
         self.assertEqual(count, 10)
-        self.mock_lib.blt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, 8, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, unittest.mock.ANY)
+        self.mock_lib.blt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 8, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, ANY)
 
     def test_fifo_blt_write_cycle(self):
         """Test fifo_blt_write_cycle"""
         count = self.device.fifo_blt_write_cycle(0x1000, [0x1234, 0x5678], vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
         self.assertEqual(count, 0)
-        self.mock_lib.fifo_blt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, 8, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, unittest.mock.ANY)
+        self.mock_lib.fifo_blt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 8, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, ANY)
 
     def test_mblt_write_cycle(self):
         """Test mblt_write_cycle"""
         count = self.device.mblt_write_cycle(0x1000, b'\x12\x34\x56\x78', vme.AddressModifiers.A32_U_DATA)
         self.assertEqual(count, 0)
-        self.mock_lib.mblt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, 4, vme.AddressModifiers.A32_U_DATA, unittest.mock.ANY)
+        self.mock_lib.mblt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 4, vme.AddressModifiers.A32_U_DATA, ANY)
 
     def test_fifo_mblt_write_cycle(self):
         """Test fifo_mblt_write_cycle"""
         count = self.device.fifo_mblt_write_cycle(0x1000, b'\x12\x34\x56\x78', vme.AddressModifiers.A32_U_DATA)
         self.assertEqual(count, 0)
-        self.mock_lib.fifo_mblt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, 4, vme.AddressModifiers.A32_U_DATA, unittest.mock.ANY)
+        self.mock_lib.fifo_mblt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 4, vme.AddressModifiers.A32_U_DATA, ANY)
 
     def test_ado_cycle(self):
         """Test ado_cycle"""
@@ -169,13 +169,13 @@ class TestDevice(unittest.TestCase):
         """Test iack_cycle"""
         value = self.device.iack_cycle(vme.IRQLevels.L1, vme.DataWidth.D32)
         self.assertEqual(value, 0)
-        self.mock_lib.iack_cycle.assert_called_once_with(self.device.handle, vme.IRQLevels.L1, unittest.mock.ANY, vme.DataWidth.D32)
+        self.mock_lib.iack_cycle.assert_called_once_with(self.device.handle, vme.IRQLevels.L1, ANY, vme.DataWidth.D32)
 
     def test_irq_check(self):
         """Test irq_check"""
         value = self.device.irq_check()
         self.assertEqual(value, 0)
-        self.mock_lib.irq_check.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.irq_check.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_pulser_conf(self):
         """Test set_pulser_conf"""
@@ -201,20 +201,20 @@ class TestDevice(unittest.TestCase):
         """Test get_pulser_conf"""
         conf = self.device.get_pulser_conf(vme.PulserSelect.A)
         self.assertEqual(conf, (0, 0, 0, 0, 0, 0))
-        self.mock_lib.get_pulser_conf.assert_called_once_with(self.device.handle, vme.PulserSelect.A, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY)
+        self.mock_lib.get_pulser_conf.assert_called_once_with(self.device.handle, vme.PulserSelect.A, ANY, ANY, ANY, ANY, ANY, ANY)
 
     def test_get_scaler_conf(self):
         """Test get_scaler_conf"""
         conf = self.device.get_scaler_conf()
         self.assertEqual(conf, (0, 0, 0, 0, 0))
-        self.mock_lib.get_scaler_conf.assert_called_once_with(self.device.handle, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY)
+        self.mock_lib.get_scaler_conf.assert_called_once_with(self.device.handle, ANY, ANY, ANY, ANY, ANY)
 
     def test_get_output_conf(self):
         """Test get_output_conf"""
         for i in set(vme.OutputSelect):
             conf = self.device.get_output_conf(i)
             self.assertEqual(conf, (0, 0, 0))
-            self.mock_lib.get_output_conf.assert_called_with(self.device.handle, i, unittest.mock.ANY, unittest.mock.ANY, unittest.mock.ANY)
+            self.mock_lib.get_output_conf.assert_called_with(self.device.handle, i, ANY, ANY, ANY)
             self.mock_lib.get_output_conf.reset_mock()
 
     def test_get_input_conf(self):
@@ -222,7 +222,7 @@ class TestDevice(unittest.TestCase):
         for i in set(vme.InputSelect):
             conf = self.device.get_input_conf(i)
             self.assertEqual(conf, (0, 0))
-            self.mock_lib.get_input_conf.assert_called_with(self.device.handle, i, unittest.mock.ANY, unittest.mock.ANY)
+            self.mock_lib.get_input_conf.assert_called_with(self.device.handle, i, ANY, ANY)
             self.mock_lib.get_input_conf.reset_mock()
 
     def test_set_arbiter_type(self):
@@ -274,13 +274,13 @@ class TestDevice(unittest.TestCase):
         """Test get_arbiter_type"""
         value = self.device.get_arbiter_type()
         self.assertEqual(value, 0)
-        self.mock_lib.get_arbiter_type.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_arbiter_type.assert_called_once_with(self.device.handle, ANY)
 
     def test_get_requester_type(self):
         """Test get_requester_type"""
         value = self.device.get_requester_type()
         self.assertEqual(value, 0)
-        self.mock_lib.get_requester_type.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_requester_type.assert_called_once_with(self.device.handle, ANY)
 
     def test_get_release_type(self):
         """Test get_release_type"""
@@ -294,19 +294,19 @@ class TestDevice(unittest.TestCase):
         """Test get_bus_req_level"""
         value = self.device.get_bus_req_level()
         self.assertEqual(value, 0)
-        self.mock_lib.get_bus_req_level.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_bus_req_level.assert_called_once_with(self.device.handle, ANY)
 
     def test_get_timeout(self):
         """Test get_timeout"""
         value = self.device.get_timeout()
         self.assertEqual(value, 0)
-        self.mock_lib.get_timeout.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_timeout.assert_called_once_with(self.device.handle, ANY)
 
     def test_get_fifo_mode(self):
         """Test get_fifo_mode"""
         value = self.device.get_fifo_mode()
         self.assertEqual(value, 0)
-        self.mock_lib.get_fifo_mode.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_fifo_mode.assert_called_once_with(self.device.handle, ANY)
 
     def test_system_reset(self):
         """Test system_reset"""
@@ -346,7 +346,7 @@ class TestDevice(unittest.TestCase):
         """Test read_flash_page"""
         values = self.device.read_flash_page(0)
         self.assertEqual(values, b'\x00' * 264)
-        self.mock_lib.read_flash_page.assert_called_once_with(self.device.handle, unittest.mock.ANY, 0)
+        self.mock_lib.read_flash_page.assert_called_once_with(self.device.handle, ANY, 0)
 
     def test_erase_flash_page(self):
         """Test erase_flash_page"""
@@ -368,7 +368,7 @@ class TestDevice(unittest.TestCase):
         self.mock_lib.get_scaler_input_source.side_effect = side_effect
         value = self.device.get_scaler_input_source()
         self.assertEqual(value, vme.ScalerSource.IN0.value)
-        self.mock_lib.get_scaler_input_source.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_scaler_input_source.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_scaler_gate_source(self):
         """Test set_scaler_gate_source"""
@@ -385,7 +385,7 @@ class TestDevice(unittest.TestCase):
         self.mock_lib.get_scaler_gate_source.side_effect = side_effect
         value = self.device.get_scaler_gate_source()
         self.assertEqual(value, vme.ScalerSource.IN0.value)
-        self.mock_lib.get_scaler_gate_source.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_scaler_gate_source.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_scaler_mode(self):
         """Test set_scaler_mode"""
@@ -398,7 +398,7 @@ class TestDevice(unittest.TestCase):
         """Test get_scaler_mode"""
         value = self.device.get_scaler_mode()
         self.assertEqual(value, 0)
-        self.mock_lib.get_scaler_mode.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_scaler_mode.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_scaler_clear_source(self):
         """Test set_scaler_clear_source"""
@@ -422,7 +422,7 @@ class TestDevice(unittest.TestCase):
         self.mock_lib.get_scaler_start_source.side_effect = side_effect
         value = self.device.get_scaler_start_source()
         self.assertEqual(value, vme.ScalerSource.IN0.value)
-        self.mock_lib.get_scaler_start_source.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_scaler_start_source.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_scaler_continuous_run(self):
         """Test set_scaler_continuous_run"""
@@ -435,7 +435,7 @@ class TestDevice(unittest.TestCase):
         """Test get_scaler_continuous_run"""
         value = self.device.get_scaler_continuous_run()
         self.assertEqual(value, 0)
-        self.mock_lib.get_scaler_continuous_run.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_scaler_continuous_run.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_scaler_max_hits(self):
         """Test set_scaler_max_hits"""
@@ -446,7 +446,7 @@ class TestDevice(unittest.TestCase):
         """Test get_scaler_max_hits"""
         value = self.device.get_scaler_max_hits()
         self.assertEqual(value, 0)
-        self.mock_lib.get_scaler_max_hits.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_scaler_max_hits.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_scaler_dwell_time(self):
         """Test set_scaler_dwell_time"""
@@ -457,7 +457,7 @@ class TestDevice(unittest.TestCase):
         """Test get_scaler_dwell_time"""
         value = self.device.get_scaler_dwell_time()
         self.assertEqual(value, 0)
-        self.mock_lib.get_scaler_dwell_time.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.get_scaler_dwell_time.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_scaler_sw_start(self):
         """Test set_scaler_sw_start"""
@@ -487,13 +487,13 @@ class TestDevice(unittest.TestCase):
     def test_blt_read_async(self):
         """Test blt_read_async"""
         self.device.blt_read_async(0x1000, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
-        self.mock_lib.blt_read_async.assert_called_once_with(self.device.handle, 0x1000, unittest.mock.ANY, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
+        self.mock_lib.blt_read_async.assert_called_once_with(self.device.handle, 0x1000, ANY, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
 
     def test_blt_read_wait(self):
         """Test blt_read_wait"""
         value = self.device.blt_read_wait()
         self.assertEqual(value, 0)
-        self.mock_lib.blt_read_wait.assert_called_once_with(self.device.handle, unittest.mock.ANY)
+        self.mock_lib.blt_read_wait.assert_called_once_with(self.device.handle, ANY)
 
 if __name__ == '__main__':
     unittest.main()

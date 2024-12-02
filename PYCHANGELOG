@@ -18,7 +18,7 @@ New features:
 - Dropped support for Python 3.8
 
 Fixes:
-- Fix `multi_write`, `get_input_conf` and `get_output_conf` on `caenvme`
+- Fix `multi_write`, `get_input_conf` and `get_output_conf` on `caenvme`.
 
 
 v1.2.0 (18/11/2024)
