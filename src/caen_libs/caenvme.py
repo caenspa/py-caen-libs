@@ -31,7 +31,7 @@ class BoardType(IntEnum):
     USB_A4818_V2718_LOCAL = 5
     USB_A4818_V2718 = 6
 
-    #V3718
+    # V3718
     USB_V3718_LOCAL = 14
     USB_V3718 = 17
     PCI_A2818_V3718_LOCAL = 15
@@ -135,9 +135,9 @@ class AddressModifiers(IntEnum):
     A40_BLT      = 0x37  # A40 block transfer (MD32) @warning Not yet implem
     A40_LCK      = 0x35  # A40 lock command @warning Not yet implemented
     A40          = 0x34  # A40 access @warning Not yet implemented
-    A64          = 0x01  # A64 single trnsfer access @warning Not yet implem
+    A64          = 0x01  # A64 single transfer access @warning Not yet implemented
     A64_BLT      = 0x03  # A64 block transfer @warning Not yet implemented
-    A64_MBLT     = 0x00  # A64 64-bit block transfer @warning Not yet implem
+    A64_MBLT     = 0x00  # A64 64-bit block transfer @warning Not yet implemented
     A64_LCK      = 0x04  # A64 lock command @warning Not yet implemented
     A3U_2EVME    = 0x21  # 2eVME for 3U modules @warning Not yet implemented
     A6U_2EVME    = 0x20  # 2eVME for 6U modules @warning Not yet implemented

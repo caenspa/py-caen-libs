@@ -42,7 +42,7 @@ def cached(cache_manager: Optional[Manager] = None, maxsize: int = 128, typed: b
     a factor > 1000.
     This wrapper using weak references is required: functools.lru_cache
     holds a reference to all arguments: using directly on the methods it
-    would hold a reference to self, introducing subdle memory leaks.
+    would hold a reference to self, introducing subtle memory leaks.
 
     @sa https://stackoverflow.com/a/68052994/3287591
     """
