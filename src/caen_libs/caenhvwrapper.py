@@ -598,10 +598,9 @@ class Device:
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
     __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
-    __dualstack_ipv6: ClassVar[bool] = socket.has_dualstack_ipv6()
-    __family = socket.AF_INET6 if __dualstack_ipv6 else socket.AF_INET
-    __skt_options: ClassVar[dict] = {'family': __family, 'dualstack_ipv6': __dualstack_ipv6, 'backlog': 1} # Just one client
-    __localhost: ClassVar[str] = '::1' if __dualstack_ipv6 else '127.0.0.1'
+    __family: ClassVar[int] = socket.AF_INET6 if socket.has_dualstack_ipv6() else socket.AF_INET
+    __skt_options: ClassVar[dict] = {'family': __family, 'dualstack_ipv6': __family is socket.AF_INET6, 'backlog': 1} # Just one client
+    __localhost: ClassVar[str] = '::1' if __family is socket.AF_INET6 else '127.0.0.1'  # Unclear if 'localhost' is valid too, so we use the IP
 
     def __del__(self) -> None:
         if self.__opened:
