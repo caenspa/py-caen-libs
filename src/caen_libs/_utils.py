@@ -11,7 +11,7 @@ import ctypes as ct
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Optional, overload
+from typing import Any, Optional, Union, overload
 
 if sys.platform == 'win32':
     _LibNotFoundClass = FileNotFoundError
@@ -30,8 +30,8 @@ class Lib:
         self.__load_lib()
 
     def __load_lib(self) -> None:
-        loader: ct.LibraryLoader
-        loader_variadic: ct.LibraryLoader
+        loader: Union[ct.LibraryLoader[ct.WinDLL], ct.LibraryLoader[ct.CDLL]]
+        loader_variadic: ct.LibraryLoader[ct.CDLL]
 
         # Platform dependent stuff
         if sys.platform == 'win32':
@@ -72,12 +72,12 @@ class Lib:
         return self.__path
 
     @property
-    def lib(self) -> Any:
+    def lib(self) -> Union[ct.WinDLL, ct.CDLL]:
         """ctypes object to shared library"""
         return self.__lib
 
     @property
-    def lib_variadic(self) -> Any:
+    def lib_variadic(self) -> ct.CDLL:
         """ctypes object to shared library (for variadic functions)"""
         return self.__lib_variadic
 

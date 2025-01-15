@@ -203,16 +203,16 @@ class _Lib(_utils.Lib):
         self.get_serial_number = self.__get('GetSerialNumber', ct.c_int, ct.c_char_p, ct.c_uint32)
         self.connection_status = self.__get('ConnectionStatus', ct.c_int, _c_int_p)
 
-    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
+    def __api_errcheck(self, res: int, func, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
 
     def __get(self, name: str, *args: type) -> Callable[..., int]:
-        func = getattr(self.lib, f'CAEN_PLU_{name}')
+        func = self.lib[f'CAEN_PLU_{name}']
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck
+        func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     # C API bindings

@@ -17,7 +17,6 @@ from typing import TypeVar, Union
 
 from caen_libs import error, _utils
 
-
 @unique
 class BoardType(IntEnum):
     """
@@ -503,7 +502,7 @@ class _Lib(_utils.Lib):
         self.blt_read_async = self.__get('BLTReadAsync', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, linux_only=True)
         self.blt_read_wait = self.__get('BLTReadWait', ct.c_int32, _c_int_p, linux_only=True)
 
-    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
+    def __api_errcheck(self, res: int, func, _: tuple) -> int:
         if res < 0:
             raise Error(self.__decode_error(res), res, func.__name__)
         return res
@@ -513,17 +512,18 @@ class _Lib(_utils.Lib):
             def fallback_win(*args, **kwargs):
                 raise RuntimeError(f'{name} function is Linux only.')
             return fallback_win
-        func = getattr(self.lib, f'CAENVME_{name}')
+        func = self.lib[f'CAENVME_{name}']
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck
+        func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     def __get_str(self, name: str, *args) -> Callable[..., str]:
-        func = getattr(self.lib, f'CAENVME_{name}')
+        func = self.lib[f'CAENVME_{name}']
         func.argtypes = args
         func.restype = ct.c_char_p
-        func.errcheck = lambda res, func, args: res.decode()
+        # cannot fail, errcheck improperly used to cast bytes to str
+        func.errcheck = lambda res, *_: res.decode()  # type: ignore
         return func
 
     # C API bindings

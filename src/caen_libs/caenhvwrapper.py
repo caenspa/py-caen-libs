@@ -13,7 +13,7 @@ import os
 import socket
 import sys
 from collections.abc import Callable, Iterator, Sequence
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 from typing import Any, ClassVar, Optional, TypeVar, Union
@@ -460,12 +460,12 @@ class _Lib(_utils.Lib):
         self.unsubscribe_channel_params = self.__get('UnSubscribeChannelParams', ct.c_int, ct.c_short, ct.c_ushort, ct.c_ushort, _c_char_p, ct.c_uint, _c_char_p)
         self.__get_error = self.__get_str('GetError', ct.c_int)
 
-    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
+    def __api_errcheck(self, res: int, func, _: tuple) -> int:
         if res != Error.Code.OK:
             raise Error('details not available', res, func.__name__)
         return res
 
-    def __api_handle_errcheck(self, res: int, func: Callable, func_args: tuple) -> int:
+    def __api_handle_errcheck(self, res: int, func, func_args: tuple) -> int:
         """
         Binding of CAENHV_GetError()
 
@@ -482,13 +482,13 @@ class _Lib(_utils.Lib):
 
     def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         # Use lib_variadic as API is __cdecl
-        func = getattr(self.lib_variadic, f'CAENHV_{name}')
+        func = self.lib_variadic[f'CAENHV_{name}']
         func.argtypes = args
         func.restype = ct.c_int
         if kwargs.get('handle_errcheck', True):
-            func.errcheck = self.__api_handle_errcheck
+            func.errcheck = self.__api_handle_errcheck  # type: ignore
         else:
-            func.errcheck = self.__api_errcheck
+            func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     def __get_str(self, name: str, *args: type, **kwargs) -> Callable[..., str]:
@@ -497,10 +497,11 @@ class _Lib(_utils.Lib):
             func_name = f'CAENHV{name}'
         else:
             func_name = f'CAENHV_{name}'
-        func = getattr(self.lib_variadic, func_name)
+        func = self.lib_variadic[func_name]
         func.argtypes = args
         func.restype = ct.c_char_p
-        func.errcheck = lambda res, func, args: res.decode()
+        # cannot fail, errcheck improperly used to cast bytes to str
+        func.errcheck = lambda res, *_: res.decode()  # type: ignore
         return func
 
     def __ver_at_least(self, target: tuple[int, ...]) -> bool:
@@ -567,6 +568,7 @@ else:
 
 lib = _Lib(_LIB_NAME)
 
+
 @dataclass(**_utils.dataclass_slots_weakref)
 class Device:
     """
@@ -596,6 +598,10 @@ class Device:
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
     __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
+    __dualstack_ipv6: ClassVar[bool] = socket.has_dualstack_ipv6()
+    __family = socket.AF_INET6 if __dualstack_ipv6 else socket.AF_INET
+    __skt_options: ClassVar[dict] = {'family': __family, 'dualstack_ipv6': __dualstack_ipv6, 'backlog': 1} # Just one client
+    __localhost: ClassVar[str] = '::1' if __dualstack_ipv6 else '127.0.0.1'
 
     def __del__(self) -> None:
         if self.__opened:
@@ -636,6 +642,19 @@ class Device:
         This will also clear class cache.
         """
         lib.deinit_system(self.handle)
+        # Close connections, if any
+        if self.__skt_client is not None:
+            if not self.__new_events_format():
+                # Connection should already be properly closed by deinit_system.
+                pass
+            else:
+                # Gracefully close the connection.
+                self.__skt_client.shutdown(socket.SHUT_RDWR)
+                self.__skt_client.close()
+            self.__skt_client = None
+        if self.__skt_server is not None:
+            self.__skt_server.close()
+            self.__skt_server = None
         self.__opened = False
 
     @_cache.clear(cache_manager=__cache_manager)
@@ -1128,6 +1147,20 @@ class Device:
             failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'unsubscribe failed at params {failed_params}')
 
+    def __create_server(self):
+        """
+        Initialize a server socket for events.
+
+        Socket will be compatible with both IPv6 and IPv4, if supported.
+        """
+        # If possible, bind to loopback to prevent ask for administator rights on Windows
+        bind_addr = self.__localhost if self.__library_event_thread() else ''
+        for port in range(self.__first_bind_port, 65536):
+            # Suppress OSError raised if bind fails
+            with suppress(OSError):
+                return socket.create_server((bind_addr, port), **self.__skt_options)
+        raise RuntimeError('No available port found.')
+
     def __init_events_server(self):
         if self.__skt_server is not None:
             return
@@ -1139,19 +1172,8 @@ class Device:
             # EventDataSocket is meaningful. No need to set port value, it's ignored.
             self.__skt_server = socket.socket()
         else:
-            skt = socket.socket()
-            bind_addr = '127.0.0.1' if self.__library_event_thread() else ''
-            # Find first available port
-            port = self.__first_bind_port
-            while True:
-                try:
-                    skt.bind((bind_addr, port))
-                    break
-                except OSError:
-                    port += 1
-            skt.listen(1)  # Just one client
-            self.__port = port
-            self.__skt_server = skt
+            self.__skt_server = self.__create_server()
+            _, self.__port = self.__skt_server.getsockname()
 
     def __init_events_client(self):
         if self.__skt_client is not None:

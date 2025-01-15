@@ -418,7 +418,7 @@ class _Lib(_utils.Lib):
         self.vme_irq_check = self.__get('VMEIRQCheck', ct.c_int, _c_uint8_p)
         self.vme_iack_cycle = self.__get('VMEIACKCycle', ct.c_int, ct.c_uint8, _c_int32_p)
 
-    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
+    def __api_errcheck(self, res: int, func, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
@@ -429,10 +429,10 @@ class _Lib(_utils.Lib):
             func_name = f'_CAEN_DGTZ_{name}'
         else:
             func_name = f'CAEN_DGTZ_{name}'
-        func = getattr(l_lib, func_name)
+        func = l_lib[func_name]
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck
+        func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     # C API bindings

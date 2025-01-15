@@ -143,7 +143,7 @@ class _Lib(_utils.Lib):
         # Load API available only on recent library versions
         self.__reboot_device = self.__get('RebootDevice', ct.c_int, ct.c_int, min_version=(1, 7, 0))
 
-    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
+    def __api_errcheck(self, res: int, func, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
@@ -157,10 +157,10 @@ class _Lib(_utils.Lib):
                 def fallback(*args, **kwargs):
                     raise RuntimeError(f'{name} requires {self.name} >= {min_version}. Please update it.')
                 return fallback
-        func = getattr(self.lib, f'CAENComm_{name}')
+        func = self.lib[f'CAENComm_{name}']
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck
+        func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     def __ver_at_least(self, target: tuple[int, ...]) -> bool:
