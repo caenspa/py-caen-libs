@@ -644,8 +644,8 @@ class Device:
         lib.deinit_system(self.handle)
         # Close connections, if any
         if self.__skt_client is not None:
-            if not self.__new_events_format():
-                # Connection should already be properly closed by deinit_system.
+            if self.__new_events_format():
+                # Nothing to do, socket managed internally by the library
                 pass
             else:
                 # Gracefully close the connection.
