@@ -87,19 +87,16 @@ class DataWidth(IntEnum):
     D32_SWAP = D32 | _DSWAP  # 32 bit, swapped
     D64_SWAP = D64 | _DSWAP  # 64 bit, swapped
 
-    @property
-    def ctypes(self):
-        """Get underlying ctypes type"""
-        types = {
-            DataWidth.D8:       ct.c_uint8,
-            DataWidth.D16:      ct.c_uint16,
-            DataWidth.D16_SWAP: ct.c_uint16,
-            DataWidth.D32:      ct.c_uint32,
-            DataWidth.D32_SWAP: ct.c_uint32,
-            DataWidth.D64:      ct.c_uint64,
-            DataWidth.D64_SWAP: ct.c_uint64,
-        }
-        return types[self]
+
+_DATA_WIDTH_TYPE = {
+    DataWidth.D8:       ct.c_uint8,
+    DataWidth.D16:      ct.c_uint16,
+    DataWidth.D16_SWAP: ct.c_uint16,
+    DataWidth.D32:      ct.c_uint32,
+    DataWidth.D32_SWAP: ct.c_uint32,
+    DataWidth.D64:      ct.c_uint64,
+    DataWidth.D64_SWAP: ct.c_uint64,
+}
 
 
 @unique
@@ -642,7 +639,7 @@ class Device:
         """
         Binding of CAENVME_ReadCycle()
         """
-        l_value = dw.ctypes()
+        l_value = _DATA_WIDTH_TYPE[dw]()
         lib.read_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
@@ -650,7 +647,7 @@ class Device:
         """
         Binding of CAENVME_RMWCycle()
         """
-        l_value = dw.ctypes(value)
+        l_value = _DATA_WIDTH_TYPE[dw](value)
         lib.rmw_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
@@ -658,7 +655,7 @@ class Device:
         """
         Binding of CAENVME_WriteCycle()
         """
-        l_value = dw.ctypes(value)
+        l_value = _DATA_WIDTH_TYPE[dw](value)
         lib.write_cycle(self.handle, address, ct.byref(l_value), am, dw)
 
     def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> list[int]:
@@ -696,21 +693,21 @@ class Device:
         """
         Binding of CAENVME_BLTReadCycle()
         """
-        n_data = size // ct.sizeof(dw.ctypes)
-        l_data = (dw.ctypes * n_data)()
+        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
         l_count = ct.c_int()
         lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_data[:l_count.value]
+        return l_data[:l_count.value]  # type: ignore
 
     def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> list[int]:
         """
         Binding of CAENVME_FIFOBLTReadCycle()
         """
-        n_data = size // ct.sizeof(dw.ctypes)
-        l_data = (dw.ctypes * n_data)()
+        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
         l_count = ct.c_int()
         lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_data[:l_count.value]
+        return l_data[:l_count.value]  # type: ignore
 
     def mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
@@ -735,8 +732,8 @@ class Device:
         Binding of CAENVME_BLTWriteCycle()
         """
         n_data = len(data)
-        size = n_data * ct.sizeof(dw.ctypes)  # in bytes
-        l_data = (dw.ctypes * n_data)(*data)
+        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
         l_count = ct.c_int()
         lib.blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_count.value
@@ -746,8 +743,8 @@ class Device:
         Binding of CAENVME_FIFOBLTWriteCycle()
         """
         n_data = len(data)
-        size = n_data * ct.sizeof(dw.ctypes)  # in bytes
-        l_data = (dw.ctypes * n_data)(*data)
+        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
         l_count = ct.c_int()
         lib.fifo_blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_count.value
@@ -784,7 +781,7 @@ class Device:
         """
         Binding of CAENVME_IACKCycle()
         """
-        l_data = dw.ctypes()
+        l_data = _DATA_WIDTH_TYPE[dw]()
         lib.iack_cycle(self.handle, levels, l_data, dw)
         return l_data.value
 
@@ -1231,10 +1228,10 @@ class Device:
         """
         Binding of CAENVME_BLTReadAsync()
         """
-        n_data = size // ct.sizeof(dw.ctypes)
-        l_data = (dw.ctypes * n_data)()
+        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
         lib.blt_read_async(self.handle, address, l_data, size, am, dw)
-        return l_data[:]
+        return l_data[:]  # type: ignore
 
     def blt_read_wait(self) -> int:
         """
