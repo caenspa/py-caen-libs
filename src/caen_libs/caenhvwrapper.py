@@ -430,10 +430,11 @@ class _Lib(_utils.Lib):
         self.__free = self.__get('Free', ct.c_void_p, handle_errcheck=False)
         self.__sw_rel = self.__get_str('LibSwRel', legacy=True)
 
+        ser_num_type = _c_uint_p_p if self.support_32bit_pid() else _c_ushort_p_p
+
         # Load API
         self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p)
         self.deinit_system = self.__get('DeinitSystem', ct.c_int)
-        ser_num_type = _c_uint_p_p if self.support_32bit_pid() else _c_ushort_p_p
         self.get_crate_map = self.__get('GetCrateMap', ct.c_int, _c_ushort_p, _c_ushort_p_p, _c_char_p_p, _c_char_p_p, ser_num_type, _c_ubyte_p_p, _c_ubyte_p_p)
         self.get_sys_prop_list = self.__get('GetSysPropList', ct.c_int, _c_ushort_p, _c_char_p_p)
         self.get_sys_prop_info = self.__get('GetSysPropInfo', ct.c_int, _c_char_p, _c_uint_p, _c_uint_p)
@@ -477,7 +478,7 @@ class _Lib(_utils.Lib):
         """
         if res != Error.Code.OK:
             handle = func_args[0]  # first argument is always handle
-            raise Error(self.get_error(handle), res, func.__name__)
+            raise Error(self.__get_error(handle), res, func.__name__)
         return res
 
     def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
@@ -509,12 +510,6 @@ class _Lib(_utils.Lib):
         return _utils.version_to_tuple(ver) >= target
 
     # C API bindings
-
-    def get_error(self, error_code: int) -> str:
-        """
-        Binding of CAENHV_GetError()
-        """
-        return self.__get_error(error_code)
 
     def sw_release(self) -> str:
         """
@@ -1122,7 +1117,7 @@ class Device:
         result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
+            failed_params = {param_list[i]: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'subscribe failed at params {failed_params}')
 
     def __unsubscribe_params(self, param_list: Sequence[str], slot: Optional[int], channel: Optional[int]) -> None:
@@ -1143,7 +1138,7 @@ class Device:
         result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
         if any(result_codes):
             # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {i: ec for i, ec in enumerate(result_codes) if ec}
+            failed_params = {param_list[i]: ec for i, ec in enumerate(result_codes) if ec}
             raise RuntimeError(f'unsubscribe failed at params {failed_params}')
 
     def __create_server(self):

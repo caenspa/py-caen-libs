@@ -14,8 +14,15 @@
 v1.3.1 (XX/XX/2025)
 -------------------
 
+Changes:
+- Removed `caenhvwrapper.lib.get_error`, useless at library class level
+    because requires an handle as argument. The underlying function is still
+    called automatically on error constructor, if appropriate.
+
 Fixes:
 - Properly close event sockets on `caenhvwrapper.Device.close`.
+- Improved `subscribe_system_params`/`subscribe_system_params` error messages
+    on `caenhvwrapper`.
 
 
 v1.3.0 (02/12/2024)
