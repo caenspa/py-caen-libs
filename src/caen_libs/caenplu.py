@@ -209,7 +209,7 @@ class _Lib(_utils.Lib):
         return res
 
     def __get(self, name: str, *args: type) -> Callable[..., int]:
-        func = self.lib[f'CAEN_PLU_{name}']
+        func = self.get(f'CAEN_PLU_{name}')
         func.argtypes = args
         func.restype = ct.c_int
         func.errcheck = self.__api_errcheck  # type: ignore

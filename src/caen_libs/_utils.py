@@ -25,34 +25,38 @@ class Lib:
     public attributes using ctypes.
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, stdcall: bool = True) -> None:
         self.__name = name
+        self.__stdcall = stdcall  # Ignored on Linux
         self.__load_lib()
 
     def __load_lib(self) -> None:
-        loader: Union[ct.LibraryLoader[ct.WinDLL], ct.LibraryLoader[ct.CDLL]]
-        loader_variadic: ct.LibraryLoader[ct.CDLL]
-
-        # Platform dependent stuff
+        """
+        Variadic functions are __cdecl even if declared as __stdcall.
+        This difference applies only to 32 bit applications, 64 bit
+        applications have its own calling convention.
+        """
+        self.__lib_variadic: ct.CDLL
         if sys.platform == 'win32':
-            # API functions are declared as __stdcall, but variadic
-            # functions are __cdecl even if declared as __stdcall.
-            # This difference applies only to 32 bit applications,
-            # 64 bit applications have its own calling convention.
-            loader = ct.windll
-            loader_variadic = ct.cdll
-            path = f'{self.name}.dll'
+            self.__lib: Union[ct.CDLL, ct.WinDLL]
         else:
-            loader = ct.cdll
-            loader_variadic = ct.cdll
-            path = f'lib{self.name}.so'
-
-        self.__path = path
+            self.__lib: ct.CDLL
 
         # Load library
         try:
-            self.__lib = loader.LoadLibrary(self.path)
-            self.__lib_variadic = loader_variadic.LoadLibrary(self.path)
+            if sys.platform == 'win32':
+                self.__path = f'{self.name}.dll'
+                if self.__stdcall:
+                    self.__lib = ct.windll.LoadLibrary(self.__path)
+                    self.__lib_variadic = ct.cdll.LoadLibrary(self.__path)
+                else:
+                    self.__lib = ct.cdll.LoadLibrary(self.__path)
+                    self.__lib_variadic = self.__lib
+            else:
+                self.__path = f'lib{self.name}.so'
+                self.__lib = ct.cdll.LoadLibrary(self.__path)
+                self.__lib_variadic = self.__lib
+
         except _LibNotFoundClass as ex:
             raise RuntimeError(
                 f'Library {self.name} not found. This module requires '
@@ -71,15 +75,11 @@ class Lib:
         """Path of the shared library"""
         return self.__path
 
-    @property
-    def lib(self) -> Union[ct.WinDLL, ct.CDLL]:
-        """ctypes object to shared library"""
-        return self.__lib
-
-    @property
-    def lib_variadic(self) -> ct.CDLL:
-        """ctypes object to shared library (for variadic functions)"""
-        return self.__lib_variadic
+    def get(self, name: str, variadic: bool = False):
+        """Get function by name"""
+        if variadic:
+            return self.__lib_variadic[name]
+        return self.__lib[name]
 
     # Python utilities
 

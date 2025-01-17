@@ -157,7 +157,7 @@ class _Lib(_utils.Lib):
                 def fallback(*args, **kwargs):
                     raise RuntimeError(f'{name} requires {self.name} >= {min_version}. Please update it.')
                 return fallback
-        func = self.lib[f'CAENComm_{name}']
+        func = self.get(f'CAENComm_{name}')
         func.argtypes = args
         func.restype = ct.c_int
         func.errcheck = self.__api_errcheck  # type: ignore

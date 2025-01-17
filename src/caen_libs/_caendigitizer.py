@@ -424,12 +424,11 @@ class _Lib(_utils.Lib):
         return res
 
     def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
-        l_lib = self.lib if not kwargs.get('variadic', False) else self.lib_variadic
         if kwargs.get('private', False):
             func_name = f'_CAEN_DGTZ_{name}'
         else:
             func_name = f'CAEN_DGTZ_{name}'
-        func = l_lib[func_name]
+        func = self.get(func_name, kwargs.get('variadic', False))
         func.argtypes = args
         func.restype = ct.c_int
         func.errcheck = self.__api_errcheck  # type: ignore

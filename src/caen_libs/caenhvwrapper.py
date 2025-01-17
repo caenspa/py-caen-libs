@@ -420,7 +420,7 @@ _PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_IdValueRaw], Union[str, float,
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
-        super().__init__(name)
+        super().__init__(name, False)
         self.__load_api()
 
     def __load_api(self) -> None:
@@ -482,8 +482,7 @@ class _Lib(_utils.Lib):
         return res
 
     def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
-        # Use lib_variadic as API is __cdecl
-        func = self.lib_variadic[f'CAENHV_{name}']
+        func = self.get(f'CAENHV_{name}')
         func.argtypes = args
         func.restype = ct.c_int
         if kwargs.get('handle_errcheck', True):
@@ -493,12 +492,11 @@ class _Lib(_utils.Lib):
         return func
 
     def __get_str(self, name: str, *args: type, **kwargs) -> Callable[..., str]:
-        # Use lib_variadic as API is __cdecl
         if kwargs.get('legacy', False):
             func_name = f'CAENHV{name}'
         else:
             func_name = f'CAENHV_{name}'
-        func = self.lib_variadic[func_name]
+        func = self.get(func_name)
         func.argtypes = args
         func.restype = ct.c_char_p
         # cannot fail, errcheck improperly used to cast bytes to str

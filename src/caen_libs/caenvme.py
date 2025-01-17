@@ -509,14 +509,14 @@ class _Lib(_utils.Lib):
             def fallback_win(*args, **kwargs):
                 raise RuntimeError(f'{name} function is Linux only.')
             return fallback_win
-        func = self.lib[f'CAENVME_{name}']
+        func = self.get(f'CAENVME_{name}')
         func.argtypes = args
         func.restype = ct.c_int
         func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     def __get_str(self, name: str, *args) -> Callable[..., str]:
-        func = self.lib[f'CAENVME_{name}']
+        func = self.get(f'CAENVME_{name}')
         func.argtypes = args
         func.restype = ct.c_char_p
         # cannot fail, errcheck improperly used to cast bytes to str
