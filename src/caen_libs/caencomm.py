@@ -151,21 +151,15 @@ class _Lib(_utils.Lib):
     def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         min_version = kwargs.get('min_version')
         if min_version is not None:
-            # This feature requires __sw_release to be already defined
-            assert self.__sw_release is not None
-            if not self.__ver_at_least(min_version):
+            if not self.ver_at_least(min_version):
                 def fallback(*args, **kwargs):
-                    raise RuntimeError(f'{name} requires {self.name} >= {min_version}. Please update it.')
+                    raise NotImplementedError(f'{name} requires {self.name} >= {min_version}.')
                 return fallback
         func = self.get(f'CAENComm_{name}')
         func.argtypes = args
         func.restype = ct.c_int
         func.errcheck = self.__api_errcheck  # type: ignore
         return func
-
-    def __ver_at_least(self, target: tuple[int, ...]) -> bool:
-        ver = self.sw_release()
-        return _utils.version_to_tuple(ver) >= target
 
     # C API bindings
 

@@ -9,6 +9,7 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 import sys
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union, overload
@@ -19,7 +20,7 @@ else:
     _LibNotFoundClass = OSError
 
 
-class Lib:
+class Lib(ABC):
     """
     This class loads the shared library and exposes its functions on its
     public attributes using ctypes.
@@ -74,6 +75,18 @@ class Lib:
     def path(self) -> Any:
         """Path of the shared library"""
         return self.__path
+
+    @abstractmethod
+    def sw_release(self) -> str:
+        """
+        Get software release version as string with numeric format, like
+        N.N.N, where N is a number.
+        """
+
+    def ver_at_least(self, target: tuple[int, ...]) -> bool:
+        """Check if the library version is at least the target"""
+        ver = self.sw_release()
+        return version_to_tuple(ver) >= target
 
     def get(self, name: str, variadic: bool = False):
         """Get function by name"""
@@ -133,12 +146,18 @@ class Registers:
         """Get multiple value"""
         if self.multi_getter is not None:
             return self.multi_getter(addresses)
-        return [self.get(i) for i in addresses]
+        return self.__multi_get_fallback(addresses)
 
     def multi_set(self, addresses: Sequence[int], values: Sequence[int]) -> None:
         """Set multiple value"""
         if self.multi_setter is not None:
             return self.multi_setter(addresses, values)
+        return self.__multi_set_fallback(addresses, values)
+
+    def __multi_get_fallback(self, addresses: Sequence[int]) -> list[int]:
+        return [self.get(a) for a in addresses]
+
+    def __multi_set_fallback(self, addresses: Sequence[int], values: Sequence[int]) -> None:
         for a, v in zip(addresses, values):
             self.set(a, v)
 

@@ -217,6 +217,12 @@ class _Lib(_utils.Lib):
 
     # C API bindings
 
+    def sw_release(self) -> str:
+        """
+        No equivalent function on CAEN_PLU
+        """
+        raise NotImplementedError('Not available on CAEN_PLU')
+
     def decode_error(self, error_code: int) -> str:
         """
         There is no function to decode error, we just use the

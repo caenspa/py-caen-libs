@@ -503,10 +503,6 @@ class _Lib(_utils.Lib):
         func.errcheck = lambda res, *_: res.decode()  # type: ignore
         return func
 
-    def __ver_at_least(self, target: tuple[int, ...]) -> bool:
-        ver = self.sw_release()
-        return _utils.version_to_tuple(ver) >= target
-
     # C API bindings
 
     def sw_release(self) -> str:
@@ -519,7 +515,7 @@ class _Lib(_utils.Lib):
         """
         Check if library support 32-bit PID
         """
-        return self.__ver_at_least((7, 0, 0))
+        return self.ver_at_least((7, 0, 0))
 
     @contextmanager
     def auto_ptr(self, pointer_type):
