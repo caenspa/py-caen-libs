@@ -275,6 +275,27 @@ class Display:
     br: bool              # Bus Request signal
     bg: bool              # Bus Grant signal
 
+    @classmethod
+    def from_raw(cls, raw: _DisplayRaw):
+        """Instantiate from raw data"""
+        return cls(
+            raw.Address,
+            raw.Data,
+            AddressModifiers(raw.AM),
+            IRQLevels(raw.IRQ),
+            bool(raw.DS0),
+            bool(raw.DS1),
+            bool(raw.AS),
+            bool(raw.IACK),
+            bool(raw.WRITE),
+            bool(raw.LWORD),
+            bool(raw.DTACK),
+            bool(raw.BERR),
+            bool(raw.SYSRES),
+            bool(raw.BR),
+            bool(raw.BG),
+        )
+
 
 @unique
 class ArbiterTypes(IntEnum):
@@ -931,23 +952,7 @@ class Device:
         """
         l_d = _DisplayRaw()
         lib.read_display(self.handle, l_d)
-        return Display(
-            l_d.Address,
-            l_d.Data,
-            AddressModifiers(l_d.AM),
-            IRQLevels(l_d.IRQ),
-            bool(l_d.DS0),
-            bool(l_d.DS1),
-            bool(l_d.AS),
-            bool(l_d.IACK),
-            bool(l_d.WRITE),
-            bool(l_d.LWORD),
-            bool(l_d.DTACK),
-            bool(l_d.BERR),
-            bool(l_d.SYSRES),
-            bool(l_d.BR),
-            bool(l_d.BG),
-        )
+        return Display.from_raw(l_d)
 
     def set_arbiter_type(self, value: ArbiterTypes) -> None:
         """

@@ -51,7 +51,7 @@ class _USBDeviceRaw(ct.Structure):
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
-class USBDevice(ct.Structure):
+class USBDevice:
     """
     Binding of ::tUSBDevice
     """
@@ -93,7 +93,7 @@ class _BoardInfoRaw(ct.Structure):
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
-class BoardInfo(ct.Structure):
+class BoardInfo:
     """
     Binding of ::tBOARDInfo
     """
@@ -124,6 +124,39 @@ class BoardInfo(ct.Structure):
     sernum3_v2: int
     sernum1: int
     sernum0: int
+
+    @classmethod
+    def from_raw(cls, raw: _BoardInfoRaw):
+        """Instantiate from raw data"""
+        return cls(
+            raw.checksum,
+            raw.checksum_length2,
+            raw.checksum_length1,
+            raw.checksum_length0,
+            raw.checksum_constant2,
+            raw.checksum_constant1,
+            raw.checksum_constant0,
+            raw.c_code,
+            raw.r_code,
+            raw.oui2,
+            raw.oui1,
+            raw.oui0,
+            raw.version,
+            raw.board2,
+            raw.board1,
+            raw.board0,
+            raw.revis3,
+            raw.revis2,
+            raw.revis1,
+            raw.revis0,
+            tuple(raw.reserved),
+            raw.sernum0_v2,
+            raw.sernum1_v2,
+            raw.sernum2_v2,
+            raw.sernum3_v2,
+            raw.sernum1,
+            raw.sernum0,
+        )
 
 
 class Error(error.Error):
@@ -417,35 +450,7 @@ class Device:
         """
         l_b = _BoardInfoRaw()
         lib.get_info(self.handle, l_b)
-        return BoardInfo(
-            l_b.checksum,
-            l_b.checksum_length2,
-            l_b.checksum_length1,
-            l_b.checksum_length0,
-            l_b.checksum_constant2,
-            l_b.checksum_constant1,
-            l_b.checksum_constant0,
-            l_b.c_code,
-            l_b.r_code,
-            l_b.oui2,
-            l_b.oui1,
-            l_b.oui0,
-            l_b.version,
-            l_b.board2,
-            l_b.board1,
-            l_b.board0,
-            l_b.revis3,
-            l_b.revis2,
-            l_b.revis1,
-            l_b.revis0,
-            tuple(l_b.reserved),
-            l_b.sernum0_v2,
-            l_b.sernum1_v2,
-            l_b.sernum2_v2,
-            l_b.sernum3_v2,
-            l_b.sernum1,
-            l_b.sernum0,
-        )
+        return BoardInfo.from_raw(l_b)
 
     # Python utilities
 

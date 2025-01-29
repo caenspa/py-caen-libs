@@ -86,6 +86,14 @@ class SystemStatus:
     system: EventStatus
     board: tuple[EventStatus, ...]
 
+    @classmethod
+    def from_raw(cls, raw: _SystemStatusRaw):
+        """Instantiate from raw data"""
+        return cls(
+            system=EventStatus(raw.System),
+            board=tuple(EventStatus(i) for i in raw.Board),
+        )
+
 
 @unique
 class EventType(IntEnum):
@@ -719,6 +727,7 @@ class Device:
         n_indexes = len(slot_list)
         if n_indexes == 0:
             return []  # type: ignore
+        l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name, None)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
@@ -730,7 +739,6 @@ class Device:
             l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
         else:
             l_data_proxy = l_data
-        l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data_proxy)
         if param_type is ParamType.STRING:
             if self.__char_p_p_str_bd_param_arg():
@@ -759,10 +767,10 @@ class Device:
         n_indexes = len(slot_list)
         if n_indexes == 0:
             return
+        l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, name, None)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
-        l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode(), l_data)
 
     def get_bd_param_prop(self, slot: int, name: str) -> ParamProp:
@@ -850,6 +858,7 @@ class Device:
         n_indexes = len(channel_list)
         if n_indexes == 0:
             return []  # type: ignore
+        l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
@@ -861,7 +870,6 @@ class Device:
             l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
         else:
             l_data_proxy = l_data
-        l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.get_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, l_data_proxy)
         if param_type is ParamType.STRING:
             if self.__char_p_p_str_ch_param_arg():
@@ -880,10 +888,10 @@ class Device:
         n_indexes = len(channel_list)
         if n_indexes == 0:
             return
+        l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, name, first_index)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
-        l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_param(self.handle, slot, name.encode(), n_indexes, l_index_list, ct.byref(l_data))
 
     @_cache.cached(cache_manager=__cache_manager)
@@ -955,10 +963,7 @@ class Device:
         with g_event_data as l_ed:
             lib.get_event_data(self.__skt_client.fileno(), l_system_status, l_ed, l_data_number)
             events = tuple(self.__decode_event_data(l_ed, l_data_number.value))
-        system_status = EventStatus(l_system_status.System)
-        board_status = tuple(EventStatus(i) for i in l_system_status.Board)
-        status = SystemStatus(system_status, board_status)
-        return events, status
+        return events, SystemStatus.from_raw(l_system_status)
 
     # Private utilities
 

@@ -26,9 +26,6 @@ class ConnectionType(IntEnum):
 
 
 class _BoardInfoRaw(ct.Structure):
-    """
-    Binding of ::CAEN_DGTZ_BoardInfo_t
-    """
     _fields_ = [
         ('ModelName', ct.c_char * 12),
         ('Model', ct.c_uint32),
@@ -48,9 +45,6 @@ class _BoardInfoRaw(ct.Structure):
     ]
 
 class _EventInfoRaw(ct.Structure):
-    """
-    Binding of ::CAEN_DGTZ_EventInfo_t
-    """
     _fields_ = [
         ('EventSize', ct.c_uint32),
         ('BoardId', ct.c_uint32),
