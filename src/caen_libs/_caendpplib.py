@@ -50,6 +50,16 @@ class ConnectionParams:
     vme_base_address: int
     eth_address: str
 
+    def to_raw(self) -> _ConnectionParamsRaw:
+        """Convert to raw data"""
+        return _ConnectionParamsRaw(
+            self.link_type,
+            self.link_num,
+            self.conet_node,
+            self.vme_base_address,
+            self.eth_address.encode(),
+        )
+
 
 class _ParamInfoRaw(ct.Structure):
     _fields_ = [
@@ -1325,6 +1335,21 @@ class _ListEventRaw(ct.Structure):
     ]
 
 
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class ListEvent:
+    """
+    Binding of ::CAENDPP_ListEvent_t
+    """
+    time_tag: int
+    energy: int
+    extras: int
+
+    @classmethod
+    def from_raw(cls, raw: _ListEventRaw):
+        """Instantiate from raw data"""
+        return cls(raw.TimeTag, raw.Energy, raw.Extras)
+
+
 class _StatisticsRaw(ct.Structure):
     _fields_ = [
         ('ThroughputRate', ct.c_double),
@@ -1390,6 +1415,58 @@ class LogMask(IntFlag):
     WARNING = 0x4
     DEBUG = 0x8
     ALL = INFO | ERROR | WARNING | DEBUG
+
+
+class GuessConfigStatus(IntEnum):
+    """
+    Binding of ::CAENDPP_GuessConfigStatus_t
+    """
+    NOT_RUNNING = 0
+    STARTED = 1
+    PULSE_POLARITY = 2
+    DC_OFFSET = 3
+    SIGNAL_RISE = 4
+    THRESHOLD = 5
+    DECAY_TIME = 6
+    TRAPEZOID = 7
+    BASELINE = 8
+    READY = 9
+
+
+class AcqMode(IntEnum):
+    """
+    Binding of ::CAENDPP_AcqMode_t
+    """
+    WAVEFORM = 0
+    HISTOGRAM = 1
+
+
+class AcqStatus(IntEnum):
+    """
+    Binding of ::CAENDPP_AcqStatus_t
+    """
+    STOPPED = 0
+    RUNNING = 1
+    ARMED = 2
+    UNKNOWN = 3
+
+
+class MultiHistoCondition(IntEnum):
+    """
+    Binding of ::CAENDPP_MultiHistoCondition_t
+    """
+    SOFTWARE_ONLY = 1
+    TIMESTAMP_RESET = 2
+
+
+class StopCriteria(IntEnum):
+    """
+    Binding of ::CAENDPP_StopCriteria_t
+    """
+    MANUAL = 0
+    LIVE_TIME = 1
+    REAL_TIME = 2
+    COUNTS = 3
 
 
 class Error(error.Error):
@@ -1592,14 +1669,7 @@ class _Lib(_utils.Lib):
         return Error.Code(error_code).name
 
 
-# Library name is platform dependent
-if sys.platform == 'win32':
-    _LIB_NAME = 'CAEN_PLULib'
-else:
-    _LIB_NAME = 'CAEN_PLU'
-
-
-lib = _Lib(_LIB_NAME)
+lib = _Lib('CAENDPPLib')
 
 
 @dataclass(**_utils.dataclass_slots)
@@ -1670,9 +1740,9 @@ class Device:
         """
         Binding of CAENDPP_AddBoard()
         """
-        l_params = _ConnectionParamsRaw(params.link_type, params.link_num, params.conet_node, params.vme_base_address, params.eth_address.encode())
+        l_params = params.to_raw()
         return lib.add_board(self.handle, l_params)
-    
+
     def get_dpp_info(self, board_id: int) -> Info:
         """
         Binding of CAENDPP_GetDPPInfo()
@@ -1680,13 +1750,149 @@ class Device:
         l_i = _InfoRaw()
         lib.get_dpp_info(self.handle, board_id, l_i)
         return Info.from_raw(l_i)
-    
+
     def start_board_parameters_guess(self, board_id: int, channel_mask: int, params: DgtzParams):
         """
         Binding of CAENDPP_StartBoardParametersGuess()
         """
         l_params = params.to_raw()
         lib.start_board_parameters_guess(self.handle, board_id, channel_mask, l_params)
+
+    def get_board_parameters_guess_status(self, board_id: int) -> GuessConfigStatus:
+        """
+        Binding of CAENDPP_GetBoardParametersGuessStatus()
+        """
+        l_status = ct.c_int()
+        lib.get_board_parameters_guess_status(self.handle, board_id, l_status)
+        return GuessConfigStatus(l_status.value)
+
+    def get_board_parameters_guess_result(self, board_id: int) -> tuple[DgtzParams, int]:
+        """
+        Binding of CAENDPP_GetBoardParametersGuessResult()
+        """
+        l_params = _DgtzParamsRaw()
+        l_channel_mask = ct.c_uint32()
+        lib.get_board_parameters_guess_result(self.handle, board_id, l_params, l_channel_mask)
+        return DgtzParams.from_raw(l_params), l_channel_mask.value
+
+    def stop_board_parameters_guess(self, board_id: int) -> None:
+        """
+        Binding of CAENDPP_StopBoardParametersGuess()
+        """
+        lib.stop_board_parameters_guess(self.handle, board_id)
+
+    def set_board_configuration(self, board_id: int, acq_mode: AcqMode, params: DgtzParams) -> None:
+        """
+        Binding of CAENDPP_SetBoardConfiguration()
+        """
+        l_params = params.to_raw()
+        lib.set_board_configuration(self.handle, board_id, acq_mode, l_params)
+
+    def get_board_configuration(self, board_id: int) -> tuple[AcqMode, DgtzParams]:
+        """
+        Binding of CAENDPP_GetBoardConfiguration()
+        """
+        l_acq_mode = ct.c_int()
+        l_params = _DgtzParamsRaw()
+        lib.get_board_configuration(self.handle, board_id, l_acq_mode, l_params)
+        return AcqMode(l_acq_mode.value), DgtzParams.from_raw(l_params)
+
+    def is_channel_enabled(self, channel: int) -> bool:
+        """
+        Binding of CAENDPP_IsChannelEnabled()
+        """
+        l_enabled = ct.c_int32()
+        lib.is_channel_enabled(self.handle, channel, l_enabled)
+        return bool(l_enabled.value)
+
+    def is_channel_acquiring(self, channel: int) -> AcqStatus:
+        """
+        Binding of CAENDPP_IsChannelAcquiring()
+        """
+        l_acquiring = ct.c_int()
+        lib.is_channel_acquiring(self.handle, channel, l_acquiring)
+        return AcqStatus(l_acquiring.value)
+
+    def start_acquisition(self, channel: int) -> None:
+        """
+        Binding of CAENDPP_StartAcquisition()
+        """
+        lib.start_acquisition(self.handle, channel)
+
+    def arm_acquisition(self, channel: int) -> None:
+        """
+        Binding of CAENDPP_ArmAcquisition()
+        """
+        lib.arm_acquisition(self.handle, channel)
+
+    def stop_acquisition(self, channel: int) -> None:
+        """
+        Binding of CAENDPP_StopAcquisition()
+        """
+        lib.stop_acquisition(self.handle, channel)
+
+    def is_board_acquiring(self, board_id: int) -> bool:
+        """
+        Binding of CAENDPP_IsBoardAcquiring()
+        """
+        l_acquiring = ct.c_int32()
+        lib.is_board_acquiring(self.handle, board_id, l_acquiring)
+        return bool(l_acquiring.value)
+
+    def set_histo_switch_mode(self, mode: MultiHistoCondition) -> None:
+        """
+        Binding of CAENDPP_SetHistoSwitchMode()
+        """
+        lib.set_histo_switch_mode(self.handle, mode)
+
+    def get_histo_switch_mode(self) -> MultiHistoCondition:
+        """
+        Binding of CAENDPP_GetHistoSwitchMode()
+        """
+        l_mode = ct.c_int()
+        lib.get_histo_switch_mode(self.handle, l_mode)
+        return MultiHistoCondition(l_mode.value)
+
+    def set_stop_criteria(self, channel: int, crit: StopCriteria, value: int) -> None:
+        """
+        Binding of CAENDPP_SetStopCriteria()
+        """
+        lib.set_stop_criteria(self.handle, channel, crit, value)
+
+    def get_stop_criteria(self, channel: int) -> tuple[StopCriteria, int]:
+        """
+        Binding of CAENDPP_GetStopCriteria()
+        """
+        l_crit = ct.c_int()
+        l_value = ct.c_uint64()
+        lib.get_stop_criteria(self.handle, channel, l_crit, l_value)
+        return StopCriteria(l_crit.value), l_value.value
+
+    def get_total_number_of_histograms(self, channel: int) -> int:
+        """
+        Binding of CAENDPP_GetTotalNumberOfHistograms()
+        """
+        l_total = ct.c_int32()
+        lib.get_total_number_of_histograms(self.handle, channel, l_total)
+        return l_total.value
+
+    def get_number_of_completed_histograms(self, channel: int) -> int:
+        """
+        Binding of CAENDPP_GetNumberOfCompletedHistograms()
+        """
+        l_completed = ct.c_int32()
+        lib.get_number_of_completed_histograms(self.handle, channel, l_completed)
+        return l_completed.value
+
+    def get_list_events(self, channel: int) -> tuple[ListEvent]:
+        """
+        Binding of CAENDPP_GetListEvents()
+        """
+        l_events = (_ListEventRaw * 8192)()
+        l_count = ct.c_uint32()
+        lib.get_list_events(self.handle, channel, l_events, l_count)
+        return tuple(ListEvent.from_raw(i) for i in l_events[:l_count.value])
+
 
     # Python utilities
 
