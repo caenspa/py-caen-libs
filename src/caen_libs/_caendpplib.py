@@ -15,6 +15,7 @@ from enum import IntEnum, IntFlag, unique
 from typing import Optional, TypeVar
 
 import numpy as np
+import numpy.typing as npt
 
 from caen_libs import error, _utils
 
@@ -1674,10 +1675,10 @@ class Waveforms:
     Class to store waveforms data.
     """
     samples: int
-    at1: np.ndarray = field(init=False)
-    at2: np.ndarray = field(init=False)
-    dt1: np.ndarray = field(init=False)
-    dt2: np.ndarray = field(init=False)
+    at1: npt.NDArray[np.int16] = field(init=False)
+    at2: npt.NDArray[np.int16] = field(init=False)
+    dt1: npt.NDArray[np.uint8] = field(init=False)
+    dt2: npt.NDArray[np.uint8] = field(init=False)
 
     def __post_init__(self):
         self.at1 = np.empty(self.samples, dtype=np.int16)
@@ -2164,23 +2165,37 @@ class Device:
         lib.get_waveform(self.handle, channel, l_auto, l_at1, l_at2, l_dt1, l_dt2, l_ns, l_tsample)
         return l_ns.value, l_tsample.value
 
-    def get_histogram(self, channel: int, index: int) -> np.ndarray:
+    def get_histogram(self, channel: int, index: int) -> tuple[npt.NDArray[np.uint32], int, int, int]:
         """
         Binding of CAENDPP_GetHistogram()
         """
-        raise NotImplementedError('Not implemented yet')
+        n_bins = self.get_histogram_size(channel, index)
+        histo = np.empty(n_bins, dtype=np.uint32)
+        l_counts = ct.c_uint32()
+        l_realtime = ct.c_uint64()
+        l_deadtime = ct.c_uint64()
+        lib.get_histogram(self.handle, channel, index, histo.ctypes.data, l_counts, l_realtime, l_deadtime)
+        return histo, l_counts.value, l_realtime.value, l_deadtime.value
 
-    def set_histogram(self, channel: int):
+    def set_histogram(self, channel: int, index: int, realtime_ns: int, deadtime_ns: int, histo: npt.NDArray[np.uint32]) -> None:
         """
         Binding of CAENDPP_SetHistogram()
         """
-        raise NotImplementedError('Not implemented yet')
+        lib.set_histogram(self.handle, channel, index, realtime_ns, deadtime_ns, len(histo), histo.ctypes.data)
 
-    def get_current_histogram(self, channel: int) -> int:
+    def get_current_histogram(self, channel: int) -> tuple[npt.NDArray[np.uint32], int, int, int, AcqStatus]:
         """
         Binding of CAENDPP_GetCurrentHistogram()
         """
-        raise NotImplementedError('Not implemented yet')
+        current_index = self.get_current_histogram_index(channel)
+        n_bins = self.get_histogram_size(channel, current_index)
+        histo = np.empty(n_bins, dtype=np.uint32)
+        l_counts = ct.c_uint32()
+        l_realtime = ct.c_uint64()
+        l_deadtime = ct.c_uint64()
+        l_status = ct.c_int()
+        lib.get_current_histogram(self.handle, channel, histo.ctypes.data, l_counts, l_realtime, l_deadtime, l_status)
+        return histo, l_counts.value, l_realtime.value, l_deadtime.value, AcqStatus(l_status.value)
 
     def save_histogram(self, channel: int, index: int, filename: str) -> None:
         """
