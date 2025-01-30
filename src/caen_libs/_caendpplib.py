@@ -8,12 +8,13 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
-import sys
 from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, IntFlag, unique
 from typing import Optional, TypeVar
+
+import numpy as np
 
 from caen_libs import error, _utils
 
@@ -184,7 +185,6 @@ class _HVChannelInfoRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
 class HVFamilyCode(IntEnum):
     """
     Binding of ::CAENDPP_HVFamilyCode_t
@@ -416,6 +416,7 @@ class GPIOMode(IntEnum):
     IN_RESET = 3
 
 
+@unique
 class OutSignal(IntEnum):
     """
     Binding of ::CAENDPP_OUTSignal_t
@@ -471,6 +472,7 @@ class _GPIOConfigRaw(ct.Structure):
     ]
 
 
+@unique
 class TriggerControl(IntEnum):
     """
     Binding of ::CAENDPP_TriggerControl_t
@@ -485,6 +487,7 @@ class TriggerControl(IntEnum):
     VETO_WIN = 4
 
 
+@unique
 class GPIOLogic(IntEnum):
     """
     Binding of ::CAENDPP_GPIOLogic_t
@@ -543,6 +546,7 @@ class _ExtraParametersRaw(ct.Structure):
     ]
 
 
+@unique
 class InputImpedance(IntEnum):
     """
     Binding of ::CAENDPP_InputImpedance_t
@@ -726,6 +730,7 @@ class _WaveformParamsRaw(ct.Structure):
     ]
 
 
+@unique
 class VirtualProbe1(IntEnum):
     """
     Binding of ::CAENDPP_PHA_VirtualProbe1_t
@@ -743,6 +748,7 @@ class VirtualProbe1(IntEnum):
     SLOW_TRIGGER = 10
 
 
+@unique
 class VirtualProbe2(IntEnum):
     """
     Binding of ::CAENDPP_PHA_VirtualProbe2_t
@@ -761,6 +767,7 @@ class VirtualProbe2(IntEnum):
     SLOW_TRIGGER = 11
 
 
+@unique
 class DigitalProbe1(IntEnum):
     """
     Binding of ::CAENDPP_PHA_DigitalProbe1_t
@@ -788,6 +795,7 @@ class DigitalProbe1(IntEnum):
     INHIBIT = 20
 
 
+@unique
 class DigitalProbe2(IntEnum):
     """
     Binding of ::CAENDPP_PHA_DigitalProbe2_t
@@ -802,6 +810,7 @@ class DigitalProbe2(IntEnum):
     RESET = 7
 
 
+@unique
 class ProbeTrigger(IntEnum):
     """
     Binding of ::CAENDPP_PHA_ProbeTrigger_t
@@ -872,6 +881,7 @@ class _ListParamsRaw(ct.Structure):
     ]
 
 
+@unique
 class ListSaveMode(IntEnum):
     """
     Binding of ::CAENDPP_ListSaveMode_t
@@ -881,6 +891,7 @@ class ListSaveMode(IntEnum):
     FILE_ASCII = 2
 
 
+@unique
 class DumpMask(IntFlag):
     """
     Binding of ::DUMP_MASK_*
@@ -988,6 +999,7 @@ class _CoincParamsRaw(ct.Structure):
     ]
 
 
+@unique
 class CoincOp(IntEnum):
     """
     Binding of ::CAENDPP_CoincOp_t
@@ -997,6 +1009,7 @@ class CoincOp(IntEnum):
     MAJ = 2
 
 
+@unique
 class CoincLogic(IntEnum):
     """
     Binding of ::CAENDPP_CoincLogic_t
@@ -1048,6 +1061,7 @@ class _GateParamsRaw(ct.Structure):
     ]
 
 
+@unique
 class PulsePolarity(IntEnum):
     """
     Binding of ::CAENDPP_PulsePolarity_t
@@ -1056,6 +1070,7 @@ class PulsePolarity(IntEnum):
     NEGATIVE = 1
 
 
+@unique
 class ExtLogic(IntEnum):
     """
     Binding of ::CAENDPP_ExtLogic_t
@@ -1137,6 +1152,7 @@ class _TRResetRaw(ct.Structure):
     ]
 
 
+@unique
 class ResetDetectionMode(IntEnum):
     """
     Binding of ::CAENDPP_ResetDetectionMode_t
@@ -1187,7 +1203,8 @@ class _MonOutParamsRaw(ct.Structure):
     ]
 
 
-class PHA_MonOutProbe(IntEnum):
+@unique
+class PHAMonOutProbe(IntEnum):
     """
     Binding of ::CAENDPP_PHA_MonOutProbe_t
     """
@@ -1204,12 +1221,12 @@ class MonOutParams:
     """
     channel: int
     enabled: bool
-    probe: PHA_MonOutProbe
+    probe: PHAMonOutProbe
 
     @classmethod
     def from_raw(cls, raw: _MonOutParamsRaw):
         """Instantiate from raw data"""
-        return cls(raw.channel, bool(raw.enabled), PHA_MonOutProbe(raw.probe))
+        return cls(raw.channel, bool(raw.enabled), PHAMonOutProbe(raw.probe))
 
     def to_raw(self) -> _MonOutParamsRaw:
         """Convert to raw data"""
@@ -1241,6 +1258,7 @@ class _DgtzParamsRaw(ct.Structure):
     ]
 
 
+@unique
 class INCoupling(IntEnum):
     """
     Binding of ::CAENDPP_INCoupling_t
@@ -1361,6 +1379,31 @@ class _StatisticsRaw(ct.Structure):
     ]
 
 
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class Statistics:
+    """
+    Binding of ::statistics_t
+    """
+    throughput_rate: float
+    saturation_flag: int
+    saturation_perc: float
+    pulse_dead_time: float
+    real_rate: float
+    peaking_time: int
+
+    @classmethod
+    def from_raw(cls, raw: _StatisticsRaw):
+        """Instantiate from raw data"""
+        return cls(
+            raw.ThroughputRate,
+            raw.SaturationFlag,
+            raw.SaturationPerc,
+            raw.PulseDeadTime,
+            raw.RealRate,
+            raw.PeakingTime,
+        )
+
+
 class _DAQInfoRaw(ct.Structure):
     _fields_ = [
         ('ACQStatus', ct.c_int),
@@ -1374,6 +1417,57 @@ class _DAQInfoRaw(ct.Structure):
     ]
 
 
+@unique
+class RunState(IntEnum):
+    """
+    Binding of ::CAENDPP_RunState_t
+    """
+    STOP = 0
+    START = 1
+    PAUSE = 2
+
+
+@unique
+class GainStabilizationStatus(IntEnum):
+    """
+    Binding of ::CAENDPP_GainStabilizationStatus_t
+    """
+    OFF = 0
+    SEARCHING = 1
+    FOUND = 2
+    LOST = 3
+    FOLLOWING = 4
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class DAQInfo:
+    """
+    Binding of ::CAENDPP_DAQInfo_t
+    """
+    acq_status: RunState
+    run_loop: int
+    run_state: RunState
+    run_elapsed_time_sec: int
+    tot_evt_count: int
+    dead_time_ns: int
+    gain_status: GainStabilizationStatus
+    run_id: int
+
+    @classmethod
+    def from_raw(cls, raw: _DAQInfoRaw):
+        """Instantiate from raw data"""
+        return cls(
+            RunState(raw.ACQStatus),
+            raw.RunLoop,
+            RunState(raw.RunState),
+            raw.RunElapsedTimeSec,
+            raw.TotEvtCount,
+            raw.DeadTimeNs,
+            GainStabilizationStatus(raw.GainStatus),
+            raw.RunID,
+        )
+
+
 class _HVChannelConfigRaw(ct.Structure):
     _fields_ = [
         ('VSet', ct.c_double),
@@ -1383,6 +1477,51 @@ class _HVChannelConfigRaw(ct.Structure):
         ('VMax', ct.c_double),
         ('PWDownMode', ct.c_int),
     ]
+
+
+@unique
+class DPPPWDownMode(IntEnum):
+    """
+    Binding of ::CAENDPP_PWDownMode_t
+    """
+    RAMP = 0
+    KILL = 1
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class HVChannelConfig:
+    """
+    Binding of ::CAENDPP_HVChannelConfig_t
+    """
+    v_set: float
+    i_set: float
+    ramp_up: float
+    ramp_down: float
+    v_max: float
+    pw_down_mode: DPPPWDownMode
+
+    @classmethod
+    def from_raw(cls, raw: _HVChannelConfigRaw):
+        """Instantiate from raw data"""
+        return cls(
+            raw.VSet,
+            raw.ISet,
+            raw.RampUp,
+            raw.RampDown,
+            raw.VMax,
+            DPPPWDownMode(raw.PWDownMode),
+        )
+
+    def to_raw(self) -> _HVChannelConfigRaw:
+        """Convert to raw data"""
+        return _HVChannelConfigRaw(
+            self.v_set,
+            self.i_set,
+            self.ramp_up,
+            self.ramp_down,
+            self.v_max,
+            self.pw_down_mode,
+        )
 
 
 class _EnumerationSingleDeviceRaw(ct.Structure):
@@ -1398,11 +1537,66 @@ class _EnumerationSingleDeviceRaw(ct.Structure):
     ]
 
 
+@unique
+class COMStatus(IntEnum):
+    """
+    Binding of ::CAENDPP_COMStatus_t
+    """
+    ONLINE = 0
+    NOT_AVAILABLE = 1
+    ERROR = 2
+    BOOT_LOADER = 3
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class EnumerationSingleDevice:
+    """
+    Binding of ::CAENDPP_EnumerationSingleDevice_t
+    """
+    id: int
+    connection_mode: ConnectionType
+    serial_number: str
+    product_description: str
+    eth_address: str
+    tcp_port: int
+    udp_port: int
+    com_status: COMStatus
+
+    @classmethod
+    def from_raw(cls, raw: _EnumerationSingleDeviceRaw):
+        """Instantiate from raw data"""
+        return cls(
+            raw.id,
+            ConnectionType(raw.ConnectionMode),
+            raw.SerialNUMBER.decode(),
+            raw.ProductDescription.decode(),
+            raw.ETHAddress.decode(),
+            raw.TCPPORT,
+            raw.UDPPORT,
+            COMStatus(raw.cStatus),
+        )
+
+
 class _EnumeratedDevicesRaw(ct.Structure):
     _fields_ = [
         ('ddcount', ct.c_int),
         ('Device', _EnumerationSingleDeviceRaw * 64),
     ]
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class EnumeratedDevices:
+    """
+    Binding of ::CAENDPP_EnumeratedDevices_t
+    """
+    devices: tuple[EnumerationSingleDevice, ...]
+
+    @classmethod
+    def from_raw(cls, raw: _EnumeratedDevicesRaw):
+        """Instantiate from raw data"""
+        return cls(
+            tuple(EnumerationSingleDevice.from_raw(i) for i in raw.Device[:raw.ddcount]),
+        )
 
 
 class LogMask(IntFlag):
@@ -1417,6 +1611,7 @@ class LogMask(IntFlag):
     ALL = INFO | ERROR | WARNING | DEBUG
 
 
+@unique
 class GuessConfigStatus(IntEnum):
     """
     Binding of ::CAENDPP_GuessConfigStatus_t
@@ -1433,6 +1628,7 @@ class GuessConfigStatus(IntEnum):
     READY = 9
 
 
+@unique
 class AcqMode(IntEnum):
     """
     Binding of ::CAENDPP_AcqMode_t
@@ -1441,6 +1637,7 @@ class AcqMode(IntEnum):
     HISTOGRAM = 1
 
 
+@unique
 class AcqStatus(IntEnum):
     """
     Binding of ::CAENDPP_AcqStatus_t
@@ -1451,6 +1648,7 @@ class AcqStatus(IntEnum):
     UNKNOWN = 3
 
 
+@unique
 class MultiHistoCondition(IntEnum):
     """
     Binding of ::CAENDPP_MultiHistoCondition_t
@@ -1459,6 +1657,7 @@ class MultiHistoCondition(IntEnum):
     TIMESTAMP_RESET = 2
 
 
+@unique
 class StopCriteria(IntEnum):
     """
     Binding of ::CAENDPP_StopCriteria_t
@@ -1467,6 +1666,54 @@ class StopCriteria(IntEnum):
     LIVE_TIME = 1
     REAL_TIME = 2
     COUNTS = 3
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class Waveforms:
+    """
+    Class to store waveforms data.
+    """
+    samples: int
+    at1: np.ndarray = field(init=False)
+    at2: np.ndarray = field(init=False)
+    dt1: np.ndarray = field(init=False)
+    dt2: np.ndarray = field(init=False)
+
+    def __post_init__(self):
+        self.at1 = np.empty(self.samples, dtype=np.int16)
+        self.at2 = np.empty(self.samples, dtype=np.int16)
+        self.dt1 = np.empty(self.samples, dtype=np.uint8)
+        self.dt2 = np.empty(self.samples, dtype=np.uint8)
+
+
+@unique
+class ParamID(IntEnum):
+    """
+    Binding of ::CAENDPP_ParamID_t
+    """
+    RECORD_LENGTH = 0
+    PRE_TRIGGER = 1
+    DECAY = 2
+    TRAP_RISE = 3
+    TRAP_FLAT = 4
+    TRAP_FLAT_DELAY = 5
+    SMOOTHING = 6
+    INPUT_RISE = 7
+    THRESHOLD = 8
+    NSBL = 9
+    NSPK = 10
+    PKHO = 11
+    BLHO = 12
+    TRGHO = 13
+    DGAIN = 14
+    ENF = 15
+    DECIMATION = 16
+    TWWDT = 17
+    TRGWIN = 18
+    PULSE_POL = 19
+    DC_OFFSET = 20
+    IOLEV = 21
+    TRGAIN = 22
 
 
 class Error(error.Error):
@@ -1540,7 +1787,6 @@ ErrorCode = Error.Code
 # Utility definitions
 _P = ct.POINTER
 _c_int_p = _P(ct.c_int)
-_c_uint_p = _P(ct.c_uint)
 _c_int16_p = _P(ct.c_int16)
 _c_int32_p = _P(ct.c_int32)
 _c_uint8_p = _P(ct.c_uint8)
@@ -1626,7 +1872,7 @@ class _Lib(_utils.Lib):
         self.reset_configuration = self.__get('ResetConfiguration', ct.c_int32, ct.c_int32)
         self.set_hv_channel_configuration = self.__get('SetHVChannelConfiguration', ct.c_int32, ct.c_int32, ct.c_int, _HVChannelConfigRaw)
         self.get_hv_channel_configuration = self.__get('GetHVChannelConfiguration', ct.c_int32, ct.c_int32, ct.c_int, _hv_channel_config_p)
-        self.set_hv_channel_vset = self.__get('SetHVChannelVSet', ct.c_int32, ct.c_int32, ct.c_int, ct.c_double)
+        self.set_hv_channel_vmax = self.__get('SetHVChannelVMax', ct.c_int32, ct.c_int32, ct.c_int, ct.c_double)
         self.get_hv_channel_status = self.__get('GetHVChannelStatus', ct.c_int32, ct.c_int32, ct.c_int, _c_uint16_p)
         self.set_hv_channel_power_on = self.__get('SetHVChannelPowerOn', ct.c_int32, ct.c_int32, ct.c_int32, ct.c_int32)
         self.get_hv_channel_power_on = self.__get('GetHVChannelPowerOn', ct.c_int32, ct.c_int32, ct.c_int32, _c_uint32_p)
@@ -1795,7 +2041,8 @@ class Device:
         l_acq_mode = ct.c_int()
         l_params = _DgtzParamsRaw()
         lib.get_board_configuration(self.handle, board_id, l_acq_mode, l_params)
-        return AcqMode(l_acq_mode.value), DgtzParams.from_raw(l_params)
+        params = DgtzParams.from_raw(l_params)
+        return AcqMode(l_acq_mode.value), params
 
     def is_channel_enabled(self, channel: int) -> bool:
         """
@@ -1893,6 +2140,349 @@ class Device:
         lib.get_list_events(self.handle, channel, l_events, l_count)
         return tuple(ListEvent.from_raw(i) for i in l_events[:l_count.value])
 
+    def allocate_waveform(self, channel: int) -> Waveforms:
+        """
+        Allocate memory for waveforms data.
+
+        This method should be used before calling get_waveform() to
+        allocate memory for the waveforms data.
+        """
+        l_length = self.get_waveform_length(channel)
+        return Waveforms(l_length)
+
+    def get_waveform(self, channel: int, auto: bool, waveforms: Waveforms) -> tuple[int, float]:
+        """
+        Binding of CAENDPP_GetWaveform()
+        """
+        l_auto = ct.c_int16(auto)
+        l_at1 = waveforms.at1.ctypes.data
+        l_at2 = waveforms.at2.ctypes.data
+        l_dt1 = waveforms.dt1.ctypes.data
+        l_dt2 = waveforms.dt2.ctypes.data
+        l_ns = ct.c_uint32()
+        l_tsample = ct.c_double()
+        lib.get_waveform(self.handle, channel, l_auto, l_at1, l_at2, l_dt1, l_dt2, l_ns, l_tsample)
+        return l_ns.value, l_tsample.value
+
+    def get_histogram(self, channel: int, index: int) -> np.ndarray:
+        """
+        Binding of CAENDPP_GetHistogram()
+        """
+        raise NotImplementedError('Not implemented yet')
+
+    def set_histogram(self, channel: int):
+        """
+        Binding of CAENDPP_SetHistogram()
+        """
+        raise NotImplementedError('Not implemented yet')
+
+    def get_current_histogram(self, channel: int) -> int:
+        """
+        Binding of CAENDPP_GetCurrentHistogram()
+        """
+        raise NotImplementedError('Not implemented yet')
+
+    def save_histogram(self, channel: int, index: int, filename: str) -> None:
+        """
+        Binding of CAENDPP_SaveHistogram()
+        """
+        lib.save_histogram(self.handle, channel, index, filename.encode())
+
+    def load_histogram(self, channel: int, index: int, filename: str) -> None:
+        """
+        Binding of CAENDPP_LoadHistogram()
+        """
+        lib.load_histogram(self.handle, channel, index, filename.encode())
+
+    def clear_histogram(self, channel: int, index: int) -> None:
+        """
+        Binding of CAENDPP_ClearHistogram()
+        """
+        lib.clear_histogram(self.handle, channel, index)
+
+    def clear_current_histogram(self, channel: int) -> None:
+        """
+        Binding of CAENDPP_ClearCurrentHistogram()
+        """
+        lib.clear_current_histogram(self.handle, channel)
+
+    def clear_all_histograms(self, channel: int) -> None:
+        """
+        Binding of CAENDPP_ClearAllHistograms()
+        """
+        lib.clear_all_histograms(self.handle, channel)
+
+    def reset_histogram(self, channel: int, index: int) -> None:
+        """
+        Binding of CAENDPP_ResetHistogram()
+        """
+        lib.reset_histogram(self.handle, channel, index)
+
+    def reset_all_histograms(self, channel: int) -> None:
+        """
+        Binding of CAENDPP_ResetAllHistograms()
+        """
+        lib.reset_all_histograms(self.handle, channel)
+
+    def force_new_histogram(self, channel: int) -> None:
+        """
+        Binding of CAENDPP_ForceNewHistogram()
+        """
+        lib.force_new_histogram(self.handle, channel)
+
+    def set_histogram_size(self, channel: int, index: int, size: int) -> None:
+        """
+        Binding of CAENDPP_SetHistogramSize()
+        """
+        lib.set_histogram_size(self.handle, channel, index, size)
+
+    def get_histogram_size(self, channel: int, index: int) -> int:
+        """
+        Binding of CAENDPP_GetHistogramSize()
+        """
+        l_size = ct.c_int32()
+        lib.get_histogram_size(self.handle, channel, index, l_size)
+        return l_size.value
+
+    def add_histogram(self, channel: int, size: int) -> None:
+        """
+        Binding of CAENDPP_AddHistogram()
+        """
+        lib.add_histogram(self.handle, channel, size)
+
+    def set_current_histogram_index(self, channel: int, index: int) -> None:
+        """
+        Binding of CAENDPP_SetCurrentHistogramIndex()
+        """
+        lib.set_current_histogram_index(self.handle, channel, index)
+
+    def get_current_histogram_index(self, channel: int) -> int:
+        """
+        Binding of CAENDPP_GetCurrentHistogramIndex()
+        """
+        l_index = ct.c_int32()
+        lib.get_current_histogram_index(self.handle, channel, l_index)
+        return l_index.value
+
+    def set_histogram_status(self, channel: int, index: int, completed: bool) -> None:
+        """
+        Binding of CAENDPP_SetHistogramStatus()
+        """
+        lib.set_histogram_status(self.handle, channel, index, completed)
+
+    def get_histogram_status(self, channel: int, index: int) -> bool:
+        """
+        Binding of CAENDPP_GetHistogramStatus()
+        """
+        l_completed = ct.c_int32()
+        lib.get_histogram_status(self.handle, channel, index, l_completed)
+        return bool(l_completed.value)
+
+    def set_histogram_range(self, channel: int, lower: int, upper: int) -> None:
+        """
+        Binding of CAENDPP_SetHistogramRange()
+        """
+        lib.set_histogram_range(self.handle, channel, lower, upper)
+
+    def get_histogram_range(self, channel: int) -> tuple[int, int]:
+        """
+        Binding of CAENDPP_GetHistogramRange()
+        """
+        l_lower = ct.c_int32()
+        l_upper = ct.c_int32()
+        lib.get_histogram_range(self.handle, channel, l_lower, l_upper)
+        return l_lower.value, l_upper.value
+
+    def get_acq_stats(self, channel: int) -> Statistics:
+        """
+        Binding of CAENDPP_GetAcqStats()
+        """
+        l_stats = _StatisticsRaw()
+        lib.get_acq_stats(self.handle, channel, l_stats)
+        return Statistics.from_raw(l_stats)
+
+    def set_input_range(self, channel: int, value: InputRange) -> None:
+        """
+        Binding of CAENDPP_SetInputRange()
+        """
+        lib.set_input_range(self.handle, channel, value)
+
+    def get_input_range(self, channel: int) -> InputRange:
+        """
+        Binding of CAENDPP_GetInputRange()
+        """
+        l_value = ct.c_int()
+        lib.get_input_range(self.handle, channel, l_value)
+        return InputRange(l_value.value)
+
+    def get_waveform_length(self, channel: int) -> int:
+        """
+        Binding of CAENDPP_GetWaveformLength()
+        """
+        l_length = ct.c_uint32()
+        lib.get_waveform_length(self.handle, channel, l_length)
+        return l_length.value
+
+    def check_board_communication(self, board_id: int) -> None:
+        """
+        Binding of CAENDPP_CheckBoardCommunication()
+        """
+        lib.check_board_communication(self.handle, board_id)
+
+    def get_parameter_info(self, board_id: int, param: ParamID) -> ParamInfo:
+        """
+        Binding of CAENDPP_GetParameterInfo()
+        """
+        l_info = _ParamInfoRaw()
+        lib.get_parameter_info(self.handle, board_id, param, l_info)
+        return ParamInfo.from_raw(l_info)
+
+    def board_adc_calibration(self, board_id: int) -> None:
+        """
+        Binding of CAENDPP_BoardADCCalibration()
+        """
+        lib.board_adc_calibration(self.handle, board_id)
+
+    def get_channel_temperature(self, channel: int) -> float:
+        """
+        Binding of CAENDPP_GetChannelTemperature()
+        """
+        l_temp = ct.c_double()
+        lib.get_channel_temperature(self.handle, channel, l_temp)
+        return l_temp.value
+
+    def get_daq_info(self, board_id: int) -> DAQInfo:
+        """
+        Binding of CAENDPP_GetDAQInfo()
+        """
+        l_info = _DAQInfoRaw()
+        lib.get_daq_info(self.handle, board_id, l_info)
+        return DAQInfo.from_raw(l_info)
+
+    def reset_configuration(self, board_id: int) -> None:
+        """
+        Binding of CAENDPP_ResetConfiguration()
+        """
+        lib.reset_configuration(self.handle, board_id)
+
+    def set_hv_channel_configuration(self, board_id: int, channel: int, config: HVChannelConfig) -> None:
+        """
+        Binding of CAENDPP_SetHVChannelConfiguration()
+        """
+        l_config = config.to_raw()
+        lib.set_hv_channel_configuration(self.handle, board_id, channel, l_config)
+
+    def get_hv_channel_configuration(self, board_id: int, channel: int) -> HVChannelConfig:
+        """
+        Binding of CAENDPP_GetHVChannelConfiguration()
+        """
+        l_config = _HVChannelConfigRaw()
+        lib.get_hv_channel_configuration(self.handle, board_id, channel, l_config)
+        return HVChannelConfig.from_raw(l_config)
+
+    def set_hv_channel_vmax(self, board_id: int, channel: int, value: float) -> None:
+        """
+        Binding of CAENDPP_SetHVChannelVMax()
+        """
+        lib.set_hv_channel_vmax(self.handle, board_id, channel, value)
+
+    def get_hv_channel_status(self, board_id: int, channel: int) -> int:
+        """
+        Binding of CAENDPP_GetHVChannelStatus()
+        """
+        l_status = ct.c_uint16()
+        lib.get_hv_channel_status(self.handle, board_id, channel, l_status)
+        return l_status.value
+
+    def set_hv_channel_power_on(self, board_id: int, channel: int, value: bool) -> None:
+        """
+        Binding of CAENDPP_SetHVChannelPowerOn()
+        """
+        lib.set_hv_channel_power_on(self.handle, board_id, channel, value)
+
+    def get_hv_channel_power_on(self, board_id: int, channel: int) -> bool:
+        """
+        Binding of CAENDPP_GetHVChannelPowerOn()
+        """
+        l_value = ct.c_uint32()
+        lib.get_hv_channel_power_on(self.handle, board_id, channel, l_value)
+        return bool(l_value.value)
+
+    def read_hv_channel_monitoring(self, board_id: int, channel: int) -> tuple[float, float]:
+        """
+        Binding of CAENDPP_ReadHVChannelMonitoring()
+        """
+        l_vmon = ct.c_double()
+        l_imon = ct.c_double()
+        lib.read_hv_channel_monitoring(self.handle, board_id, channel, l_vmon, l_imon)
+        return l_vmon.value, l_imon.value
+
+    def read_hv_channel_externals(self, board_id: int, channel: int) -> tuple[float, float]:
+        """
+        Binding of CAENDPP_ReadHVChannelExternals()
+        """
+        l_vext = ct.c_double()
+        l_tres = ct.c_double()
+        lib.read_hv_channel_externals(self.handle, board_id, channel, l_vext, l_tres)
+        return l_vext.value, l_tres.value
+
+    def enumerate_devices(self) -> EnumeratedDevices:
+        """
+        Binding of CAENDPP_EnumerateDevices()
+        """
+        l_devices = _EnumeratedDevicesRaw()
+        lib.enumerate_devices(l_devices)
+        return EnumeratedDevices.from_raw(l_devices)
+
+    def get_hv_status_string(self, board_id: int, status: int) -> str:
+        """
+        Binding of CAENDPP_GetHVStatusString()
+        """
+        l_status = ct.create_string_buffer(100)
+        lib.get_hv_status_string(self.handle, board_id, status, l_status)
+        return l_status.value.decode()
+
+    def set_hv_range(self, board_id: int, channel: int, value: HVRange) -> None:
+        """
+        Binding of CAENDPP_SetHVRange()
+        """
+        lib.set_hv_range(self.handle, board_id, channel, value)
+
+    def get_hv_range(self, board_id: int, channel: int) -> HVRange:
+        """
+        Binding of CAENDPP_GetHVRange()
+        """
+        l_value = ct.c_int()
+        lib.get_hv_range(self.handle, board_id, channel, l_value)
+        return HVRange(l_value.value)
+
+    def set_logger_severity_mask(self, mask: LogMask) -> None:
+        """
+        Binding of CAENDPP_SetLoggerSeverityMask()
+        """
+        lib.set_logger_severity_mask(self.handle, mask)
+
+    def get_logger_severity_mask(self) -> LogMask:
+        """
+        Binding of CAENDPP_GetLoggerSeverityMask()
+        """
+        l_mask = ct.c_int()
+        lib.get_logger_severity_mask(l_mask)
+        return LogMask(l_mask.value)
+
+    def set_hv_inhibit_polarity(self, board_id: int, channel: int, value: PulsePolarity) -> None:
+        """
+        Binding of CAENDPP_SetHVInhibitPolarity()
+        """
+        lib.set_hv_inhibit_polarity(self.handle, board_id, channel, value)
+
+    def get_hv_inhibit_polarity(self, board_id: int, channel: int) -> PulsePolarity:
+        """
+        Binding of CAENDPP_GetHVInhibitPolarity()
+        """
+        l_value = ct.c_int()
+        lib.get_hv_inhibit_polarity(self.handle, board_id, channel, l_value)
+        return PulsePolarity(l_value.value)
 
     # Python utilities
 
