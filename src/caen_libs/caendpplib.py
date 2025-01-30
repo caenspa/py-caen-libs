@@ -48,9 +48,9 @@ class ConnectionParams:
     """
     link_type: ConnectionType
     link_num: int
-    conet_node: int
-    vme_base_address: int
-    eth_address: str
+    conet_node: int = field(default=0)
+    vme_base_address: int = field(default=0)
+    eth_address: str = field(default='')
 
     def to_raw(self) -> _ConnectionParamsRaw:
         """Convert to raw data"""
@@ -96,7 +96,7 @@ class Units(IntEnum):
     OHM = 6
 
 
-@dataclass
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class ParamInfo:
     """
     Binding of ::CAENDPP_ParamInfo_t
@@ -380,14 +380,14 @@ class _TempCorrParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class TempCorrParams:
     """
     Binding of ::CAENDPP_TempCorrParams_t
     """
-    enabled: bool
-    lld: int
-    uld: int
+    enabled: bool = field(default=False)
+    lld: int = field(default=0)
+    uld: int = field(default=0)
 
     @classmethod
     def from_raw(cls, raw: _TempCorrParamsRaw):
@@ -497,23 +497,23 @@ class GPIOLogic(IntEnum):
     OR = 1
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class GPIOConfig:
     """
     Binding of ::CAENDPP_GPIOConfig_t
     """
-    gpios: tuple[GPIO, ...]
-    trg_control: TriggerControl
-    gpio_logic: GPIOLogic
-    time_window: int
-    trans_reset_length: int
-    trans_reset_period: int
+    gpios: list[GPIO] = field(default_factory=list)
+    trg_control: TriggerControl = field(default=TriggerControl.INTERNAL)
+    gpio_logic: GPIOLogic = field(default=GPIOLogic.AND)
+    time_window: int = field(default=0)
+    trans_reset_length: int = field(default=0)
+    trans_reset_period: int = field(default=0)
 
     @classmethod
     def from_raw(cls, raw: _GPIOConfigRaw):
         """Instantiate from raw data"""
         return cls(
-            tuple(GPIO.from_raw(i) for i in raw.GPIOs),
+            [GPIO.from_raw(i) for i in raw.GPIOs],
             TriggerControl(raw.TRGControl),
             GPIOLogic(raw.GPIOLogic),
             raw.TimeWindow,
@@ -556,20 +556,20 @@ class InputImpedance(IntEnum):
     O_1K = 1
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class ExtraParameters:
     """
     Binding of ::CAENDPP_ExtraParameters
     """
-    trig_k: int
-    trigm: int
-    trig_mode: int
-    energy_filter_mode: int
-    input_impedance: InputImpedance
-    cr_gain: int
-    tr_gain: int
-    saturation_holdoff: int
-    gpio_config: GPIOConfig
+    trig_k: int = field(default=0)
+    trigm: int = field(default=0)
+    trig_mode: int = field(default=0)
+    energy_filter_mode: int = field(default=0)
+    input_impedance: InputImpedance = field(default=InputImpedance.O_1K)
+    cr_gain: int = field(default=0)
+    tr_gain: int = field(default=0)
+    saturation_holdoff: int = field(default=0)
+    gpio_config: GPIOConfig = field(default_factory=GPIOConfig)
 
     @classmethod
     def from_raw(cls, raw: _ExtraParametersRaw):
@@ -630,89 +630,119 @@ class _PHAParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class PHAParams:
     """
     Binding of ::CAENDPP_PHA_Params_t
     """
-    m: tuple[int, ...]
-    k: tuple[int, ...]
-    ftd: tuple[int, ...]
-    a: tuple[int, ...]
-    b: tuple[int, ...]
-    thr: tuple[int, ...]
-    nsbl: tuple[int, ...]
-    nspk: tuple[int, ...]
-    pkho: tuple[int, ...]
-    blho: tuple[int, ...]
-    trgho: tuple[int, ...]
-    dgain: tuple[int, ...]
-    enf: tuple[float, ...]
-    decimation: tuple[int, ...]
-    enskim: tuple[int, ...]
-    eskimlld: tuple[int, ...]
-    eskimuld: tuple[int, ...]
-    blrclip: tuple[int, ...]
-    dcomp: tuple[int, ...]
-    trapbsl: tuple[int, ...]
-    pz_dac: tuple[int, ...]
-    inh_length: tuple[int, ...]
-    x770_extraparameters: tuple[ExtraParameters, ...]
+    m_: list[int] = field(default_factory=list)
+    m: list[int] = field(default_factory=list)
+    k: list[int] = field(default_factory=list)
+    ftd: list[int] = field(default_factory=list)
+    a: list[int] = field(default_factory=list)
+    b: list[int] = field(default_factory=list)
+    thr: list[int] = field(default_factory=list)
+    nsbl: list[int] = field(default_factory=list)
+    nspk: list[int] = field(default_factory=list)
+    pkho: list[int] = field(default_factory=list)
+    blho: list[int] = field(default_factory=list)
+    trgho: list[int] = field(default_factory=list)
+    dgain: list[int] = field(default_factory=list)
+    enf: list[float] = field(default_factory=list)
+    decimation: list[int] = field(default_factory=list)
+    enskim: list[int] = field(default_factory=list)
+    eskimlld: list[int] = field(default_factory=list)
+    eskimuld: list[int] = field(default_factory=list)
+    blrclip: list[int] = field(default_factory=list)
+    dcomp: list[int] = field(default_factory=list)
+    trapbsl: list[int] = field(default_factory=list)
+    pz_dac: list[int] = field(default_factory=list)
+    inh_length: list[int] = field(default_factory=list)
+    x770_extraparameters: list[ExtraParameters] = field(default_factory=list)
+
+    def resize(self, n_channels: int):
+        """Resize to n_channels"""
+        self.m_ = [0] * n_channels
+        self.m = [0] * n_channels
+        self.k = [0] * n_channels
+        self.ftd = [0] * n_channels
+        self.a = [0] * n_channels
+        self.b = [0] * n_channels
+        self.thr = [0] * n_channels
+        self.nsbl = [0] * n_channels
+        self.nspk = [0] * n_channels
+        self.pkho = [0] * n_channels
+        self.blho = [0] * n_channels
+        self.trgho = [0] * n_channels
+        self.dgain = [0] * n_channels
+        self.enf = [0.] * n_channels
+        self.decimation = [0] * n_channels
+        self.enskim = [0] * n_channels
+        self.eskimlld = [0] * n_channels
+        self.eskimuld = [0] * n_channels
+        self.blrclip = [0] * n_channels
+        self.dcomp = [0] * n_channels
+        self.trapbsl = [0] * n_channels
+        self.pz_dac = [0] * n_channels
+        self.inh_length = [0] * n_channels
+        self.x770_extraparameters = [ExtraParameters() for _ in range(n_channels)]
 
     @classmethod
     def from_raw(cls, raw: _PHAParamsRaw):
         """Instantiate from raw data"""
         return cls(
-            tuple(raw.m),
-            tuple(raw.k),
-            tuple(raw.ftd),
-            tuple(raw.a),
-            tuple(raw.b),
-            tuple(raw.thr),
-            tuple(raw.nsbl),
-            tuple(raw.nspk),
-            tuple(raw.pkho),
-            tuple(raw.blho),
-            tuple(raw.trgho),
-            tuple(raw.dgain),
-            tuple(raw.enf),
-            tuple(raw.decimation),
-            tuple(raw.enskim),
-            tuple(raw.eskimlld),
-            tuple(raw.eskimuld),
-            tuple(raw.blrclip),
-            tuple(raw.dcomp),
-            tuple(raw.trapbsl),
-            tuple(raw.pz_dac),
-            tuple(raw.inh_length),
-            tuple(ExtraParameters.from_raw(e) for e in raw.X770_extraparameters),
+            raw.M,
+            raw.m,
+            raw.k,
+            raw.ftd,
+            raw.a,
+            raw.b,
+            raw.thr,
+            raw.nsbl,
+            raw.nspk,
+            raw.pkho,
+            raw.blho,
+            raw.trgho,
+            raw.dgain,
+            raw.enf,
+            raw.decimation,
+            raw.enskim,
+            raw.eskimlld,
+            raw.eskimuld,
+            raw.blrclip,
+            raw.dcomp,
+            raw.trapbsl,
+            raw.pz_dac,
+            raw.inh_length,
+            [ExtraParameters.from_raw(e) for e in raw.X770_extraparameters],
         )
 
     def to_raw(self) -> _PHAParamsRaw:
         """Convert to raw data"""
         return _PHAParamsRaw(
-            self.m,
-            self.k,
-            self.ftd,
-            self.a,
-            self.b,
-            self.thr,
-            self.nsbl,
-            self.nspk,
-            self.pkho,
-            self.blho,
-            self.trgho,
-            self.dgain,
-            self.enf,
-            self.decimation,
-            self.enskim,
-            self.eskimlld,
-            self.eskimuld,
-            self.blrclip,
-            self.dcomp,
-            self.trapbsl,
-            self.pz_dac,
-            self.inh_length,
+            tuple(self.m_),
+            tuple(self.m),
+            tuple(self.k),
+            tuple(self.ftd),
+            tuple(self.a),
+            tuple(self.b),
+            tuple(self.thr),
+            tuple(self.nsbl),
+            tuple(self.nspk),
+            tuple(self.pkho),
+            tuple(self.blho),
+            tuple(self.trgho),
+            tuple(self.dgain),
+            tuple(self.enf),
+            tuple(self.decimation),
+            tuple(self.enskim),
+            tuple(self.eskimlld),
+            tuple(self.eskimuld),
+            tuple(self.blrclip),
+            tuple(self.dcomp),
+            tuple(self.trapbsl),
+            tuple(self.pz_dac),
+            tuple(self.inh_length),
             tuple(i.to_raw() for i in self.x770_extraparameters),
         )
 
@@ -826,20 +856,20 @@ class ProbeTrigger(IntEnum):
     FREE_RUNNING = 7
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class WaveformParams:
     """
     Binding of ::CAENDPP_WaveformParams_t
     """
-    dual_trace_mode: int
-    vp1: VirtualProbe1
-    vp2: VirtualProbe2
-    dp1: DigitalProbe1
-    dp2: DigitalProbe2
-    record_length: int
-    pre_trigger: int
-    probe_trigger: ProbeTrigger
-    probe_self_trigger_val: int
+    dual_trace_mode: int = field(default=0)
+    vp1: VirtualProbe1 = field(default=VirtualProbe1.INPUT)
+    vp2: VirtualProbe2 = field(default=VirtualProbe2.NONE)
+    dp1: DigitalProbe1 = field(default=DigitalProbe1.TRIGGER)
+    dp2: DigitalProbe2 = field(default=DigitalProbe2.PEAKING)
+    record_length: int = field(default=0)
+    pre_trigger: int = field(default=0)
+    probe_trigger: ProbeTrigger = field(default=ProbeTrigger.MAIN_TRIG)
+    probe_self_trigger_val: int = field(default=0)
 
     @classmethod
     def from_raw(cls, raw: _WaveformParamsRaw):
@@ -901,19 +931,20 @@ class DumpMask(IntFlag):
     ENERGY = 0x2
     EXTRAS = 0x4
     ENERGY_SHORT = 0x8
+    ALL_ = TTT | ENERGY | EXTRAS | ENERGY_SHORT
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class ListParams:
     """
     Binding of ::CAENDPP_ListParams_t
     """
-    enabled: bool
-    save_mode: ListSaveMode
-    file_name: str
-    max_buff_num_events: int
-    save_mask: DumpMask
-    enable_fakes: bool
+    enabled: bool = field(default=False)
+    save_mode: ListSaveMode = field(default=ListSaveMode.MEMORY)
+    file_name: str = field(default='dummy.txt')
+    max_buff_num_events: int = field(default=0)
+    save_mask: DumpMask = field(default=DumpMask.TTT | DumpMask.ENERGY | DumpMask.EXTRAS)
+    enable_fakes: bool = field(default=False)
 
     @classmethod
     def from_raw(cls, raw: _ListParamsRaw):
@@ -956,13 +987,13 @@ class RunSpecs:
     """
     Binding of ::CAENDPP_RunSpecs_t
     """
-    run_name: str
-    run_duration_sec: int
-    pause_sec: int
-    cycles_count: int
-    save_lists: bool
-    gps_enable: bool
-    clear_histos: bool
+    run_name: str = field(default='dummy')
+    run_duration_sec: int = field(default=0)
+    pause_sec: int = field(default=0)
+    cycles_count: int = field(default=0)
+    save_lists: bool = field(default=False)
+    gps_enable: bool = field(default=False)
+    clear_histos: bool = field(default=False)
 
     @classmethod
     def from_raw(cls, raw: _RunSpecsRaw):
@@ -1020,16 +1051,16 @@ class CoincLogic(IntEnum):
     ANTICOINCIDENCE = 3
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class CoincParams:
     """
     Binding of ::CAENDPP_CoincParams_t
     """
-    coinc_ch_mask: int
-    maj_level: int
-    trg_win: int
-    coinc_op: CoincOp
-    coinc_logic: CoincLogic
+    coinc_ch_mask: int = field(default=0)
+    maj_level: int = field(default=0)
+    trg_win: int = field(default=0)
+    coinc_op: CoincOp = field(default=CoincOp.OR)
+    coinc_logic: CoincLogic = field(default=CoincLogic.NONE)
 
     @classmethod
     def from_raw(cls, raw: _CoincParamsRaw):
@@ -1080,15 +1111,15 @@ class ExtLogic(IntEnum):
     GATE = 1
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class GateParams:
     """
     Binding of ::CAENDPP_GateParams_t
     """
-    gate_enable: bool
-    shape_time: int
-    polarity: PulsePolarity
-    gate_logic: ExtLogic
+    gate_enable: bool = field(default=False)
+    shape_time: int = field(default=0)
+    polarity: PulsePolarity = field(default=PulsePolarity.POSITIVE)
+    gate_logic: ExtLogic = field(default=ExtLogic.VETO)
 
     @classmethod
     def from_raw(cls, raw: _GateParamsRaw):
@@ -1125,13 +1156,13 @@ class SpectrumMode(IntEnum):
     TIME = 1
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class SpectrumControl:
     """
     Binding of ::CAENDPP_SpectrumControl
     """
-    spectrum_mode: SpectrumMode
-    time_scale: int
+    spectrum_mode: SpectrumMode = field(default=SpectrumMode.ENERGY)
+    time_scale: int = field(default=0)
 
     @classmethod
     def from_raw(cls, raw: _SpectrumControlRaw):
@@ -1163,16 +1194,16 @@ class ResetDetectionMode(IntEnum):
     BOTH = 2
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class TRReset:
     """
     Binding of ::CAENDPP_TRReset
     """
-    enabled: bool
-    reset_detection_mode: ResetDetectionMode
-    thrhold: int
-    reslenmin: int
-    reslength: int
+    enabled: bool = field(default=False)
+    reset_detection_mode: ResetDetectionMode = field(default=ResetDetectionMode.INTERNAL)
+    thrhold: int = field(default=0)
+    reslenmin: int = field(default=0)
+    reslength: int = field(default=0)
 
     @classmethod
     def from_raw(cls, raw: _TRResetRaw):
@@ -1220,9 +1251,9 @@ class MonOutParams:
     """
     Binding of ::CAENDPP_MonOutParams_t
     """
-    channel: int
-    enabled: bool
-    probe: PHAMonOutProbe
+    channel: int = field(default=0)
+    enabled: bool = field(default=False)
+    probe: PHAMonOutProbe = field(default=PHAMonOutProbe.INPUT)
 
     @classmethod
     def from_raw(cls, raw: _MonOutParamsRaw):
@@ -1270,53 +1301,74 @@ class INCoupling(IntEnum):
     AC_33US = 3
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@unique
+class IOLevel(IntEnum):
+    """
+    Binding of ::CAENDPP_IOLevel_t
+    """
+    NIM = 0
+    TTL = 1
+
+
+@dataclass(**_utils.dataclass_slots)
 class DgtzParams:
     """
     Binding of ::CAENDPP_DgtzParams_t
     """
-    gw_addr: tuple[int, ...]
-    gw_data: tuple[int, ...]
-    gw_mask: tuple[int, ...]
-    channel_mask: int
-    pulse_polarity: tuple[PulsePolarity, ...]
-    dc_offset: tuple[int, ...]
-    temp_corr_parameters: tuple[TempCorrParams, ...]
-    input_coupling: tuple[INCoupling, ...]
-    event_aggr: int
-    dpp_params: PHAParams
-    iolev: int
-    wf_params: WaveformParams
-    list_params: ListParams
-    run_specifications: RunSpecs
-    coinc_params: tuple[CoincParams, ...]
-    gate_params: tuple[GateParams, ...]
-    spectrum_control: tuple[SpectrumControl, ...]
-    reset_detector: tuple[TRReset, ...]
-    mon_out_params: MonOutParams
+    gw_addr: list[int] = field(default_factory=list)
+    gw_data: list[int] = field(default_factory=list)
+    gw_mask: list[int] = field(default_factory=list)
+    channel_mask: int = field(default=0)
+    pulse_polarity: list[PulsePolarity] = field(default_factory=list)
+    dc_offset: list[int] = field(default_factory=list)
+    temp_corr_parameters: list[TempCorrParams] = field(default_factory=list)
+    input_coupling: list[INCoupling] = field(default_factory=list)
+    event_aggr: int = field(default=0)
+    dpp_params: PHAParams = field(default_factory=PHAParams)
+    iolev: IOLevel = field(default=IOLevel.NIM)
+    wf_params: WaveformParams = field(default_factory=WaveformParams)
+    list_params: ListParams = field(default_factory=ListParams)
+    run_specifications: RunSpecs = field(default_factory=RunSpecs)
+    coinc_params: list[CoincParams] = field(default_factory=list)
+    gate_params: list[GateParams] = field(default_factory=list)
+    spectrum_control: list[SpectrumControl] = field(default_factory=list)
+    reset_detector: list[TRReset] = field(default_factory=list)
+    mon_out_params: MonOutParams = field(default_factory=MonOutParams)
+
+    def resize(self, n_channels: int):
+        """Resize to n_channels"""
+        self.pulse_polarity = [PulsePolarity.POSITIVE] * n_channels
+        self.dc_offset = [0] * n_channels
+        self.temp_corr_parameters = [TempCorrParams() for _ in range(n_channels)]
+        self.input_coupling = [INCoupling.DC] * n_channels
+        self.dpp_params.resize(n_channels)
+        self.coinc_params = [CoincParams() for _ in range(n_channels)]
+        self.gate_params = [GateParams() for _ in range(n_channels)]
+        self.spectrum_control = [SpectrumControl() for _ in range(n_channels)]
+        self.reset_detector = [TRReset() for _ in range(n_channels)]
 
     @classmethod
     def from_raw(cls, raw: _DgtzParamsRaw):
         """Instantiate from raw data"""
         return cls(
-            tuple(raw.GWaddr[:raw.GWn]),
-            tuple(raw.GWdata[:raw.GWn]),
-            tuple(raw.GWmask[:raw.GWn]),
+            raw.GWaddr[:raw.GWn],
+            raw.GWdata[:raw.GWn],
+            raw.GWmask[:raw.GWn],
             raw.ChannelMask,
-            tuple(PulsePolarity(i) for i in raw.PulsePolarity),
-            tuple(raw.DCoffset),
-            tuple(TempCorrParams.from_raw(i) for i in raw.TempCorrParameters),
-            tuple(INCoupling(i) for i in raw.InputCoupling),
+            [PulsePolarity(i) for i in raw.PulsePolarity],
+            raw.DCoffset,
+            [TempCorrParams.from_raw(i) for i in raw.TempCorrParameters],
+            [INCoupling(i) for i in raw.InputCoupling],
             raw.EventAggr,
             PHAParams.from_raw(raw.DPPParams),
-            raw.IOlev,
+            IOLevel(raw.IOlev),
             WaveformParams.from_raw(raw.WFParams),
             ListParams.from_raw(raw.ListParams),
             RunSpecs.from_raw(raw.RunSpecifications),
-            tuple(CoincParams.from_raw(i) for i in raw.CoincParams),
-            tuple(GateParams.from_raw(i) for i in raw.GateParams),
-            tuple(SpectrumControl.from_raw(i) for i in raw.SpectrumControl),
-            tuple(TRReset.from_raw(i) for i in raw.ResetDetector),
+            [CoincParams.from_raw(i) for i in raw.CoincParams],
+            [GateParams.from_raw(i) for i in raw.GateParams],
+            [SpectrumControl.from_raw(i) for i in raw.SpectrumControl],
+            [TRReset.from_raw(i) for i in raw.ResetDetector],
             MonOutParams.from_raw(raw.MonOutParams),
         )
 
@@ -1324,14 +1376,14 @@ class DgtzParams:
         """Convert to raw data"""
         return _DgtzParamsRaw(
             len(self.gw_addr),
-            self.gw_addr,
-            self.gw_data,
-            self.gw_mask,
+            tuple(self.gw_addr),
+            tuple(self.gw_data),
+            tuple(self.gw_mask),
             self.channel_mask,
-            self.pulse_polarity,
-            self.dc_offset,
+            tuple(self.pulse_polarity),
+            tuple(self.dc_offset),
             tuple(i.to_raw() for i in self.temp_corr_parameters),
-            self.input_coupling,
+            tuple(self.input_coupling),
             self.event_aggr,
             self.dpp_params.to_raw(),
             self.iolev,
@@ -1669,7 +1721,7 @@ class StopCriteria(IntEnum):
     COUNTS = 3
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class Waveforms:
     """
     Class to store waveforms data.
@@ -1988,7 +2040,9 @@ class Device:
         Binding of CAENDPP_AddBoard()
         """
         l_params = params.to_raw()
-        return lib.add_board(self.handle, l_params)
+        l_board_id = ct.c_int32()
+        lib.add_board(self.handle, l_params, l_board_id)
+        return l_board_id.value
 
     def get_dpp_info(self, board_id: int) -> Info:
         """
@@ -2156,10 +2210,10 @@ class Device:
         Binding of CAENDPP_GetWaveform()
         """
         l_auto = ct.c_int16(auto)
-        l_at1 = waveforms.at1.ctypes.data
-        l_at2 = waveforms.at2.ctypes.data
-        l_dt1 = waveforms.dt1.ctypes.data
-        l_dt2 = waveforms.dt2.ctypes.data
+        l_at1 = waveforms.at1.ctypes.data_as(_c_int16_p)
+        l_at2 = waveforms.at2.ctypes.data_as(_c_int16_p)
+        l_dt1 = waveforms.dt1.ctypes.data_as(_c_uint8_p)
+        l_dt2 = waveforms.dt2.ctypes.data_as(_c_uint8_p)
         l_ns = ct.c_uint32()
         l_tsample = ct.c_double()
         lib.get_waveform(self.handle, channel, l_auto, l_at1, l_at2, l_dt1, l_dt2, l_ns, l_tsample)
@@ -2174,7 +2228,7 @@ class Device:
         l_counts = ct.c_uint32()
         l_realtime = ct.c_uint64()
         l_deadtime = ct.c_uint64()
-        lib.get_histogram(self.handle, channel, index, histo.ctypes.data, l_counts, l_realtime, l_deadtime)
+        lib.get_histogram(self.handle, channel, index, histo.ctypes, l_counts, l_realtime, l_deadtime)
         return histo, l_counts.value, l_realtime.value, l_deadtime.value
 
     def set_histogram(self, channel: int, index: int, realtime_ns: int, deadtime_ns: int, histo: npt.NDArray[np.uint32]) -> None:
@@ -2194,7 +2248,7 @@ class Device:
         l_realtime = ct.c_uint64()
         l_deadtime = ct.c_uint64()
         l_status = ct.c_int()
-        lib.get_current_histogram(self.handle, channel, histo.ctypes.data, l_counts, l_realtime, l_deadtime, l_status)
+        lib.get_current_histogram(self.handle, channel, histo.ctypes, l_counts, l_realtime, l_deadtime, l_status)
         return histo, l_counts.value, l_realtime.value, l_deadtime.value, AcqStatus(l_status.value)
 
     def save_histogram(self, channel: int, index: int, filename: str) -> None:

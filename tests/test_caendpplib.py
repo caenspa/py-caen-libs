@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import DEFAULT, patch
 
-import caen_libs._caendpplib as dpp
+import caen_libs.caendpplib as dpp
 
 
 class TestDevice(unittest.TestCase):
