@@ -20,6 +20,37 @@ import numpy.typing as npt
 from caen_libs import error, _utils
 
 
+# Constants from CAENDPPLibTypes.h
+MAX_BRDNAME_LEN = 12
+MAX_FWVER_LENGTH = 20
+MAX_LICENSE_DIGITS = 8
+MAX_LICENSE_LENGTH = MAX_LICENSE_DIGITS * 2 + 1
+MAX_LISTFILE_LENGTH = 155
+MAX_LIST_BUFF_NEV = 8192
+MAX_NUMB = 20
+MAX_NUMCHB = 16
+MAX_NTHR = MAX_NUMB
+MAX_ALTHR_NAME_LEN = 50
+MAX_NUMCHB_COINCIDENCE = MAX_NUMCHB + 1
+MAX_GW = 1000
+MAX_GPIO_NUM = 2
+DEFAULT_HISTO_NUM = 1
+CHANNEL_IDX_ALL = -1
+HISTO_IDX_CURRENT = -1
+HISTO_IDX_ALL = -2
+X770_RECORDLENGTH = 2048
+MAX_INRANGES = 15
+MAX_PROBES_NUM = 20
+IP_ADDR_LEN = 255
+X7GS_RECORDLENGTH = 2040
+X7GS_PRETRIGGER = 256
+MAX_RUNNAME = 128
+MAX_HVCHB = 2
+MAX_HVRANGES = 3
+MAX_HVSTATUS_LENGTH = 100
+MAX_LIST_VALS = 15
+
+
 @unique
 class ConnectionType(IntEnum):
     """
@@ -37,7 +68,7 @@ class _ConnectionParamsRaw(ct.Structure):
         ('LinkNum', ct.c_int32),
         ('ConetNode', ct.c_int32),
         ('VMEBaseAddress', ct.c_uint32),
-        ('ETHAddress', ct.c_char * 8),
+        ('ETHAddress', ct.c_char * (IP_ADDR_LEN + 1)),
     ]
 
 
@@ -69,7 +100,7 @@ class _ParamInfoRaw(ct.Structure):
         ('minimum', ct.c_double),
         ('maximum', ct.c_double),
         ('resolution', ct.c_double),
-        ('values', ct.c_double * 15),
+        ('values', ct.c_double * MAX_LIST_VALS),
         ('valuesCount', ct.c_uint32),
         ('units', ct.c_int),
     ]
@@ -116,7 +147,7 @@ class ParamInfo:
             raw.minimum,
             raw.maximum,
             raw.resolution,
-            tuple(raw.values[:raw.valuesCount]),
+            raw.values[:raw.valuesCount],
             Units(raw.units),
         )
 
@@ -182,7 +213,7 @@ class _HVChannelInfoRaw(ct.Structure):
     _fields_ = [
         ('HVFamilyCode', ct.c_int),
         ('NumRanges', ct.c_int32),
-        ('RangeInfos', _HVRangeInfoRaw * 3),
+        ('RangeInfos', _HVRangeInfoRaw * MAX_HVRANGES),
     ]
 
 
@@ -216,12 +247,12 @@ class HVChannelInfo:
 
 class _InfoRaw(ct.Structure):
     _fields_ = [
-        ('ModelName', ct.c_char * 12),
+        ('ModelName', ct.c_char * MAX_BRDNAME_LEN),
         ('Model', ct.c_int32),
         ('Channels', ct.c_uint32),
-        ('ROC_FirmwareRel', ct.c_char * 20),
-        ('AMC_FirmwareRel', ct.c_char * 20),
-        ('License', ct.c_char * 17),
+        ('ROC_FirmwareRel', ct.c_char * MAX_FWVER_LENGTH),
+        ('AMC_FirmwareRel', ct.c_char * MAX_FWVER_LENGTH),
+        ('License', ct.c_char * MAX_LICENSE_LENGTH),
         ('SerialNumber', ct.c_uint32),
         ('Status', ct.c_uint8),
         ('FamilyCode', ct.c_int32),
@@ -237,21 +268,21 @@ class _InfoRaw(ct.Structure):
         ('POEOption', ct.c_uint32),
         ('GPSOption', ct.c_uint32),
         ('InputRangeNum', ct.c_uint32),
-        ('InputRanges', ct.c_int * 15),
+        ('InputRanges', ct.c_int * MAX_INRANGES),
         ('Tsample', ct.c_double),
-        ('SupportedVirtualProbes1', ct.c_uint32 * 20),
+        ('SupportedVirtualProbes1', ct.c_uint32 * MAX_PROBES_NUM),
         ('NumVirtualProbes1', ct.c_uint32),
-        ('SupportedVirtualProbes2', ct.c_uint32 * 20),
+        ('SupportedVirtualProbes2', ct.c_uint32 * MAX_PROBES_NUM),
         ('NumVirtualProbes2', ct.c_uint32),
-        ('SupportedDigitalProbes1', ct.c_uint32 * 20),
+        ('SupportedDigitalProbes1', ct.c_uint32 * MAX_PROBES_NUM),
         ('NumDigitalProbes1', ct.c_uint32),
-        ('SupportedDigitalProbes2', ct.c_uint32 * 20),
+        ('SupportedDigitalProbes2', ct.c_uint32 * MAX_PROBES_NUM),
         ('NumDigitalProbes2', ct.c_uint32),
         ('DPPCodeMaj', ct.c_int32),
         ('DPPCodeMin', ct.c_int32),
-        ('HVChannelInfo', _HVChannelInfoRaw * 2),
+        ('HVChannelInfo', _HVChannelInfoRaw * MAX_HVCHB),
         ('NumMonOutProbes', ct.c_uint32),
-        ('SupportedMonOutProbes', ct.c_uint32 * 20),
+        ('SupportedMonOutProbes', ct.c_uint32 * MAX_PROBES_NUM),
     ]
 
 
@@ -326,14 +357,14 @@ class Info:
     gps_option: int
     input_ranges: tuple[InputRange, ...]
     tsample: float
-    supported_virtual_probes1: tuple[int, ...]
-    supported_virtual_probes2: tuple[int, ...]
-    supported_digital_probes1: tuple[int, ...]
-    supported_digital_probes2: tuple[int, ...]
+    supported_virtual_probes1: tuple[int, ...]  # Could be mapped to VirtualProbe1
+    supported_virtual_probes2: tuple[int, ...]  # Could be mapped to VirtualProbe2
+    supported_digital_probes1: tuple[int, ...]  # Could be mapped to DigitalProbe1
+    supported_digital_probes2: tuple[int, ...]  # Could be mapped to DigitalProbe2
     dpp_code_maj: int
     dpp_code_min: int
     hv_channel_info: tuple[HVChannelInfo, ...]
-    supported_mon_out_probes: tuple[int, ...]
+    supported_mon_out_probes: tuple[int, ...]  # Could be mapped to PHAMonOutProbe
 
     @classmethod
     def from_raw(cls, raw: _InfoRaw):
@@ -361,14 +392,14 @@ class Info:
             raw.GPSOption,
             tuple(InputRange(r) for r in raw.InputRanges[:raw.InputRangeNum]),
             raw.Tsample,
-            tuple(raw.SupportedVirtualProbes1[:raw.NumVirtualProbes1]),
-            tuple(raw.SupportedVirtualProbes2[:raw.NumVirtualProbes2]),
-            tuple(raw.SupportedDigitalProbes1[:raw.NumDigitalProbes1]),
-            tuple(raw.SupportedDigitalProbes2[:raw.NumDigitalProbes2]),
+            raw.SupportedVirtualProbes1[:raw.NumVirtualProbes1],
+            raw.SupportedVirtualProbes2[:raw.NumVirtualProbes2],
+            raw.SupportedDigitalProbes1[:raw.NumDigitalProbes1],
+            raw.SupportedDigitalProbes2[:raw.NumDigitalProbes2],
             raw.DPPCodeMaj,
             raw.DPPCodeMin,
             tuple(HVChannelInfo.from_raw(l) for l in raw.HVChannelInfo[:raw.HVChannels]),
-            tuple(raw.SupportedMonOutProbes[:raw.NumMonOutProbes]),
+            raw.SupportedMonOutProbes[:raw.NumMonOutProbes],
         )
 
 
@@ -417,7 +448,6 @@ class GPIOMode(IntEnum):
     IN_RESET = 3
 
 
-@unique
 class OutSignal(IntEnum):
     """
     Binding of ::CAENDPP_OUTSignal_t
@@ -440,6 +470,10 @@ class OutSignal(IntEnum):
     ANALOG_TRAPEZOID = 103
     ANALOG_ENERGY = 104
     ANALOG_TRAP_CORRECTED = 105
+    DIGITAL_FIRST = DIGITAL_TRIGGER
+    DIGITAL_LAST = DIGITAL_CLKHALF
+    ANALOG_FIRST = ANALOG_INPUT
+    ANALOG_LAST = ANALOG_TRAP_CORRECTED
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
@@ -464,7 +498,7 @@ class GPIO:
 
 class _GPIOConfigRaw(ct.Structure):
     _fields_ = [
-        ('GPIOs', _GPIORaw * 2),
+        ('GPIOs', _GPIORaw * MAX_GPIO_NUM),
         ('TRGControl', ct.c_int),
         ('GPIOLogic', ct.c_int),
         ('TimeWindow', ct.c_uint32),
@@ -603,30 +637,30 @@ class ExtraParameters:
 
 class _PHAParamsRaw(ct.Structure):
     _fields_ = [
-        ('M', ct.c_int32 * 16),
-        ('m', ct.c_int32 * 16),
-        ('k', ct.c_int32 * 16),
-        ('ftd', ct.c_int32 * 16),
-        ('a', ct.c_int32 * 16),
-        ('b', ct.c_int32 * 16),
-        ('thr', ct.c_int32 * 16),
-        ('nsbl', ct.c_int32 * 16),
-        ('nspk', ct.c_int32 * 16),
-        ('pkho', ct.c_int32 * 16),
-        ('blho', ct.c_int32 * 16),
-        ('trgho', ct.c_int32 * 16),
-        ('dgain', ct.c_int32 * 16),
-        ('enf', ct.c_float * 16),
-        ('decimation', ct.c_int32 * 16),
-        ('enskim', ct.c_int32 * 16),
-        ('eskimlld', ct.c_int32 * 16),
-        ('eskimuld', ct.c_int32 * 16),
-        ('blrclip', ct.c_int32 * 16),
-        ('dcomp', ct.c_int32 * 16),
-        ('trapbsl', ct.c_int32 * 16),
-        ('pz_dac', ct.c_uint32 * 16),
-        ('inh_length', ct.c_uint32 * 16),
-        ('X770_extraparameters', _ExtraParametersRaw * 16),
+        ('M', ct.c_int32 * MAX_NUMCHB),
+        ('m', ct.c_int32 * MAX_NUMCHB),
+        ('k', ct.c_int32 * MAX_NUMCHB),
+        ('ftd', ct.c_int32 * MAX_NUMCHB),
+        ('a', ct.c_int32 * MAX_NUMCHB),
+        ('b', ct.c_int32 * MAX_NUMCHB),
+        ('thr', ct.c_int32 * MAX_NUMCHB),
+        ('nsbl', ct.c_int32 * MAX_NUMCHB),
+        ('nspk', ct.c_int32 * MAX_NUMCHB),
+        ('pkho', ct.c_int32 * MAX_NUMCHB),
+        ('blho', ct.c_int32 * MAX_NUMCHB),
+        ('trgho', ct.c_int32 * MAX_NUMCHB),
+        ('dgain', ct.c_int32 * MAX_NUMCHB),
+        ('enf', ct.c_float * MAX_NUMCHB),
+        ('decimation', ct.c_int32 * MAX_NUMCHB),
+        ('enskim', ct.c_int32 * MAX_NUMCHB),
+        ('eskimlld', ct.c_int32 * MAX_NUMCHB),
+        ('eskimuld', ct.c_int32 * MAX_NUMCHB),
+        ('blrclip', ct.c_int32 * MAX_NUMCHB),
+        ('dcomp', ct.c_int32 * MAX_NUMCHB),
+        ('trapbsl', ct.c_int32 * MAX_NUMCHB),
+        ('pz_dac', ct.c_uint32 * MAX_NUMCHB),
+        ('inh_length', ct.c_uint32 * MAX_NUMCHB),
+        ('X770_extraparameters', _ExtraParametersRaw * MAX_NUMCHB),
     ]
 
 
@@ -905,7 +939,7 @@ class _ListParamsRaw(ct.Structure):
     _fields_ = [
         ('enabled', ct.c_uint8),
         ('saveMode', ct.c_int),
-        ('fileName', ct.c_char * 155),
+        ('fileName', ct.c_char * MAX_LISTFILE_LENGTH),
         ('maxBuffNumEvents', ct.c_uint32),
         ('saveMask', ct.c_uint32),
         ('enableFakes', ct.c_uint8),
@@ -972,7 +1006,7 @@ class ListParams:
 
 class _RunSpecsRaw(ct.Structure):
     _fields_ = [
-        ('RunName', ct.c_char * 128),
+        ('RunName', ct.c_char * MAX_RUNNAME),
         ('RunDurationSec', ct.c_int32),
         ('PauseSec', ct.c_int32),
         ('CyclesCount', ct.c_int32),
@@ -1268,24 +1302,24 @@ class MonOutParams:
 class _DgtzParamsRaw(ct.Structure):
     _fields_ = [
         ('GWn', ct.c_int32),
-        ('GWaddr', ct.c_uint32 * 1000),
-        ('GWdata', ct.c_uint32 * 1000),
-        ('GWmask', ct.c_uint32 * 1000),
+        ('GWaddr', ct.c_uint32 * MAX_GW),
+        ('GWdata', ct.c_uint32 * MAX_GW),
+        ('GWmask', ct.c_uint32 * MAX_GW),
         ('ChannelMask', ct.c_int32),
-        ('PulsePolarity', ct.c_int * 16),
-        ('DCoffset', ct.c_int32 * 16),
-        ('TempCorrParameters', _TempCorrParamsRaw * 16),
-        ('InputCoupling', ct.c_int * 16),
+        ('PulsePolarity', ct.c_int * MAX_NUMCHB),
+        ('DCoffset', ct.c_int32 * MAX_NUMCHB),
+        ('TempCorrParameters', _TempCorrParamsRaw * MAX_NUMCHB),
+        ('InputCoupling', ct.c_int * MAX_NUMCHB),
         ('EventAggr', ct.c_int32),
         ('DPPParams', _PHAParamsRaw),
         ('IOlev', ct.c_int),
         ('WFParams', _WaveformParamsRaw),
         ('ListParams', _ListParamsRaw),
         ('RunSpecifications', _RunSpecsRaw),
-        ('CoincParams', _CoincParamsRaw * 17),
-        ('GateParams', _GateParamsRaw * 16),
-        ('SpectrumControl', _SpectrumControlRaw * 16),
-        ('ResetDetector', _TRResetRaw * 16),
+        ('CoincParams', _CoincParamsRaw * MAX_NUMCHB_COINCIDENCE),
+        ('GateParams', _GateParamsRaw * MAX_NUMCHB),
+        ('SpectrumControl', _SpectrumControlRaw * MAX_NUMCHB),
+        ('ResetDetector', _TRResetRaw * MAX_NUMCHB),
         ('MonOutParams', _MonOutParamsRaw),
     ]
 
@@ -1654,7 +1688,7 @@ class EnumeratedDevices:
 
 class LogMask(IntFlag):
     """
-    Binding of ::CAENDPP_LogMask
+    Binding of ::DPPLIB_LOGMASK_*
     """
     NONE = 0x0
     INFO = 0x1
@@ -1733,10 +1767,10 @@ class Waveforms:
     dt2: npt.NDArray[np.uint8] = field(init=False)
 
     def __post_init__(self):
-        self.at1 = np.empty(self.samples, dtype=np.int16)
-        self.at2 = np.empty(self.samples, dtype=np.int16)
-        self.dt1 = np.empty(self.samples, dtype=np.uint8)
-        self.dt2 = np.empty(self.samples, dtype=np.uint8)
+        self.at1 = np.zeros(self.samples, dtype=np.int16)
+        self.at2 = np.zeros(self.samples, dtype=np.int16)
+        self.dt1 = np.zeros(self.samples, dtype=np.uint8)
+        self.dt2 = np.zeros(self.samples, dtype=np.uint8)
 
 
 @unique

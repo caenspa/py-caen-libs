@@ -17,6 +17,9 @@ __contact__ = 'https://www.caen.it/'
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
 from caen_libs import caendpplib as dpp
 
 
@@ -35,6 +38,7 @@ parser.add_argument('-c', '--connectiontype', type=str, help='connection type', 
 parser.add_argument('-l', '--linknumber', type=int, help='link number', default=0)
 parser.add_argument('-n', '--conetnode', type=int, help='CONET node', default=0)
 parser.add_argument('-b', '--vmebaseaddress', type=hex_int, help='VME base address (as hex)', default=0)
+parser.add_argument('-a', '--ethaddress', type=str, help='ethernet address', default='')
 
 args = parser.parse_args()
 
@@ -42,13 +46,25 @@ print('-------------------------------------------------------------------------
 print('CAEN DPPLib binding loaded')
 print('------------------------------------------------------------------------------------')
 
-with dpp.Device.open() as lib:
-    connection_params = dpp.ConnectionParams(dpp.ConnectionType[args.connectiontype], args.linknumber, args.conetnode, args.vmebaseaddress)
+REF_CH = 0
+
+with dpp.Device.open(dpp.LogMask.ALL) as lib:
+
+    connection_params = dpp.ConnectionParams(
+        dpp.ConnectionType[args.connectiontype],
+        args.linknumber,
+        args.conetnode,
+        args.vmebaseaddress,
+        args.ethaddress
+    )
 
     idx = lib.add_board(connection_params)
     info = lib.get_dpp_info(idx)
+    print(info.input_ranges)
 
     print(f'Connected with Digitizer {info.model_name} (sn={info.serial_number})')
+
+    max_adc = (1 << info.adc_nbits) - 1
 
     # Define configuration
     params = dpp.DgtzParams()
@@ -71,7 +87,7 @@ with dpp.Device.open() as lib:
     params.wf_params.vp2 = dpp.VirtualProbe2.TRAP_BL_CORR
     params.wf_params.dp1 = dpp.DigitalProbe1.PEAKING
     params.wf_params.dp2 = dpp.DigitalProbe2.TRIGGER
-    params.wf_params.record_length = 8192
+    params.wf_params.record_length = 1024
     params.wf_params.pre_trigger = 100
     params.wf_params.probe_self_trigger_val = 150
     params.wf_params.probe_trigger = dpp.ProbeTrigger.MAIN_TRIG
@@ -82,7 +98,7 @@ with dpp.Device.open() as lib:
     for i in range(info.channels):
 
         # Channel parameters
-        params.dc_offset[i] = 32767
+        params.dc_offset[i] = max_adc // 2
         params.pulse_polarity[i] = dpp.PulsePolarity.POSITIVE
 
         # Coicidence parameters between channels
@@ -99,7 +115,7 @@ with dpp.Device.open() as lib:
         params.dpp_params.ftd[i] = 800
         params.dpp_params.a[i] = 4
         params.dpp_params.b[i] = 200
-        params.dpp_params.thr[i] = 50
+        params.dpp_params.thr[i] = 5
         params.dpp_params.nsbl[i] = 3
         params.dpp_params.nspk[i] = 0
         params.dpp_params.pkho[i] = 0
@@ -129,17 +145,32 @@ with dpp.Device.open() as lib:
         params.spectrum_control[i].spectrum_mode = dpp.SpectrumMode.ENERGY
         params.spectrum_control[i].time_scale = 1
 
-    lib.set_board_configuration(idx, dpp.AcqMode.HISTOGRAM, params)
-
-    REF_CH = 0
+    lib.set_board_configuration(idx, dpp.AcqMode.WAVEFORM, params)
 
     wf = lib.allocate_waveform(REF_CH)
 
+    # Set up the figure and axis
+    fig, ax = plt.subplots()
+    line, = ax.plot(wf.at1)
+
+    ax.set_ylim(0, max_adc)
+
+    # Updater
+    def _update_waveform(_):
+        try:
+            lib.get_waveform(REF_CH, False, wf)
+        except dpp.Error as e:
+            print(f'Error: {e}')
+            return line,
+        line.set_ydata(wf.at1)
+        return line,
+
     lib.start_acquisition(idx)
 
-    for _ in range(1):
-        lib.get_waveform(REF_CH, True, wf)
-        print(wf)
+    # Set up the animation
+    ani = animation.FuncAnimation(fig, _update_waveform, blit=True, interval=100, cache_frame_data=False)
+
+    plt.show()
 
     lib.stop_acquisition(idx)
 
