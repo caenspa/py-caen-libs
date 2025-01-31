@@ -10,7 +10,7 @@ class TestDevice(unittest.TestCase):
     """Test the Device class."""
 
     def setUp(self):
-        patcher = patch('caen_libs._caendpplib.lib', autospec=True)
+        patcher = patch('caen_libs.caendpplib.lib', autospec=True)
         self.addCleanup(patcher.stop)
         self.mock_lib = patcher.start()
         def side_effect(*args):
