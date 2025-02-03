@@ -90,7 +90,7 @@ class ConnectionParams:
             self.link_num,
             self.conet_node,
             self.vme_base_address,
-            self.eth_address.encode(),
+            self.eth_address.encode('ascii'),
         )
 
 
@@ -370,12 +370,12 @@ class Info:
     def from_raw(cls, raw: _InfoRaw):
         """Instantiate from raw data"""
         return cls(
-            raw.ModelName.decode(),
+            raw.ModelName.decode('ascii'),
             raw.Model,
             raw.Channels,
-            raw.ROC_FirmwareRel.decode(),
-            raw.AMC_FirmwareRel.decode(),
-            raw.License.decode(),
+            raw.ROC_FirmwareRel.decode('ascii'),
+            raw.AMC_FirmwareRel.decode('ascii'),
+            raw.License.decode('ascii'),
             raw.SerialNumber,
             raw.Status,
             raw.FamilyCode,
@@ -986,7 +986,7 @@ class ListParams:
         return cls(
             bool(raw.enabled),
             ListSaveMode(raw.saveMode),
-            raw.fileName.decode(),
+            raw.fileName.decode('ascii'),
             raw.maxBuffNumEvents,
             DumpMask(raw.saveMask),
             bool(raw.enableFakes),
@@ -997,7 +997,7 @@ class ListParams:
         return _ListParamsRaw(
             self.enabled,
             self.save_mode,
-            self.file_name.encode(),
+            self.file_name.encode('ascii'),
             self.max_buff_num_events,
             self.save_mask,
             self.enable_fakes,
@@ -1033,7 +1033,7 @@ class RunSpecs:
     def from_raw(cls, raw: _RunSpecsRaw):
         """Instantiate from raw data"""
         return cls(
-            raw.RunName.decode(),
+            raw.RunName.decode('ascii'),
             raw.RunDurationSec,
             raw.PauseSec,
             raw.CyclesCount,
@@ -1045,7 +1045,7 @@ class RunSpecs:
     def to_raw(self) -> _RunSpecsRaw:
         """Convert to raw data"""
         return _RunSpecsRaw(
-            self.run_name.encode(),
+            self.run_name.encode('ascii'),
             self.run_duration_sec,
             self.pause_sec,
             self.cycles_count,
@@ -1655,9 +1655,9 @@ class EnumerationSingleDevice:
         return cls(
             raw.id,
             ConnectionType(raw.ConnectionMode),
-            raw.SerialNUMBER.decode(),
-            raw.ProductDescription.decode(),
-            raw.ETHAddress.decode(),
+            raw.SerialNUMBER.decode('ascii'),
+            raw.ProductDescription.decode('ascii'),
+            raw.ETHAddress.decode('ascii'),
             raw.TCPPORT,
             raw.UDPPORT,
             COMStatus(raw.cStatus),
@@ -2043,7 +2043,7 @@ class Device:
         l_handle = ct.c_int32()
         l_num_board = ct.c_int32()
         l_board_ids = (ct.c_int32 * 20)()
-        lib.attach_boards(ip.encode(), port, l_handle, l_num_board, l_board_ids)
+        lib.attach_boards(ip.encode('ascii'), port, l_handle, l_num_board, l_board_ids)
         device = cls(l_handle.value)
         boards_ids = tuple(l_board_ids[:l_num_board.value])
         return device, boards_ids
@@ -2289,13 +2289,13 @@ class Device:
         """
         Binding of CAENDPP_SaveHistogram()
         """
-        lib.save_histogram(self.handle, channel, index, filename.encode())
+        lib.save_histogram(self.handle, channel, index, filename.encode('ascii'))
 
     def load_histogram(self, channel: int, index: int, filename: str) -> None:
         """
         Binding of CAENDPP_LoadHistogram()
         """
-        lib.load_histogram(self.handle, channel, index, filename.encode())
+        lib.load_histogram(self.handle, channel, index, filename.encode('ascii'))
 
     def clear_histogram(self, channel: int, index: int) -> None:
         """
@@ -2543,7 +2543,7 @@ class Device:
         """
         l_status = ct.create_string_buffer(100)
         lib.get_hv_status_string(self.handle, board_id, status, l_status)
-        return l_status.value.decode()
+        return l_status.value.decode('ascii')
 
     def set_hv_range(self, board_id: int, channel: int, value: HVRange) -> None:
         """

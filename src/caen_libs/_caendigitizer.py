@@ -442,7 +442,7 @@ class _Lib(_utils.Lib):
         """
         l_value = ct.create_string_buffer(16)
         self.__sw_release(l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
 
 lib = _Lib('CAENDigitizer')
@@ -451,7 +451,7 @@ lib = _Lib('CAENDigitizer')
 def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
     if connection_type is ConnectionType.ETH_V4718:
         assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode()
+        return arg.encode('ascii')
     else:
         l_link_number = int(arg)
         l_link_number_ct = ct.c_uint32(l_link_number)

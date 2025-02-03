@@ -541,7 +541,7 @@ class _Lib(_utils.Lib):
         func.argtypes = args
         func.restype = ct.c_char_p
         # cannot fail, errcheck improperly used to cast bytes to str
-        func.errcheck = lambda res, *_: res.decode()  # type: ignore
+        func.errcheck = lambda res, *_: res.decode('ascii')  # type: ignore
         return func
 
     # C API bindings
@@ -552,7 +552,7 @@ class _Lib(_utils.Lib):
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         self.__sw_release(l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
 
 # Library name is platform dependent
@@ -568,7 +568,7 @@ lib = _Lib(_LIB_NAME)
 def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
     if board_type in (BoardType.ETH_V4718, BoardType.ETH_V4718_LOCAL):
         assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode()
+        return arg.encode('ascii')
     else:
         l_link_number = int(arg)
         l_link_number_ct = ct.c_uint32(l_link_number)
@@ -640,7 +640,7 @@ class Device:
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.board_fw_release(self.handle, l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def driver_release(self) -> str:
         """
@@ -648,7 +648,7 @@ class Device:
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.driver_release(self.handle, l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def device_reset(self) -> None:
         """

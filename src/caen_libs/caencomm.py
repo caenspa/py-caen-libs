@@ -169,7 +169,7 @@ class _Lib(_utils.Lib):
         """
         l_value = ct.create_string_buffer(256)  # Undocumented but, hopefully, long enough
         self.__decode_error(error_code, l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def sw_release(self) -> str:
         """
@@ -177,7 +177,7 @@ class _Lib(_utils.Lib):
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         self.__sw_release(l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def vme_irq_check(self, vme_handle: int) -> IRQLevels:
         """
@@ -224,7 +224,7 @@ lib = _Lib('CAENComm')
 def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
     if connection_type is ConnectionType.ETH_V4718:
         assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode()
+        return arg.encode('ascii')
     else:
         l_link_number = int(arg)
         l_link_number_ct = ct.c_uint32(l_link_number)
@@ -435,7 +435,7 @@ class Device:
         """
         l_value = ct.create_string_buffer(30)  # MAX_INFO_LENGTH
         lib.info(self.handle, info_type, ct.byref(l_value))
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def vme_handle(self) -> int:
         """

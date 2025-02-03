@@ -275,8 +275,8 @@ class _Lib(_utils.Lib):
         return tuple(
             USBDevice(
                 i.id,
-                i.SN.value.decode(),
-                i.DESC.value.decode(),
+                i.SN.value.decode('ascii'),
+                i.DESC.value.decode('ascii'),
             ) for i in l_data[:l_num_devs.value]
         )
 
@@ -307,7 +307,7 @@ lib = _Lib(_LIB_NAME)
 def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):
     if connection_mode in (ConnectionModes.DIRECT_ETH, ConnectionModes.VME_V4718_ETH):
         assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode()
+        return arg.encode('ascii')
     elif connection_mode in (ConnectionModes.DIRECT_USB, ConnectionModes.VME_V1718, ConnectionModes.VME_V2718):
         l_link_number_i = int(arg)
         l_link_number_i_ct = ct.c_int(l_link_number_i)
@@ -354,7 +354,7 @@ class Device:
         l_arg = _get_l_arg(connection_mode, arg)
         l_handle = ct.c_int()
         vme_base_address_str = f'{vme_base_address:X}' if isinstance(vme_base_address, int) else vme_base_address
-        l_vme_base_address = vme_base_address_str.encode()
+        l_vme_base_address = vme_base_address_str.encode('ascii')
         lib.open_device2(connection_mode, l_arg, conet_node, l_vme_base_address, l_handle)
         return cls(l_handle.value, connection_mode, arg, conet_node, vme_base_address_str)
 
@@ -369,7 +369,7 @@ class Device:
             raise RuntimeError('Already connected.')
         l_arg = _get_l_arg(self.connection_mode, self.arg)
         l_handle = ct.c_int()
-        l_vme_base_address = self.vme_base_address.encode()
+        l_vme_base_address = self.vme_base_address.encode('ascii')
         lib.open_device2(self.connection_mode, l_arg, self.conet_node, l_vme_base_address, l_handle)
         self.handle = l_handle.value
         self.__opened = True
@@ -442,7 +442,7 @@ class Device:
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.get_serial_number(self.handle, l_value, len(l_value))
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def get_info(self) -> BoardInfo:
         """

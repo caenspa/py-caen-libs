@@ -16,16 +16,14 @@ __license__ = 'MIT-0'
 __contact__ = 'https://www.caen.it/'
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from functools import partial
 
-import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
 
 from caen_libs import caendpplib as dpp
 
-
-def hex_int(x: str):
-    """Trick to make ArgumentParser support hex"""
-    return int(x, 16)
 
 # Parse arguments
 parser = ArgumentParser(
@@ -37,7 +35,7 @@ parser = ArgumentParser(
 parser.add_argument('-c', '--connectiontype', type=str, help='connection type', required=True, choices=tuple(i.name for i in dpp.ConnectionType))
 parser.add_argument('-l', '--linknumber', type=int, help='link number', default=0)
 parser.add_argument('-n', '--conetnode', type=int, help='CONET node', default=0)
-parser.add_argument('-b', '--vmebaseaddress', type=hex_int, help='VME base address (as hex)', default=0)
+parser.add_argument('-b', '--vmebaseaddress', type=partial(int, base=16), help='VME base address (as hex)', default=0)
 parser.add_argument('-a', '--ethaddress', type=str, help='ethernet address', default='')
 
 args = parser.parse_args()
@@ -60,11 +58,10 @@ with dpp.Device.open(dpp.LogMask.ALL) as lib:
 
     idx = lib.add_board(connection_params)
     info = lib.get_dpp_info(idx)
-    print(info.input_ranges)
 
     print(f'Connected with Digitizer {info.model_name} (sn={info.serial_number})')
 
-    max_adc = (1 << info.adc_nbits) - 1
+    max_adc = 2 ** info.adc_nbits - 1
 
     # Define configuration
     params = dpp.DgtzParams()
@@ -151,24 +148,21 @@ with dpp.Device.open(dpp.LogMask.ALL) as lib:
 
     # Set up the figure and axis
     fig, ax = plt.subplots()
-    line, = ax.plot(wf.at1)
+    line, = ax.plot([], [], drawstyle='steps-post')
 
+    ax.set_xlim(0, wf.samples - 1)
     ax.set_ylim(0, max_adc)
 
     # Updater
     def _update_waveform(_):
-        try:
-            lib.get_waveform(REF_CH, False, wf)
-        except dpp.Error as e:
-            print(f'Error: {e}')
-            return line,
-        line.set_ydata(wf.at1)
-        return line,
+        samples, _ = lib.get_waveform(REF_CH, False, wf)
+        valid_sample_range = np.arange(0, samples)
+        line.set_data(valid_sample_range, wf.at1)
 
     lib.start_acquisition(idx)
 
     # Set up the animation
-    ani = animation.FuncAnimation(fig, _update_waveform, blit=True, interval=100, cache_frame_data=False)
+    ani = animation.FuncAnimation(fig, _update_waveform, interval=200, cache_frame_data=False)
 
     plt.show()
 

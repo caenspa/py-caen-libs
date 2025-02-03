@@ -27,6 +27,8 @@ Fixes:
 - Properly close event sockets on `caenhvwrapper.Device.close`.
 - Improved `subscribe_*_params`/`unsubscribe_*_params` error messages
     on `caenhvwrapper`.
+- Force ASCII encode/decode of strings, being the only encoding supported
+    by the underlying C libraries.
 
 
 v1.3.0 (02/12/2024)

@@ -13,13 +13,10 @@ __license__ = 'MIT-0'
 __contact__ = 'https://www.caen.it/'
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from functools import partial
 
 from caen_libs import caenplu as plu
 
-
-def hex_int(x: str):
-    """Trick to make ArgumentParser support hex"""
-    return int(x, 16)
 
 # Parse arguments
 parser = ArgumentParser(
@@ -31,15 +28,13 @@ parser = ArgumentParser(
 parser.add_argument('-c', '--connectiontype', type=str, help='connection type', required=True, choices=tuple(i.name for i in plu.ConnectionModes))
 parser.add_argument('-l', '--linknumber', type=str, help='link number, PID or hostname (depending on connectiontype)', required=True)
 parser.add_argument('-n', '--conetnode', type=int, help='CONET node', default=0)
-parser.add_argument('-b', '--vmebaseaddress', type=hex_int, help='VME base address (as hex)', default=0)
+parser.add_argument('-b', '--vmebaseaddress', type=partial(int, base=16), help='VME base address (as hex)', default=0)
 
 args = parser.parse_args()
-
 
 print('------------------------------------------------------------------------------------')
 print('CAEN PLULib binding loaded')
 print('------------------------------------------------------------------------------------')
-
 
 with plu.Device.open(plu.ConnectionModes[args.connectiontype], args.linknumber, args.conetnode, args.vmebaseaddress) as device:
     pcb_revision = device.registers[0x814C]
