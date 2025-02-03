@@ -91,7 +91,7 @@ class SystemStatus:
         """Instantiate from raw data"""
         return cls(
             system=EventStatus(raw.System),
-            board=tuple(EventStatus(i) for i in raw.Board),
+            board=tuple(map(EventStatus, raw.Board)),
         )
 
 

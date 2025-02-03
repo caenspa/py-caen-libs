@@ -73,5 +73,3 @@ with comm.Device.open(comm.ConnectionType[args.connectiontype], args.linknumber,
     print(buffer)
 
     device.reg32[0xEF24] = 1        # Reset
-
-print('Bye bye')

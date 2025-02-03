@@ -89,7 +89,11 @@ class Lib(ABC):
         return version_to_tuple(ver) >= target
 
     def get(self, name: str, variadic: bool = False):
-        """Get function by name"""
+        """
+        Get function by name.
+        Use CDLL.__getitem__ rather than CDLL.__getattr__ to avoid
+        caching, useless in our case.
+        """
         if variadic:
             return self.__lib_variadic[name]
         return self.__lib[name]

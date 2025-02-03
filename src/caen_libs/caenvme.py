@@ -217,8 +217,10 @@ class IOPolarity(IntEnum):
 
 if sys.platform == 'win32':
     _CaenBool = ct.c_short  # CAEN_BOOL
+    _CAEN_TRUE = -1  # CAEN_TRUE
 else:
     _CaenBool = ct.c_int  # CAEN_BOOL
+    _CAEN_TRUE = 1  # CAEN_TRUE
 
 
 class IRQLevels(IntFlag):
@@ -283,17 +285,17 @@ class Display:
             raw.Data,
             AddressModifiers(raw.AM),
             IRQLevels(raw.IRQ),
-            bool(raw.DS0),
-            bool(raw.DS1),
-            bool(raw.AS),
-            bool(raw.IACK),
-            bool(raw.WRITE),
-            bool(raw.LWORD),
-            bool(raw.DTACK),
-            bool(raw.BERR),
-            bool(raw.SYSRES),
-            bool(raw.BR),
-            bool(raw.BG),
+            raw.DS0 == _CAEN_TRUE,
+            raw.DS1 == _CAEN_TRUE,
+            raw.AS == _CAEN_TRUE,
+            raw.IACK == _CAEN_TRUE,
+            raw.WRITE == _CAEN_TRUE,
+            raw.LWORD == _CAEN_TRUE,
+            raw.DTACK == _CAEN_TRUE,
+            raw.BERR == _CAEN_TRUE,
+            raw.SYSRES == _CAEN_TRUE,
+            raw.BR == _CAEN_TRUE,
+            raw.BG == _CAEN_TRUE,
         )
 
 

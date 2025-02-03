@@ -112,7 +112,7 @@ with dpp.Device.open(dpp.LogMask.ALL) as lib:
         params.dpp_params.ftd[i] = 800
         params.dpp_params.a[i] = 4
         params.dpp_params.b[i] = 200
-        params.dpp_params.thr[i] = 5
+        params.dpp_params.thr[i] = 1
         params.dpp_params.nsbl[i] = 3
         params.dpp_params.nspk[i] = 0
         params.dpp_params.pkho[i] = 0
@@ -148,7 +148,17 @@ with dpp.Device.open(dpp.LogMask.ALL) as lib:
 
     # Set up the figure and axis
     fig, ax = plt.subplots()
-    line, = ax.plot([], [], drawstyle='steps-post')
+    lines: list[plt.Line2D] = []
+    for i in range(4):
+        line, = ax.plot([], [], drawstyle='steps-post')
+        lines.append(line)
+
+    fig.legend([
+        params.wf_params.vp1.name,
+        params.wf_params.vp2.name,
+        params.wf_params.dp1.name,
+        params.wf_params.dp2.name,
+    ], loc='upper right')
 
     ax.set_xlim(0, wf.samples - 1)
     ax.set_ylim(0, max_adc)
@@ -157,7 +167,10 @@ with dpp.Device.open(dpp.LogMask.ALL) as lib:
     def _update_waveform(_):
         samples, _ = lib.get_waveform(REF_CH, False, wf)
         valid_sample_range = np.arange(0, samples)
-        line.set_data(valid_sample_range, wf.at1)
+        lines[0].set_data(valid_sample_range, wf.at1)
+        lines[1].set_data(valid_sample_range, wf.at2)
+        lines[2].set_data(valid_sample_range, wf.dt1.astype(np.float64) * 1000 + 2000)
+        lines[3].set_data(valid_sample_range, wf.dt2.astype(np.float64) * 1000 + 3000)
 
     lib.start_acquisition(idx)
 
@@ -167,5 +180,3 @@ with dpp.Device.open(dpp.LogMask.ALL) as lib:
     plt.show()
 
     lib.stop_acquisition(idx)
-
-print('Bye bye')

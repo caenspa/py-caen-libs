@@ -241,7 +241,7 @@ class HVChannelInfo:
         """Instantiate from raw data"""
         return cls(
             HVFamilyCode(raw.HVFamilyCode),
-            tuple(HVRangeInfo.from_raw(i) for i in raw.RangeInfos[:raw.NumRanges]),
+            tuple(map(HVRangeInfo.from_raw, raw.RangeInfos[:raw.NumRanges])),
         )
 
 
@@ -284,6 +284,62 @@ class _InfoRaw(ct.Structure):
         ('NumMonOutProbes', ct.c_uint32),
         ('SupportedMonOutProbes', ct.c_uint32 * MAX_PROBES_NUM),
     ]
+
+
+@unique
+class BoardModel(IntEnum):
+    """
+    Binding of ::CAENDPP_BoardModel_t
+    """
+    V1724 = 0
+    DT5724 = 6
+    N6724 = 12
+    DT5780 = 21
+    N6780 = 22
+    V1780 = 23
+    DT5730 = 30
+    N6730 = 31
+    V1730 = 32
+    DT5781 = 36
+    N6781 = 37
+    V1781 = 38
+    DT5725 = 39
+    N6725 = 40
+    V1725 = 41
+    V1782 = 42
+    DT5770 = -1
+    N6770 = -2
+    V1770 = -3
+    DT57GS = -4
+    DT5000 = 5000
+    DT6000 = 6000
+
+
+@unique
+class BoardFamilyCode(IntEnum):
+    """
+    Binding of ::CAENDPP_BoardFamilyCode_t
+    """
+    XX724 = 0
+    XX780 = 7
+    XX730 = 11
+    XX781 = 13
+    XX725 = 14
+    XX782 = 16
+    XX000 = 5000
+    XX770 = -1
+    XX7GS = -2
+
+
+@unique
+class BoardFormFactor(IntEnum):
+    """
+    Binding of ::CAENDPP_BoardFormFactor_t
+    """
+    VME64 = 0
+    VME64X = 1
+    DESKTOP = 2
+    NIM = 3
 
 
 class InputRange(IntEnum):
@@ -330,76 +386,183 @@ class InputRange(IntEnum):
     R_UNKN = -1
 
 
+@unique
+class VirtualProbe1(IntEnum):
+    """
+    Binding of ::CAENDPP_PHA_VirtualProbe1_t
+    """
+    INPUT = 0
+    DELTA = 1
+    DELTA2 = 2
+    TRAPEZOID = 3
+    FAST_TRAP = 4
+    TRAP_BASELINE = 5
+    ENERGY_OUT = 6
+    TRAP_BL_CORR = 7
+    NONE = 8
+    FAST_TRIGGER = 9
+    SLOW_TRIGGER = 10
+
+
+@unique
+class VirtualProbe2(IntEnum):
+    """
+    Binding of ::CAENDPP_PHA_VirtualProbe2_t
+    """
+    INPUT = 0
+    S3 = 1
+    TRAP_BL_CORR = 2
+    TRAP_BASELINE = 3
+    NONE = 4
+    DELTA = 5
+    FAST_TRAP = 6
+    DELTA2 = 7
+    TRAPEZOID = 8
+    ENERGY_OUT = 9
+    FAST_TRIGGER = 10
+    SLOW_TRIGGER = 11
+
+
+@unique
+class DigitalProbe1(IntEnum):
+    """
+    Binding of ::CAENDPP_PHA_DigitalProbe1_t
+    """
+    TRG_WIN = 0
+    ARMED = 1
+    PK_RUN = 2
+    PUR_FLAG = 3
+    PEAKING = 4
+    TVAW = 5
+    BL_HOLDOFF = 6
+    TRG_HOLDOFF = 7
+    TRG_VAL = 8
+    ACQ_VETO = 9
+    BFM_VETO = 10
+    EXT_TRG = 11
+    TRIGGER = 12
+    NONE = 13
+    ENERGY_ACCEPTED = 14
+    SATURATION = 15
+    RESET = 16
+    BL_FREEZE = 17
+    BUSY = 18
+    PRG_VETO = 19
+    INHIBIT = 20
+
+
+@unique
+class DigitalProbe2(IntEnum):
+    """
+    Binding of ::CAENDPP_PHA_DigitalProbe2_t
+    """
+    TRIGGER = 0
+    NONE = 1
+    PEAKING = 2
+    BL_HOLDOFF = 3
+    PUR_FLAG = 4
+    ENERGY_ACCEPTED = 5
+    SATURATION = 6
+    RESET = 7
+
+
+@unique
+class DPPCode(IntEnum):
+    """
+    Binding of ::CAENDPP_DPPCode_t
+    """
+    PHA_X724 = 0x80
+    PHA_X730 = 0x8B
+    CI_X720 = 0x82
+    PSD_X720 = 0x83
+    PSD_X751 = 0x84
+    ZLE_X751 = 0x85
+    CI_X743 = 0x86
+    PSD_X730 = 0x88
+    PHA_XHEX = 0x8E
+
+
+@unique
+class PHAMonOutProbe(IntEnum):
+    """
+    Binding of ::CAENDPP_PHA_MonOutProbe_t
+    """
+    INPUT = 0
+    FAST_TRIGGER = 1
+    TRAPEZOID = 2
+    TRAP_BL_CORR = 3
+
+
 @dataclass(frozen=True, **_utils.dataclass_slots)
 class Info:
     """
     Binding of ::CAENDPP_Info_t
     """
     model_name: str
-    model: int
+    model: BoardModel
     channels: int
     roc_firmware_rel: str
     amc_firmware_rel: str
     license: str
     serial_number: int
     status: int
-    family_code: int
+    family_code: BoardFamilyCode
     hv_channels: int
-    form_factor: int
+    form_factor: BoardFormFactor
     pcb_revision: int
     adc_nbits: int
     energy_max_nbits: int
-    usb_option: int
-    eth_option: int
-    wifi_option: int
-    bt_option: int
-    poe_option: int
-    gps_option: int
+    usb_option: bool
+    eth_option: bool
+    wifi_option: bool
+    bt_option: bool
+    poe_option: bool
+    gps_option: bool
     input_ranges: tuple[InputRange, ...]
     tsample: float
-    supported_virtual_probes1: tuple[int, ...]  # Could be mapped to VirtualProbe1
-    supported_virtual_probes2: tuple[int, ...]  # Could be mapped to VirtualProbe2
-    supported_digital_probes1: tuple[int, ...]  # Could be mapped to DigitalProbe1
-    supported_digital_probes2: tuple[int, ...]  # Could be mapped to DigitalProbe2
-    dpp_code_maj: int
+    supported_virtual_probes1: tuple[VirtualProbe1, ...]
+    supported_virtual_probes2: tuple[VirtualProbe2, ...]
+    supported_digital_probes1: tuple[DigitalProbe1, ...]
+    supported_digital_probes2: tuple[DigitalProbe2, ...]
+    dpp_code_maj: DPPCode
     dpp_code_min: int
     hv_channel_info: tuple[HVChannelInfo, ...]
-    supported_mon_out_probes: tuple[int, ...]  # Could be mapped to PHAMonOutProbe
+    supported_mon_out_probes: tuple[PHAMonOutProbe, ...]
 
     @classmethod
     def from_raw(cls, raw: _InfoRaw):
         """Instantiate from raw data"""
         return cls(
             raw.ModelName.decode('ascii'),
-            raw.Model,
+            BoardModel(raw.Model),
             raw.Channels,
             raw.ROC_FirmwareRel.decode('ascii'),
             raw.AMC_FirmwareRel.decode('ascii'),
             raw.License.decode('ascii'),
             raw.SerialNumber,
             raw.Status,
-            raw.FamilyCode,
+            BoardFamilyCode(raw.FamilyCode),
             raw.HVChannels,
-            raw.FormFactor,
+            BoardFormFactor(raw.FormFactor),
             raw.PCB_Revision,
             raw.ADC_NBits,
             raw.Energy_MaxNBits,
-            raw.USBOption,
-            raw.ETHOption,
-            raw.WIFIOption,
-            raw.BTOption,
-            raw.POEOption,
-            raw.GPSOption,
-            tuple(InputRange(r) for r in raw.InputRanges[:raw.InputRangeNum]),
+            bool(raw.USBOption),
+            bool(raw.ETHOption),
+            bool(raw.WIFIOption),
+            bool(raw.BTOption),
+            bool(raw.POEOption),
+            bool(raw.GPSOption),
+            tuple(map(InputRange, raw.InputRanges[:raw.InputRangeNum])),
             raw.Tsample,
-            raw.SupportedVirtualProbes1[:raw.NumVirtualProbes1],
-            raw.SupportedVirtualProbes2[:raw.NumVirtualProbes2],
-            raw.SupportedDigitalProbes1[:raw.NumDigitalProbes1],
-            raw.SupportedDigitalProbes2[:raw.NumDigitalProbes2],
-            raw.DPPCodeMaj,
+            tuple(map(VirtualProbe1, raw.SupportedVirtualProbes1[:raw.NumVirtualProbes1])),
+            tuple(map(VirtualProbe2, raw.SupportedVirtualProbes2[:raw.NumVirtualProbes2])),
+            tuple(map(DigitalProbe1, raw.SupportedDigitalProbes1[:raw.NumDigitalProbes1])),
+            tuple(map(DigitalProbe2, raw.SupportedDigitalProbes2[:raw.NumDigitalProbes2])),
+            DPPCode(raw.DPPCodeMaj),
             raw.DPPCodeMin,
-            tuple(HVChannelInfo.from_raw(l) for l in raw.HVChannelInfo[:raw.HVChannels]),
-            raw.SupportedMonOutProbes[:raw.NumMonOutProbes],
+            tuple(map(HVChannelInfo.from_raw, raw.HVChannelInfo[:raw.HVChannels])),
+            tuple(map(PHAMonOutProbe, raw.SupportedMonOutProbes[:raw.NumMonOutProbes])),
         )
 
 
@@ -748,7 +911,7 @@ class PHAParams:
             raw.trapbsl,
             raw.pz_dac,
             raw.inh_length,
-            [ExtraParameters.from_raw(e) for e in raw.X770_extraparameters],
+            list(map(ExtraParameters.from_raw, raw.X770_extraparameters)),
         )
 
     def to_raw(self) -> _PHAParamsRaw:
@@ -796,86 +959,6 @@ class _WaveformParamsRaw(ct.Structure):
 
 
 @unique
-class VirtualProbe1(IntEnum):
-    """
-    Binding of ::CAENDPP_PHA_VirtualProbe1_t
-    """
-    INPUT = 0
-    DELTA = 1
-    DELTA2 = 2
-    TRAPEZOID = 3
-    FAST_TRAP = 4
-    TRAP_BASELINE = 5
-    ENERGY_OUT = 6
-    TRAP_BL_CORR = 7
-    NONE = 8
-    FAST_TRIGGER = 9
-    SLOW_TRIGGER = 10
-
-
-@unique
-class VirtualProbe2(IntEnum):
-    """
-    Binding of ::CAENDPP_PHA_VirtualProbe2_t
-    """
-    INPUT = 0
-    S3 = 1
-    TRAP_BL_CORR = 2
-    TRAP_BASELINE = 3
-    NONE = 4
-    DELTA = 5
-    FAST_TRAP = 6
-    DELTA2 = 7
-    TRAPEZOID = 8
-    ENERGY_OUT = 9
-    FAST_TRIGGER = 10
-    SLOW_TRIGGER = 11
-
-
-@unique
-class DigitalProbe1(IntEnum):
-    """
-    Binding of ::CAENDPP_PHA_DigitalProbe1_t
-    """
-    TRG_WIN = 0
-    ARMED = 1
-    PK_RUN = 2
-    PUR_FLAG = 3
-    PEAKING = 4
-    TVAW = 5
-    BL_HOLDOFF = 6
-    TRG_HOLDOFF = 7
-    TRG_VAL = 8
-    ACQ_VETO = 9
-    BFM_VETO = 10
-    EXT_TRG = 11
-    TRIGGER = 12
-    NONE = 13
-    ENERGY_ACCEPTED = 14
-    SATURATION = 15
-    RESET = 16
-    BL_FREEZE = 17
-    BUSY = 18
-    PRG_VETO = 19
-    INHIBIT = 20
-
-
-@unique
-class DigitalProbe2(IntEnum):
-    """
-    Binding of ::CAENDPP_PHA_DigitalProbe2_t
-    """
-    TRIGGER = 0
-    NONE = 1
-    PEAKING = 2
-    BL_HOLDOFF = 3
-    PUR_FLAG = 4
-    ENERGY_ACCEPTED = 5
-    SATURATION = 6
-    RESET = 7
-
-
-@unique
 class ProbeTrigger(IntEnum):
     """
     Binding of ::CAENDPP_PHA_ProbeTrigger_t
@@ -912,7 +995,7 @@ class WaveformParams:
             raw.dualTraceMode,
             VirtualProbe1(raw.vp1),
             VirtualProbe2(raw.vp2),
-            DigitalProbe1(raw.dp1), 
+            DigitalProbe1(raw.dp1),
             DigitalProbe2(raw.dp2),
             raw.recordLength,
             raw.preTrigger,
@@ -1267,17 +1350,6 @@ class _MonOutParamsRaw(ct.Structure):
         ('enabled', ct.c_int32),
         ('probe', ct.c_int),
     ]
-
-
-@unique
-class PHAMonOutProbe(IntEnum):
-    """
-    Binding of ::CAENDPP_PHA_MonOutProbe_t
-    """
-    INPUT = 0
-    FAST_TRIGGER = 1
-    TRAPEZOID = 2
-    TRAP_BL_CORR = 3
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
@@ -1682,7 +1754,7 @@ class EnumeratedDevices:
     def from_raw(cls, raw: _EnumeratedDevicesRaw):
         """Instantiate from raw data"""
         return cls(
-            tuple(EnumerationSingleDevice.from_raw(i) for i in raw.Device[:raw.ddcount]),
+            tuple(map(EnumerationSingleDevice.from_raw, raw.Device[:raw.ddcount])),
         )
 
 
@@ -1767,10 +1839,10 @@ class Waveforms:
     dt2: npt.NDArray[np.uint8] = field(init=False)
 
     def __post_init__(self):
-        self.at1 = np.zeros(self.samples, dtype=np.int16)
-        self.at2 = np.zeros(self.samples, dtype=np.int16)
-        self.dt1 = np.zeros(self.samples, dtype=np.uint8)
-        self.dt2 = np.zeros(self.samples, dtype=np.uint8)
+        self.at1 = np.empty(self.samples, dtype=np.int16)
+        self.at2 = np.empty(self.samples, dtype=np.int16)
+        self.dt1 = np.empty(self.samples, dtype=np.uint8)
+        self.dt2 = np.empty(self.samples, dtype=np.uint8)
 
 
 @unique
@@ -2227,7 +2299,7 @@ class Device:
         l_events = (_ListEventRaw * 8192)()
         l_count = ct.c_uint32()
         lib.get_list_events(self.handle, channel, l_events, l_count)
-        return tuple(ListEvent.from_raw(i) for i in l_events[:l_count.value])
+        return tuple(map(ListEvent.from_raw, l_events[:l_count.value]))
 
     def allocate_waveform(self, channel: int) -> Waveforms:
         """
@@ -2541,7 +2613,7 @@ class Device:
         """
         Binding of CAENDPP_GetHVStatusString()
         """
-        l_status = ct.create_string_buffer(100)
+        l_status = ct.create_string_buffer(128)  # Undocumented but, hopefully, long enough
         lib.get_hv_status_string(self.handle, board_id, status, l_status)
         return l_status.value.decode('ascii')
 
