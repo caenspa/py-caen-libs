@@ -29,6 +29,7 @@ Fixes:
     on `caenhvwrapper`.
 - Force ASCII encode/decode of strings, being the only encoding supported
     by the underlying C libraries.
+- Fix `caenplu.lib.usb_enumerate`.
 
 
 v1.3.0 (02/12/2024)

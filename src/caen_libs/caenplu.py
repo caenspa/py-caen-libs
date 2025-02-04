@@ -59,6 +59,11 @@ class USBDevice:
     sn: str
     desc: str
 
+    @classmethod
+    def from_raw(cls, raw: _USBDeviceRaw):
+        """Instantiate from raw data"""
+        return cls(raw.id, raw.SN.decode('ascii'), raw.DESC.decode('ascii'))
+
 
 class _BoardInfoRaw(ct.Structure):
     _fields_ = [
@@ -272,13 +277,7 @@ class _Lib(_utils.Lib):
         l_num_devs = ct.c_uint32()
         self.__usb_enumerate(l_data, l_num_devs)
         assert l_data_size >= l_num_devs.value
-        return tuple(
-            USBDevice(
-                i.id,
-                i.SN.value.decode('ascii'),
-                i.DESC.value.decode('ascii'),
-            ) for i in l_data[:l_num_devs.value]
-        )
+        return tuple(map(USBDevice.from_raw, l_data[:l_num_devs.value]))
 
     def usb_enumerate_serial_number(self) -> tuple[str, ...]:
         """
