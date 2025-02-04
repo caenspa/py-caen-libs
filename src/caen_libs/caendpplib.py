@@ -12,6 +12,9 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, IntFlag, unique
+import os
+from pathlib import Path
+import sys
 from typing import Optional, TypeVar
 
 import numpy as np
@@ -627,6 +630,8 @@ class OutSignal(IntEnum):
     DIGITAL_TRESET_PERIODIC = 9
     DIGITAL_CLKHALF = 10
     DIGITAL_BLINHIBIT = 11
+    DIGITAL_SCA1 = 12
+    DIGITAL_SCA2 = 13
     ANALOG_INPUT = 100
     ANALOG_FAST_TRAP = 101
     ANALOG_BASELINE = 102
@@ -634,7 +639,7 @@ class OutSignal(IntEnum):
     ANALOG_ENERGY = 104
     ANALOG_TRAP_CORRECTED = 105
     DIGITAL_FIRST = DIGITAL_TRIGGER
-    DIGITAL_LAST = DIGITAL_CLKHALF
+    DIGITAL_LAST = DIGITAL_SCA2
     ANALOG_FIRST = ANALOG_INPUT
     ANALOG_LAST = ANALOG_TRAP_CORRECTED
 
@@ -1964,10 +1969,27 @@ _hv_channel_config_p = _P(_HVChannelConfigRaw)
 _enumerated_devices_p = _P(_EnumeratedDevicesRaw)
 
 
+def _default_log_file_path() -> Path:
+    """Generate file log path"""
+    # Platform dependent stuff
+    if sys.platform == 'win32':
+        app_data = os.getenv('APPDATA')
+        assert app_data is not None
+        user_path = Path(app_data) / 'CAEN'
+    else:
+        home = os.getenv('HOME')
+        assert home is not None
+        user_path = Path(home) / '.CAEN'
+    os.makedirs(user_path, exist_ok=True)
+    return user_path / 'caendpplib-python.log'
+
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
-        super().__init__(name, False)
+        self.__log_path = _default_log_file_path()
+        env = {'CAEN_LOG_FILENAME': str(self.__log_path)}  # Used by CAEN Utility to set the log file name
+        super().__init__(name, False, env)
         self.__load_api()
 
     def __load_api(self) -> None:
@@ -2072,6 +2094,11 @@ class _Lib(_utils.Lib):
         enumeration name.
         """
         return Error.Code(error_code).name
+
+    @property
+    def log_path(self) -> Path:
+        """Get log file path"""
+        return self.__log_path
 
 
 lib = _Lib('CAENDPPLib')

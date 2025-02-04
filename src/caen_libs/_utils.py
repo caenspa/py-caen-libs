@@ -8,6 +8,7 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
+import os
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
@@ -26,9 +27,10 @@ class Lib(ABC):
     public attributes using ctypes.
     """
 
-    def __init__(self, name: str, stdcall: bool = True) -> None:
+    def __init__(self, name: str, stdcall: bool = True, env: Optional[dict[str, str]] = None) -> None:
         self.__name = name
         self.__stdcall = stdcall  # Ignored on Linux
+        self.__env = env
         self.__load_lib()
 
     def __load_lib(self) -> None:
@@ -42,6 +44,11 @@ class Lib(ABC):
             self.__lib: Union[ct.CDLL, ct.WinDLL]
         else:
             self.__lib: ct.CDLL
+
+        # Set env
+        if self.__env is not None:
+            for key, value in self.__env.items():
+                os.environ[key] = value
 
         # Load library
         try:

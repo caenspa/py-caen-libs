@@ -44,6 +44,8 @@ print('-------------------------------------------------------------------------
 print('CAEN DPPLib binding loaded')
 print('------------------------------------------------------------------------------------')
 
+print(f'Log path: {dpp.lib.log_path}')
+
 REF_CH = 0
 
 with dpp.Device.open(dpp.LogMask.ALL) as lib:
