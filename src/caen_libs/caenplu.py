@@ -199,12 +199,11 @@ ErrorCode = Error.Code
 
 
 # Utility definitions
-_P = ct.POINTER
-_c_int_p = _P(ct.c_int)
-_c_uint_p = _P(ct.c_uint)
-_c_uint32_p = _P(ct.c_uint32)
-_usb_device_p = _P(_USBDeviceRaw)
-_board_info_p = _P(_BoardInfoRaw)
+_c_int_p = ct.POINTER(ct.c_int)
+_c_uint_p = ct.POINTER(ct.c_uint)
+_c_uint32_p = ct.POINTER(ct.c_uint32)
+_usb_device_p = ct.POINTER(_USBDeviceRaw)
+_board_info_p = ct.POINTER(_BoardInfoRaw)
 
 
 class _Lib(_utils.Lib):

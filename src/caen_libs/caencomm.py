@@ -95,12 +95,11 @@ ErrorCode = Error.Code
 
 
 # Utility definitions
-_P = ct.POINTER
-_c_int_p = _P(ct.c_int)
-_c_uint8_p = _P(ct.c_uint8)
-_c_uint16_p = _P(ct.c_uint16)
-_c_int32_p = _P(ct.c_int32)
-_c_uint32_p = _P(ct.c_uint32)
+_c_int_p = ct.POINTER(ct.c_int)
+_c_uint8_p = ct.POINTER(ct.c_uint8)
+_c_uint16_p = ct.POINTER(ct.c_uint16)
+_c_int32_p = ct.POINTER(ct.c_int32)
+_c_uint32_p = ct.POINTER(ct.c_uint32)
 
 
 class _Lib(_utils.Lib):

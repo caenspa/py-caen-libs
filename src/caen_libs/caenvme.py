@@ -414,15 +414,14 @@ ErrorCode = Error.Code
 
 
 # Utility definitions
-_P = ct.POINTER
-_c_ubyte_p = _P(ct.c_ubyte)
-_c_short_p = _P(ct.c_short)
-_c_int_p = _P(ct.c_int)
-_c_uint_p = _P(ct.c_uint)
-_c_uint16_p = _P(ct.c_uint16)
-_c_int32_p = _P(ct.c_int32)
-_c_uint32_p = _P(ct.c_uint32)
-_display_p = _P(_DisplayRaw)
+_c_ubyte_p = ct.POINTER(ct.c_ubyte)
+_c_short_p = ct.POINTER(ct.c_short)
+_c_int_p = ct.POINTER(ct.c_int)
+_c_uint_p = ct.POINTER(ct.c_uint)
+_c_uint16_p = ct.POINTER(ct.c_uint16)
+_c_int32_p = ct.POINTER(ct.c_int32)
+_c_uint32_p = ct.POINTER(ct.c_uint32)
+_display_p = ct.POINTER(_DisplayRaw)
 
 
 class _Lib(_utils.Lib):

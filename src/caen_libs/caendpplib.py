@@ -1949,24 +1949,23 @@ ErrorCode = Error.Code
 
 
 # Utility definitions
-_P = ct.POINTER
-_c_int_p = _P(ct.c_int)
-_c_int16_p = _P(ct.c_int16)
-_c_int32_p = _P(ct.c_int32)
-_c_uint8_p = _P(ct.c_uint8)
-_c_uint16_p = _P(ct.c_uint16)
-_c_uint32_p = _P(ct.c_uint32)
-_c_uint64_p = _P(ct.c_uint64)
-_c_double_p = _P(ct.c_double)
-_connection_params_p = _P(_ConnectionParamsRaw)
-_info_p = _P(_InfoRaw)
-_dgtz_params_p = _P(_DgtzParamsRaw)
-_list_event_p = _P(_ListEventRaw)
-_statistics_p = _P(_StatisticsRaw)
-_param_info_p = _P(_ParamInfoRaw)
-_daq_info_p = _P(_DAQInfoRaw)
-_hv_channel_config_p = _P(_HVChannelConfigRaw)
-_enumerated_devices_p = _P(_EnumeratedDevicesRaw)
+_c_int_p = ct.POINTER(ct.c_int)
+_c_int16_p = ct.POINTER(ct.c_int16)
+_c_int32_p = ct.POINTER(ct.c_int32)
+_c_uint8_p = ct.POINTER(ct.c_uint8)
+_c_uint16_p = ct.POINTER(ct.c_uint16)
+_c_uint32_p = ct.POINTER(ct.c_uint32)
+_c_uint64_p = ct.POINTER(ct.c_uint64)
+_c_double_p = ct.POINTER(ct.c_double)
+_connection_params_p = ct.POINTER(_ConnectionParamsRaw)
+_info_p = ct.POINTER(_InfoRaw)
+_dgtz_params_p = ct.POINTER(_DgtzParamsRaw)
+_list_event_p = ct.POINTER(_ListEventRaw)
+_statistics_p = ct.POINTER(_StatisticsRaw)
+_param_info_p = ct.POINTER(_ParamInfoRaw)
+_daq_info_p = ct.POINTER(_DAQInfoRaw)
+_hv_channel_config_p = ct.POINTER(_HVChannelConfigRaw)
+_enumerated_devices_p = ct.POINTER(_EnumeratedDevicesRaw)
 
 
 def _default_log_file_path() -> Path:

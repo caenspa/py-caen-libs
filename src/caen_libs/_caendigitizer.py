@@ -238,16 +238,16 @@ ErrorCode = Error.Code
 
 
 # Utility definitions
-_P = ct.POINTER
-_c_char_p = _P(ct.c_char)  # ct.c_char_p is not fine due to its own memory management
-_c_char_p_p = _P(_c_char_p)
-_c_int_p = _P(ct.c_int)
-_c_uint8_p = _P(ct.c_uint8)
-_c_uint16_p = _P(ct.c_uint16)
-_c_int32_p = _P(ct.c_int32)
-_c_uint32_p = _P(ct.c_uint32)
-_c_void_p_p = _P(ct.c_void_p)
-_event_info_p = _P(_EventInfoRaw)
+_c_char_p = ct.POINTER(ct.c_char)  # ct.c_char_p is not fine due to its own memory management
+_c_char_p_p = ct.POINTER(_c_char_p)
+_c_int_p = ct.POINTER(ct.c_int)
+_c_uint8_p = ct.POINTER(ct.c_uint8)
+_c_uint16_p = ct.POINTER(ct.c_uint16)
+_c_int32_p = ct.POINTER(ct.c_int32)
+_c_uint32_p = ct.POINTER(ct.c_uint32)
+_c_void_p_p = ct.POINTER(ct.c_void_p)
+_board_info_p = ct.POINTER(_BoardInfoRaw)
+_event_info_p = ct.POINTER(_EventInfoRaw)
 
 
 class _Lib(_utils.Lib):
@@ -268,7 +268,7 @@ class _Lib(_utils.Lib):
         self.close_digitizer = self.__get('CloseDigitizer', ct.c_int)
         self.write_register = self.__get('WriteRegister', ct.c_int, ct.c_uint32, ct.c_uint32)
         self.read_register = self.__get('ReadRegister', ct.c_int, ct.c_uint32, ct.c_uint16)
-        self.get_info = self.__get('GetInfo', ct.c_int, _P(_BoardInfoRaw))
+        self.get_info = self.__get('GetInfo', ct.c_int, _board_info_p)
         self.reset = self.__get('Reset', ct.c_int)
         self.clear_data = self.__get('ClearData', ct.c_int)
         self.send_sw_trigger = self.__get('SendSWtrigger', ct.c_int)

@@ -330,19 +330,18 @@ ErrorCode = Error.Code
 
 
 # Utility definitions
-_P = ct.POINTER
-_c_char_p = _P(ct.c_char)  # ct.c_char_p is not fine due to its own memory management
-_c_char_p_p = _P(_c_char_p)
-_c_ubyte_p = _P(ct.c_ubyte)
-_c_ubyte_p_p = _P(_c_ubyte_p)
-_c_ushort_p = _P(ct.c_ushort)
-_c_ushort_p_p = _P(_c_ushort_p)
-_c_int_p = _P(ct.c_int)
-_c_uint_p = _P(ct.c_uint)
-_c_uint_p_p = _P(_c_uint_p)
-_system_status_p = _P(_SystemStatusRaw)
-_event_data_p = _P(_EventDataRaw)
-_event_data_p_p = _P(_event_data_p)
+_c_char_p = ct.POINTER(ct.c_char)  # ct.c_char_p is not fine due to its own memory management
+_c_char_p_p = ct.POINTER(_c_char_p)
+_c_ubyte_p = ct.POINTER(ct.c_ubyte)
+_c_ubyte_p_p = ct.POINTER(_c_ubyte_p)
+_c_ushort_p = ct.POINTER(ct.c_ushort)
+_c_ushort_p_p = ct.POINTER(_c_ushort_p)
+_c_int_p = ct.POINTER(ct.c_int)
+_c_uint_p = ct.POINTER(ct.c_uint)
+_c_uint_p_p = ct.POINTER(_c_uint_p)
+_system_status_p = ct.POINTER(_SystemStatusRaw)
+_event_data_p = ct.POINTER(_EventDataRaw)
+_event_data_p_p = ct.POINTER(_event_data_p)
 if sys.platform == 'win32':
     _socket = ctw.WPARAM  # Actually a SOCKET is UINT_PTR, same as WPARAM
 else:
@@ -351,12 +350,12 @@ else:
 
 _SYS_PROP_TYPE_GET_ARG: dict[SysPropType, Callable] = {
     SysPropType.STR:        lambda v: v.value.decode('ascii'),
-    SysPropType.REAL:       lambda v: ct.cast(v, _P(ct.c_float)).contents.value,
-    SysPropType.UINT2:      lambda v: ct.cast(v, _P(ct.c_uint16)).contents.value,
-    SysPropType.UINT4:      lambda v: ct.cast(v, _P(ct.c_uint32)).contents.value,
-    SysPropType.INT2:       lambda v: ct.cast(v, _P(ct.c_int16)).contents.value,
-    SysPropType.INT4:       lambda v: ct.cast(v, _P(ct.c_int32)).contents.value,
-    SysPropType.BOOLEAN:    lambda v: bool(ct.cast(v, _P(ct.c_uint)).contents.value),
+    SysPropType.REAL:       lambda v: ct.cast(v, ct.POINTER(ct.c_float)).contents.value,
+    SysPropType.UINT2:      lambda v: ct.cast(v, ct.POINTER(ct.c_uint16)).contents.value,
+    SysPropType.UINT4:      lambda v: ct.cast(v, ct.POINTER(ct.c_uint32)).contents.value,
+    SysPropType.INT2:       lambda v: ct.cast(v, ct.POINTER(ct.c_int16)).contents.value,
+    SysPropType.INT4:       lambda v: ct.cast(v, ct.POINTER(ct.c_int32)).contents.value,
+    SysPropType.BOOLEAN:    lambda v: bool(ct.cast(v, _c_uint_p).contents.value),
 }
 
 
@@ -533,7 +532,7 @@ class _Lib(_utils.Lib):
         The returned pointer is initialized to NULL to avoid error
         when freeing, in case callee function does not set the pointer.
         """
-        value = _P(pointer_type)()
+        value = ct.POINTER(pointer_type)()
         assert bool(value) is False  # Must be NULL
         try:
             yield value
@@ -548,7 +547,7 @@ class _Lib(_utils.Lib):
         The returned pointer is initialized to NULL to avoid error
         when freeing, in case callee function does not set the pointer.
         """
-        value = _P(_EventDataRaw)()
+        value = _event_data_p()
         assert bool(value) is False  # Must be NULL
         try:
             yield value
