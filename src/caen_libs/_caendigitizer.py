@@ -54,6 +54,30 @@ class _EventInfoRaw(ct.Structure):
         ('TriggerTimeTag', ct.c_uint32),
     ]
 
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class EventInfo:
+    event_size: int
+    board_id: int
+    pattern: int
+    channel_mask: int
+    event_counter: int
+    trigger_time_tag: int
+
+    @classmethod
+    def from_raw(cls, raw: _EventInfoRaw):
+        """Instantiate from raw data"""
+        return cls(
+            raw.EventSize,
+            raw.BoardId,
+            raw.Pattern,
+            raw.ChannelMask,
+            raw.EventCounter,
+            raw.TriggerTimeTag,
+        )
+
+
+
 @unique
 class EnaDis(IntEnum):
     """
@@ -81,6 +105,15 @@ class TriggerMode(IntEnum):
     EXTOUT_ONLY      = 2
     ACQ_ONLY         = 1
     ACQ_AND_EXTOUT   = 3
+
+
+@unique
+class TriggerPolarity(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_TriggerPolarity_t
+    """
+    ON_RISING_EDGE  = 0
+    ON_FALLING_EDGE = 1
 
 
 @unique
@@ -124,6 +157,16 @@ class AcqMode(IntEnum):
 
 
 @unique
+class TriggerLogic(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_TriggerLogic_t
+    """
+    OR            = 0
+    AND           = 1
+    MAJORITY      = 2
+
+
+@unique
 class RunSyncMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_RunSyncMode_t
@@ -150,7 +193,7 @@ class AnalogMonitorOutputMode(IntEnum):
 @unique
 class AnalogMonitorMagnify(IntEnum):
     """
-    Binding of CAEN_DGTZ_AnalogMonitorMagnify_t
+    Binding of ::CAEN_DGTZ_AnalogMonitorMagnify_t
     """
     MAGNIFY_1X  = 0
     MAGNIFY_2X  = 1
@@ -161,7 +204,7 @@ class AnalogMonitorMagnify(IntEnum):
 @unique
 class AnalogMonitorInspectorInverter(IntEnum):
     """
-    Binding of CAEN_DGTZ_AnalogMonitorInspectorInverter_t
+    Binding of ::CAEN_DGTZ_AnalogMonitorInspectorInverter_t
     """
     P_1X  = 0
     N_1X  = 1
@@ -170,7 +213,7 @@ class AnalogMonitorInspectorInverter(IntEnum):
 @unique
 class ReadMode(IntEnum):
     """
-    Binding of CAEN_DGTZ_ReadMode_t
+    Binding of ::CAEN_DGTZ_ReadMode_t
     """
     SLAVE_TERMINATED_READOUT_MBLT   = 0
     SLAVE_TERMINATED_READOUT_2eVME  = 1
@@ -178,6 +221,107 @@ class ReadMode(IntEnum):
     POLLING_MBLT                    = 3
     POLLING_2eVME                   = 4
     POLLING_2eSST                   = 5
+
+
+@unique
+class DPPFirmware(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_DPPFirmware_t
+    """
+    PHA = 0
+    PSD = 1
+    CI  = 2
+    ZLE = 3
+    QDC = 4
+    DAW = 5
+    NOT_DPP = -1
+
+
+@unique
+class DPPSaveParam(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_DPP_SaveParam_t
+    """
+    ENERGY_ONLY     = 0
+    TIME_ONLY       = 1
+    ENERGY_AND_TIME = 2
+    CHARGE_AND_TIME = 4
+    NONE            = 3
+
+
+@unique
+class DPPTriggerMode(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_DPP_TriggerMode_t
+    """
+    NORMAL      = 0
+    COINCIDENCE = 1
+
+
+@unique
+class IOLevel(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_IOLevel_t
+    """
+    NIM = 0
+    TTL = 1
+
+
+@unique
+class DRS4Frequency(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_DRS4Frequency_t
+    """
+    F_5GHz  = 0
+    F_2_5GHz  = 1
+    F_1GHz  = 2
+    F_750MHz  = 3
+
+
+@unique
+class OutputSignalMode(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_OutputSignalMode_t
+    """
+    TRIGGER                  = 0
+    FASTTRG_ALL              = 1
+    FASTTRG_ACCEPTED         = 2
+    BUSY                     = 3
+    CLK_OUT                  = 4
+    RUN                      = 5
+    TRGPULSE                 = 6
+    OVERTHRESHOLD            = 7
+
+
+@unique
+class SAMCorrectionLevel(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_SAM_CORRECTION_LEVEL_t
+    """
+    DISABLED        = 0
+    PEDESTAL_ONLY   = 1
+    INL             = 2
+    ALL             = 3
+
+
+@unique
+class SAMPulseSourceType(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_SAMPulseSourceType_t
+    """
+    SOFTWARE    = 0
+    CONT        = 1
+
+
+@unique
+class SAMFrequency(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_SAMFrequency_t
+    """
+    F_3_2GHz  = 0
+    F_1_6GHz  = 1
+    F_800MHz  = 2
+    F_400MHz  = 3
 
 
 class Error(error.Error):
@@ -329,7 +473,6 @@ class _Lib(_utils.Lib):
         self.malloc_readout_buffer = self.__get('MallocReadoutBuffer', ct.c_int, _c_char_p_p, _c_uint32_p)
         self.read_data = self.__get('ReadData', ct.c_int, ct.c_int, _c_char_p, _c_uint32_p)
         self.get_num_events = self.__get('GetNumEvents', ct.c_int, _c_char_p, ct.c_uint32, _c_uint32_p)
-        # TODO
         self.get_event_info = self.__get('GetEventInfo', ct.c_int, _c_char_p, ct.c_uint32, ct.c_int32, _event_info_p, _c_char_p_p)
         self.decode_event = self.__get('DecodeEvent', ct.c_int, _c_char_p, _c_void_p_p)
         self.free_event = self.__get('FreeEvent', ct.c_int, _c_void_p_p)
@@ -339,8 +482,8 @@ class _Lib(_utils.Lib):
         self.malloc_dpp_waveforms = self.__get('MallocDPPWaveforms', ct.c_int, _c_void_p_p, _c_uint32_p)
         self.free_dpp_waveforms = self.__get('FreeDPPWaveforms', ct.c_int, ct.c_void_p)
         self.decode_dpp_waveforms = self.__get('DecodeDPPWaveforms', ct.c_int, ct.c_void_p, ct.c_void_p)
-        self.set_num_events_per_aggregate = self.__get('SetNumEventsPerAggregate', ct.c_int, ct.c_uint32, variadic=True)
-        self.get_num_events_per_aggregate = self.__get('GetNumEventsPerAggregate', ct.c_int, _c_uint32_p, variadic=True)
+        self.set_num_events_per_aggregate = self.__get('SetNumEventsPerAggregate', ct.c_int, ct.c_uint32, ct.c_int, variadic=True)
+        self.get_num_events_per_aggregate = self.__get('GetNumEventsPerAggregate', ct.c_int, _c_uint32_p, ct.c_int, variadic=True)
         self.set_dpp_event_aggregation = self.__get('SetDPPEventAggregation', ct.c_int, ct.c_int, ct.c_int)
         self.set_dpp_parameters = self.__get('SetDPPParameters', ct.c_int, ct.c_uint32, ct.c_void_p)
         self.set_dpp_acquisition_mode = self.__get('SetDPPAcquisitionMode', ct.c_int, ct.c_int, ct.c_int)
@@ -442,6 +585,14 @@ class _Lib(_utils.Lib):
         """
         l_value = ct.create_string_buffer(16)
         self.__sw_release(l_value)
+        return l_value.value.decode('ascii')
+
+    def get_dpp_virtual_probe_name(self, probe: int) -> str:
+        """
+        Binding of CAEN_DGTZ_GetDPP_VirtualProbeName()
+        """
+        l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enoug
+        self.__get_dpp_virtual_probe_name(probe, l_value)
         return l_value.value.decode('ascii')
 
 
@@ -987,6 +1138,514 @@ class Device:
         l_value = ct.c_uint32()
         lib.get_num_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, l_value)
         return l_value.value
+
+    def get_event_info(self, num_event: int) -> tuple[EventInfo, bytes]:
+        """
+        Binding of CAEN_DGTZ_GetEventInfo()
+        """
+        l_event_ptr = _c_char_p_p()
+        l_event_info = _EventInfoRaw()
+        lib.get_event_info(self.handle, self.__ro_buff, self.__ro_buff_occupancy, num_event, l_event_info, l_event_ptr)
+        event_info = EventInfo.from_raw(l_event_info)
+        data = ct.string_at(l_event_ptr.contents, event_info.event_size)
+        return event_info, data
+
+    def decode_event(self, data: bytes) -> None:
+        """
+        Binding of CAEN_DGTZ_DecodeEvent()
+        """
+        raise NotImplementedError()
+
+    def free_event(self, *args) -> None:
+        """
+        Binding of CAEN_DGTZ_FreeEvent()
+        """
+        raise NotImplementedError()
+
+    def get_dpp_events(self, *args) -> None:
+        """
+        Binding of CAEN_DGTZ_GetDPPEvents()
+        """
+        raise NotImplementedError()
+
+    def malloc_dpp_events(self, *args) -> None:
+        """
+        Binding of CAEN_DGTZ_MallocDPPEvents()
+        """
+        raise NotImplementedError()
+
+    def free_dpp_events(self, *args) -> None:
+        """
+        Binding of CAEN_DGTZ_FreeDPPEvents()
+        """
+        raise NotImplementedError()
+
+    def malloc_dpp_waveforms(self, *args) -> None:
+        """
+        Binding of CAEN_DGTZ_MallocDPPWaveforms()
+        """
+        raise NotImplementedError()
+
+    def free_dpp_waveforms(self, *args) -> None:
+        """
+        Binding of CAEN_DGTZ_FreeDPPWaveforms()
+        """
+        raise NotImplementedError()
+
+    # Missing decode functions here
+
+    def set_num_events_per_aggregate(self, num_events: int, channel: int = -1) -> None:
+        """
+        Binding of CAEN_DGTZ_SetNumEventsPerAggregate()
+        """
+        lib.set_num_events_per_aggregate(self.handle, num_events, channel)
+
+    def get_num_events_per_aggregate(self, channel: int = -1) -> int:
+        """
+        Binding of CAEN_DGTZ_GetNumEventsPerAggregate()
+        """
+        l_value = ct.c_uint32()
+        lib.get_num_events_per_aggregate(self.handle, l_value, channel)
+        return l_value.value
+
+    def set_dpp_event_aggregation(self, threshold: int, max_size: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetDPPEventAggregation()
+        """
+        lib.set_dpp_event_aggregation(self.handle, threshold, max_size)
+
+    def set_dpp_parameters(self, *args) -> None:
+        """
+        Binding of CAEN_DGTZ_SetDPPParameters()
+        """
+        raise NotImplementedError()
+
+    def set_dpp_acquisition_mode(self, mode: AcqMode, param: DPPSaveParam) -> None:
+        """
+        Binding of CAEN_DGTZ_SetDPPAcquisitionMode()
+        """
+        lib.set_dpp_acquisition_mode(self.handle, mode, param)
+
+    def get_dpp_acquisition_mode(self) -> tuple[AcqMode, DPPSaveParam]:
+        """
+        Binding of CAEN_DGTZ_GetDPPAcquisitionMode()
+        """
+        l_mode = ct.c_int()
+        l_param = ct.c_int()
+        lib.get_dpp_acquisition_mode(self.handle, l_mode, l_param)
+        return AcqMode(l_mode.value), DPPSaveParam(l_param.value)
+
+    def set_dpp_trigger_mode(self, mode: DPPTriggerMode) -> None:
+        """
+        Binding of CAEN_DGTZ_SetDPPTriggerMode()
+        """
+        lib.set_dpp_trigger_mode(self.handle, mode)
+
+    def get_dpp_trigger_mode(self) -> DPPTriggerMode:
+        """
+        Binding of CAEN_DGTZ_GetDPPTriggerMode()
+        """
+        l_value = ct.c_int()
+        lib.get_dpp_trigger_mode(self.handle, l_value)
+        return DPPTriggerMode(l_value.value)
+
+    def set_dpp_virtual_probe(self, trace: int, probe: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetDPP_VirtualProbe()
+        """
+        lib.set_dpp_virtual_probe(self.handle, trace, probe)
+
+    def get_dpp_virtual_probe(self, trace: int) -> int:
+        """
+        Binding of CAEN_DGTZ_GetDPP_VirtualProbe()
+        """
+        l_value = ct.c_int()
+        lib.get_dpp_virtual_probe(self.handle, trace, l_value)
+        return l_value.value
+
+    def get_dpp_supported_virtual_probes(self, trace: int) -> tuple[int, ...]:
+        """
+        Binding of CAEN_DGTZ_GetDPP_SupportedVirtualProbes()
+        """
+        l_value = (ct.c_int * 32)()  # Undocumented but, hopefully, long enough
+        l_num_probes = ct.c_int()
+        lib.get_dpp_supported_virtual_probes(self.handle, trace, l_value, l_num_probes)
+        return tuple(l_value[:l_num_probes.value])
+
+    def allocate_event(self, *args) -> None:
+        """
+        Binding of CAEN_DGTZ_AllocateEvent()
+        """
+        raise NotImplementedError()
+
+    def set_io_level(self, level: IOLevel) -> None:
+        """
+        Binding of CAEN_DGTZ_SetIOLevel()
+        """
+        lib.set_io_level(self.handle, level)
+
+    def get_io_level(self) -> IOLevel:
+        """
+        Binding of CAEN_DGTZ_GetIOLevel()
+        """
+        l_value = ct.c_int()
+        lib.get_io_level(self.handle, l_value)
+        return IOLevel(l_value.value)
+
+    def set_trigger_polarity(self, channel: int, polarity: TriggerPolarity) -> None:
+        """
+        Binding of CAEN_DGTZ_SetTriggerPolarity()
+        """
+        lib.set_trigger_polarity(self.handle, channel, polarity)
+
+    def get_trigger_polarity(self, channel: int) -> TriggerPolarity:
+        """
+        Binding of CAEN_DGTZ_GetTriggerPolarity()
+        """
+        l_value = ct.c_int()
+        lib.get_trigger_polarity(self.handle, channel, l_value)
+        return TriggerPolarity(l_value.value)
+
+    def rearm_interrupt(self) -> None:
+        """
+        Binding of CAEN_DGTZ_RearmInterrupt()
+        """
+        lib.rearm_interrupt(self.handle)
+
+    def set_drs4_sampling_frequency(self, frequency: DRS4Frequency) -> None:
+        """
+        Binding of CAEN_DGTZ_SetDRS4SamplingFrequency()
+        """
+        lib.set_drs4_sampling_frequency(self.handle, frequency)
+
+    def get_drs4_sampling_frequency(self) -> DRS4Frequency:
+        """
+        Binding of CAEN_DGTZ_GetDRS4SamplingFrequency()
+        """
+        l_value = ct.c_int()
+        lib.get_drs4_sampling_frequency(self.handle, l_value)
+        return DRS4Frequency(l_value.value)
+
+    def set_output_signal_mode(self, mode: OutputSignalMode) -> None:
+        """
+        Binding of CAEN_DGTZ_SetOutputSignalMode()
+        """
+        lib.set_output_signal_mode(self.handle, mode)
+
+    def get_output_signal_mode(self) -> OutputSignalMode:
+        """
+        Binding of CAEN_DGTZ_GetOutputSignalMode()
+        """
+        l_value = ct.c_int()
+        lib.get_output_signal_mode(self.handle, l_value)
+        return OutputSignalMode(l_value.value)
+
+    def set_group_fast_trigger_threshold(self, group: int, t_value: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetGroupFastTriggerThreshold()
+        """
+        lib.set_group_fast_trigger_threshold(self.handle, group, t_value)
+
+    def get_group_fast_trigger_threshold(self, group: int) -> int:
+        """
+        Binding of CAEN_DGTZ_GetGroupFastTriggerThreshold()
+        """
+        l_value = ct.c_uint32()
+        lib.get_group_fast_trigger_threshold(self.handle, group, l_value)
+        return l_value.value
+
+    def set_group_fast_trigger_dc_offset(self, group: int, dc_value) -> None:
+        """
+        Binding of CAEN_DGTZ_SetGroupFastTriggerDCOffset()
+        """
+        lib.set_group_fast_trigger_dc_offset(self.handle, group, dc_value)
+
+    def get_group_fast_trigger_dc_offset(self, group: int) -> int:
+        """
+        Binding of CAEN_DGTZ_GetGroupFastTriggerDCOffset()
+        """
+        l_value = ct.c_uint32()
+        lib.get_group_fast_trigger_dc_offset(self.handle, group, l_value)
+        return l_value.value
+
+    def set_fast_trigger_digitizing(self, enable: EnaDis) -> None:
+        """
+        Binding of CAEN_DGTZ_SetFastTriggerDigitizing()
+        """
+        lib.set_fast_trigger_digitizing(self.handle, enable)
+
+    def get_fast_trigger_digitizing(self) -> EnaDis:
+        """
+        Binding of CAEN_DGTZ_GetFastTriggerDigitizing()
+        """
+        l_value = ct.c_int()
+        lib.get_fast_trigger_digitizing(self.handle, l_value)
+        return EnaDis(l_value.value)
+
+    def set_fast_trigger_mode(self, mode: TriggerMode) -> None:
+        """
+        Binding of CAEN_DGTZ_SetFastTriggerMode()
+        """
+        lib.set_fast_trigger_mode(self.handle, mode)
+
+    def get_fast_trigger_mode(self) -> TriggerMode:
+        """
+        Binding of CAEN_DGTZ_GetFastTriggerMode()
+        """
+        l_value = ct.c_int()
+        lib.get_fast_trigger_mode(self.handle, l_value)
+        return TriggerMode(l_value.value)
+
+    def load_drs4_correction_data(self) -> None:
+        """
+        Binding of CAEN_DGTZ_LoadDRS4CorrectionData()
+        """
+        lib.load_drs4_correction_data(self.handle)
+
+    def get_correction_tables(self) -> None:
+        """
+        Binding of CAEN_DGTZ_GetCorrectionTables()
+        """
+        raise NotImplementedError()
+
+    def enable_drs4_correction(self) -> None:
+        """
+        Binding of CAEN_DGTZ_EnableDRS4Correction()
+        """
+        lib.enable_drs4_correction(self.handle)
+
+    def disable_drs4_correction(self) -> None:
+        """
+        Binding of CAEN_DGTZ_DisableDRS4Correction()
+        """
+        lib.disable_drs4_correction(self.handle)
+
+    def decode_zle_waveforms(self) -> None:
+        """
+        Binding of CAEN_DGTZ_DecodeZLEWaveforms()
+        """
+        raise NotImplementedError()
+
+    def free_zle_waveforms(self) -> None:
+        """
+        Binding of CAEN_DGTZ_FreeZLEWaveforms()
+        """
+        raise NotImplementedError()
+
+    def malloc_zle_waveforms(self) -> None:
+        """
+        Binding of CAEN_DGTZ_MallocZLEWaveforms()
+        """
+        raise NotImplementedError()
+
+    def free_zle_events(self) -> None:
+        """
+        Binding of CAEN_DGTZ_FreeZLEEvents()
+        """
+        raise NotImplementedError()
+
+    def malloc_zle_events(self) -> None:
+        """
+        Binding of CAEN_DGTZ_MallocZLEEvents()
+        """
+        raise NotImplementedError()
+
+    def get_zle_events(self) -> None:
+        """
+        Binding of CAEN_DGTZ_GetZLEEvents()
+        """
+        raise NotImplementedError()
+
+    def set_zle_parameters(self) -> None:
+        """
+        Binding of CAEN_DGTZ_SetZLEParameters()
+        """
+        raise NotImplementedError()
+
+    def get_sam_correction_level(self) -> SAMCorrectionLevel:
+        """
+        Binding of CAEN_DGTZ_GetSAMCorrectionLevel()
+        """
+        l_value = ct.c_int()
+        lib.get_sam_correction_level(self.handle, l_value)
+        return SAMCorrectionLevel(l_value.value)
+
+    def set_sam_correction_level(self, level: SAMCorrectionLevel) -> None:
+        """
+        Binding of CAEN_DGTZ_SetSAMCorrectionLevel()
+        """
+        lib.set_sam_correction_level(self.handle, level)
+
+    def enable_sam_pulse_gen(self, channel: int, pulse_pattern: int, pulse_source: SAMPulseSourceType) -> None:
+        """
+        Binding of CAEN_DGTZ_EnableSAMPulseGen()
+        """
+        lib.enable_sam_pulse_gen(self.handle, channel, pulse_pattern, pulse_source)
+
+    def disable_sam_pulse_gen(self, channel: int) -> None:
+        """
+        Binding of CAEN_DGTZ_DisableSAMPulseGen()
+        """
+        lib.disable_sam_pulse_gen(self.handle, channel)
+
+    def set_sam_post_trigger_size(self, channel: int, value: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetSAMPostTriggerSize()
+        """
+        lib.set_sam_post_trigger_size(self.handle, channel, value)
+
+    def get_sam_post_trigger_size(self, channel: int) -> int:
+        """
+        Binding of CAEN_DGTZ_GetSAMPostTriggerSize()
+        """
+        l_value = ct.c_uint32()
+        lib.get_sam_post_trigger_size(self.handle, channel, l_value)
+        return l_value.value
+
+    def set_sam_sampling_frequency(self, freq: SAMFrequency) -> None:
+        """
+        Binding of CAEN_DGTZ_SetSAMSamplingFrequency()
+        """
+        lib.set_sam_sampling_frequency(self.handle, freq)
+
+    def get_sam_sampling_frequency(self) -> SAMFrequency:
+        """
+        Binding of CAEN_DGTZ_GetSAMSamplingFrequency()
+        """
+        l_value = ct.c_int()
+        lib.get_sam_sampling_frequency(self.handle, l_value)
+        return SAMFrequency(l_value.value)
+
+    def read_eeprom(self) -> None:
+        """
+        Binding of _CAEN_DGTZ_Read_EEPROM()
+        """
+        raise NotImplementedError()
+
+    def write_eeprom(self) -> None:
+        """
+        Binding of _CAEN_DGTZ_Write_EEPROM()
+        """
+        raise NotImplementedError()
+
+    def load_sam_correction_data(self) -> None:
+        """
+        Binding of CAEN_DGTZ_LoadSAMCorrectionData()
+        """
+        lib.load_sam_correction_data(self.handle)
+
+    def trigger_threshold(self, enable: EnaDis) -> None:
+        """
+        Binding of _CAEN_DGTZ_TriggerThreshold()
+        """
+        lib.trigger_threshold(self.handle, enable)
+
+    def send_sam_pulse(self) -> None:
+        """
+        Binding of CAEN_DGTZ_SendSAMPulse()
+        """
+        lib.send_sam_pulse(self.handle)
+
+    def set_sam_acquisition_mode(self, mode: AcqMode) -> None:
+        """
+        Binding of CAEN_DGTZ_SetSAMAcquisitionMode()
+        """
+        lib.set_sam_acquisition_mode(self.handle, mode)
+
+    def get_sam_acquisition_mode(self) -> AcqMode:
+        """
+        Binding of CAEN_DGTZ_GetSAMAcquisitionMode()
+        """
+        l_value = ct.c_int()
+        lib.get_sam_acquisition_mode(self.handle, l_value)
+        return AcqMode(l_value.value)
+
+    def set_trigger_logic(self, logic: TriggerLogic, majority_level: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetTriggerLogic()
+        """
+        lib.set_trigger_logic(self.handle, logic, majority_level)
+
+    def get_trigger_logic(self) -> tuple[TriggerLogic, int]:
+        """
+        Binding of CAEN_DGTZ_GetTriggerLogic()
+        """
+        l_logic = ct.c_int()
+        l_majority_level = ct.c_uint32()
+        lib.get_trigger_logic(self.handle, l_logic, l_majority_level)
+        return TriggerLogic(l_logic.value), l_majority_level.value
+
+    def get_channel_pair_trigger_logic(self, channel_a: int, channel_b: int) -> tuple[TriggerLogic, int]:
+        """
+        Binding of CAEN_DGTZ_GetChannelPairTriggerLogic()
+        """
+        l_logic = ct.c_int()
+        l_coincidence_window = ct.c_uint16()
+        lib.get_channel_pair_trigger_logic(self.handle, channel_a, channel_b, l_logic, l_coincidence_window)
+        return TriggerLogic(l_logic.value), l_coincidence_window.value
+
+    def set_channel_pair_trigger_logic(self, channel_a: int, channel_b: int, logic: TriggerLogic, coincidence_window: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetChannelPairTriggerLogic()
+        """
+        lib.set_channel_pair_trigger_logic(self.handle, channel_a, channel_b, logic, coincidence_window)
+
+    def set_decimation_factor(self, factor: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetDecimationFactor()
+        """
+        lib.set_decimation_factor(self.handle, factor)
+
+    def get_decimation_factor(self) -> int:
+        """
+        Binding of CAEN_DGTZ_GetDecimationFactor()
+        """
+        l_value = ct.c_uint16()
+        lib.get_decimation_factor(self.handle, l_value)
+        return l_value.value
+
+    def set_sam_trigger_count_veto_param(self, channel: int, enable: EnaDis, veto_window: int) -> None:
+        """
+        Binding of CAEN_DGTZ_SetSAMTriggerCountVetoParam()
+        """
+        lib.set_sam_trigger_count_veto_param(self.handle, channel, enable, veto_window)
+
+    def get_sam_trigger_count_veto_param(self, channel: int) -> tuple[EnaDis, int]:
+        """
+        Binding of CAEN_DGTZ_GetSAMTriggerCountVetoParam()
+        """
+        l_enable = ct.c_int()
+        l_veto_window = ct.c_uint32()
+        lib.get_sam_trigger_count_veto_param(self.handle, channel, l_enable, l_veto_window)
+        return EnaDis(l_enable.value), l_veto_window.value
+
+    def set_trigger_in_as_gate(self, mode: EnaDis) -> None:
+        """
+        Binding of CAEN_DGTZ_SetTriggerInAsGate()
+        """
+        lib.set_trigger_in_as_gate(self.handle, mode)
+
+    def calibrate(self) -> None:
+        """
+        Binding of CAEN_DGTZ_Calibrate()
+        """
+        lib.calibrate(self.handle)
+
+    def read_temperature(self, channel: int) -> int:
+        """
+        Binding of CAEN_DGTZ_ReadTemperature()
+        """
+        l_temp = ct.c_uint32()
+        lib.read_temperature(self.handle, channel, l_temp)
+        return l_temp.value
+
+    def get_dpp_firmware_type(self) -> DPPFirmware:
+        """
+        Binding of CAEN_DGTZ_GetDPPFirmwareType()
+        """
+        l_value = ct.c_int()
+        lib.get_dpp_firmware_type(self.handle, l_value)
+        return DPPFirmware(l_value.value)
 
     # Python utilities
 
