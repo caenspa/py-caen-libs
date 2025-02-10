@@ -13,6 +13,31 @@ from typing import Any, Optional, TypeVar, Union
 from caen_libs import error, _utils
 
 
+# Constants from CAENDigitizerType.h
+MAX_UINT16_CHANNEL_SIZE = 64
+MAX_UINT8_CHANNEL_SIZE = 8
+MAX_V1724DPP_CHANNEL_SIZE = 8
+MAX_V1720DPP_CHANNEL_SIZE = 8
+MAX_V1751DPP_CHANNEL_SIZE = 8
+MAX_V1730DPP_CHANNEL_SIZE = 16
+MAX_V1740DPP_CHANNEL_SIZE = 64
+MAX_X740_GROUP_SIZE = 8
+MAX_V1730_CHANNEL_SIZE = 16
+MAX_ZLE_CHANNEL_SIZE = MAX_V1751DPP_CHANNEL_SIZE
+MAX_X742_CHANNEL_SIZE = 9
+MAX_X742_GROUP_SIZE = 4
+MAX_X743_CHANNELS_X_GROUP = 2
+MAX_V1743_GROUP_SIZE = 8
+MAX_DT5743_GROUP_SIZE = 4
+MAX_DPP_CI_CHANNEL_SIZE = MAX_V1720DPP_CHANNEL_SIZE
+MAX_DPP_PSD_CHANNEL_SIZE = MAX_V1730DPP_CHANNEL_SIZE
+MAX_DPP_PHA_CHANNEL_SIZE = MAX_V1730DPP_CHANNEL_SIZE
+MAX_DPP_QDC_CHANNEL_SIZE = MAX_V1740DPP_CHANNEL_SIZE
+MAX_DPP_CHANNEL_SIZE = MAX_DPP_PSD_CHANNEL_SIZE
+MAX_LICENSE_DIGITS = 8
+MAX_LICENSE_LENGTH = MAX_LICENSE_DIGITS * 2 + 1
+
+
 @unique
 class ConnectionType(IntEnum):
     """
@@ -35,14 +60,15 @@ class _BoardInfoRaw(ct.Structure):
         ('ROC_FirmwareRel', ct.c_char * 20),
         ('AMC_FirmwareRel', ct.c_char * 40),
         ('SerialNumber', ct.c_uint32),
-        ('MezzanineSerNum', (ct.c_char * 4) * 8),
+        ('MezzanineSerNum', (ct.c_char * 8) * 4),
         ('PCB_Revision', ct.c_uint32),
         ('ADC_NBits', ct.c_uint32),
         ('SAMCorrectionDataLoaded', ct.c_uint32),
         ('CommHandle', ct.c_int),
         ('VMEHandle', ct.c_int),
-        ('License', ct.c_char * 17),
+        ('License', ct.c_char * MAX_LICENSE_LENGTH),
     ]
+
 
 class _EventInfoRaw(ct.Structure):
     _fields_ = [
@@ -57,6 +83,9 @@ class _EventInfoRaw(ct.Structure):
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
 class EventInfo:
+    """
+    Binding of ::CAEN_DGTZ_EventInfo_t
+    """
     event_size: int
     board_id: int
     pattern: int
@@ -76,6 +105,238 @@ class EventInfo:
             raw.TriggerTimeTag,
         )
 
+
+class _Uint16EventRaw(ct.Structure):
+    _fields_ = [
+        ('ChSize', ct.c_uint32 * MAX_UINT16_CHANNEL_SIZE),
+        ('DataChannel', ct.POINTER(ct.c_uint16) * MAX_UINT16_CHANNEL_SIZE),
+    ]
+
+
+class _Uint8EventRaw(ct.Structure):
+    _fields_ = [
+        ('ChSize', ct.c_uint32 * MAX_UINT8_CHANNEL_SIZE),
+        ('DataChannel', ct.POINTER(ct.c_uint8) * MAX_UINT8_CHANNEL_SIZE),
+    ]
+
+
+class _X742GroupRaw(ct.Structure):
+    _fields_ = [
+        ('ChSize', ct.c_uint32 * MAX_X742_CHANNEL_SIZE),
+        ('DataChannel', ct.POINTER(ct.c_float) * MAX_X742_CHANNEL_SIZE),
+        ('TriggerTimeTag', ct.c_uint32),
+        ('StartIndexCell', ct.c_uint16),
+    ]
+
+
+class _X742EventRaw(ct.Structure):
+    _fields_ = [
+        ('GrPresent', ct.c_uint8 * MAX_X742_GROUP_SIZE),
+        ('DataGroup', ct.POINTER(_X742GroupRaw) * MAX_X742_GROUP_SIZE),
+    ]
+
+
+class _X743GroupRaw(ct.Structure):
+    _fields_ = [
+        ('ChSize', ct.c_uint32),
+        ('DataChannel', ct.POINTER(ct.c_float) * MAX_X743_CHANNELS_X_GROUP),
+        ('TriggerCount', ct.c_uint16 * MAX_X743_CHANNELS_X_GROUP),
+        ('TimeCount', ct.c_uint16 * MAX_X743_CHANNELS_X_GROUP),
+        ('EventId', ct.c_uint8),
+        ('StartIndexCell', ct.c_uint16),
+        ('TDC', ct.c_uint64),
+        ('PosEdgeTimeStamp', ct.c_float),
+        ('NegEdgeTimeStamp', ct.c_float),
+        ('PeakIndex', ct.c_uint16),
+        ('Peak', ct.c_float),
+        ('Baseline', ct.c_float),
+        ('Charge', ct.c_float),
+    ]
+
+
+class _X743EventRaw(ct.Structure):
+    _fields_ = [
+        ('GrPresent', ct.c_uint8 * MAX_V1743_GROUP_SIZE),
+        ('DataGroup', ct.POINTER(_X743GroupRaw) * MAX_V1743_GROUP_SIZE),
+    ]
+
+
+class _DPPPHAEvtRaw(ct.Structure):
+    _fields_ = [
+        ('Format', ct.c_uint32),
+        ('TimeTag', ct.c_uint64),
+        ('Energy', ct.c_uint16),
+        ('Extras', ct.c_int16),
+        ('Waveforms', ct.POINTER(ct.c_uint32)),
+        ('Extras2', ct.c_uint32),
+    ]
+
+
+class _DPPPSDEvtRaw(ct.Structure):
+    _fields_ = [
+        ('Format', ct.c_uint32),
+        ('Format2', ct.c_uint32),
+        ('TimeTag', ct.c_uint32),
+        ('ChargeShort', ct.c_int16),
+        ('ChargeLong', ct.c_int16),
+        ('Baseline', ct.c_int16),
+        ('Pur', ct.c_int16),
+        ('Waveforms', ct.POINTER(ct.c_uint32)),
+        ('Extras', ct.c_uint32),
+    ]
+
+
+class _DPPCIEventRaw(ct.Structure):
+    _fields_ = [
+        ('Format', ct.c_uint32),
+        ('TimeTag', ct.c_uint32),
+        ('Charge', ct.c_int16),
+        ('Baseline', ct.c_int16),
+        ('Waveforms', ct.POINTER(ct.c_uint32)),
+    ]
+
+
+class _DPPQDCEventRaw(ct.Structure):
+    _fields_ = [
+        ('isExtendedTimeStamp', ct.c_uint8),
+        ('Format', ct.c_uint32),
+        ('TimeTag', ct.c_uint64),
+        ('Charge', ct.c_uint16),
+        ('Baseline', ct.c_int16),
+        ('Pur', ct.c_uint16),
+        ('Overrange', ct.c_uint16),
+        ('SubChannel', ct.c_uint16),
+        ('Waveforms', ct.POINTER(ct.c_uint32)),
+        ('Extras', ct.c_uint32),
+    ]
+
+
+class _751ZLEEventRaw(ct.Structure):
+    _fields_ = [
+        ('timeTag', ct.c_uint32),
+        ('Baseline', ct.c_uint32),
+        ('Waveforms', ct.POINTER(ct.c_uint32)),
+    ]
+
+
+class _730ZLEWaveformsRaw(ct.Structure):
+    _fields_ = [
+        ('TraceNumber', ct.c_uint32),
+        ('Trace', ct.POINTER(ct.c_uint16)),
+        ('TraceIndex', ct.POINTER(ct.c_uint32)),
+    ]
+
+
+class _730ZLEChannelRaw(ct.Structure):
+    _fields_ = [
+        ('fifo_full', ct.c_uint32),
+        ('size_wrd', ct.c_uint32),
+        ('Baseline', ct.c_uint32),
+        ('DataPtr', ct.POINTER(ct.c_uint32)),
+        ('Waveforms', ct.POINTER(_730ZLEWaveformsRaw)),
+    ]
+
+
+class _730ZLEEventRaw(ct.Structure):
+    _fields_ = [
+        ('size', ct.c_uint32),
+        ('chmask', ct.c_uint16),
+        ('tcounter', ct.c_uint32),
+        ('timeStamp', ct.c_uint64),
+        ('Channel', ct.POINTER(_730ZLEChannelRaw) * MAX_V1730_CHANNEL_SIZE),
+    ]
+
+
+class _730DAWWaveformsRaw(ct.Structure):
+    _fields_ = [
+        ('Trace', ct.POINTER(ct.c_uint16)),
+    ]
+
+
+class _730DAWChannelRaw(ct.Structure):
+    _fields_ = [
+        ('truncate', ct.c_uint32),
+        ('EvType', ct.c_uint32),
+        ('size', ct.c_uint32),
+        ('timeStamp', ct.c_uint64),
+        ('baseline', ct.c_uint16),
+        ('DataPtr', ct.POINTER(ct.c_uint16)),
+        ('Waveforms', ct.POINTER(_730DAWWaveformsRaw)),
+    ]
+
+
+class _730DAWEventRaw(ct.Structure):
+    _fields_ = [
+        ('size', ct.c_uint32),
+        ('chmask', ct.c_uint16),
+        ('tcounter', ct.c_uint32),
+        ('timeStamp', ct.c_uint64),
+        ('Channel', ct.POINTER(_730DAWChannelRaw) * MAX_V1730_CHANNEL_SIZE),
+    ]
+
+
+class _DPPX743EventRaw(ct.Structure):
+    _fields_ = [
+        ('Charge', ct.c_float),
+        ('StartIndexCell', ct.c_int),
+    ]
+
+
+class _DPPPHAWaveformsRaw(ct.Structure):
+    _fields_ = [
+        ('Ns', ct.c_uint32),
+        ('DualTrace', ct.c_uint8),
+        ('VProbe1', ct.c_uint8),
+        ('VProbe2', ct.c_uint8),
+        ('VDProbe', ct.c_uint8),
+        ('Trace1', ct.POINTER(ct.c_int16)),
+        ('Trace2', ct.POINTER(ct.c_int16)),
+        ('DTrace1', ct.POINTER(ct.c_uint8)),
+        ('DTrace2', ct.POINTER(ct.c_uint8)),
+    ]
+
+
+class _DPPPSDWaveformsRaw(ct.Structure):
+    _fields_ = [
+        ('Ns', ct.c_uint32),
+        ('dualTrace', ct.c_uint8),
+        ('anlgProbe', ct.c_uint8),
+        ('dgtProbe1', ct.c_uint8),
+        ('dgtProbe2', ct.c_uint8),
+        ('Trace1', ct.POINTER(ct.c_int16)),
+        ('Trace2', ct.POINTER(ct.c_int16)),
+        ('DTrace1', ct.POINTER(ct.c_uint8)),
+        ('DTrace2', ct.POINTER(ct.c_uint8)),
+        ('DTrace3', ct.POINTER(ct.c_uint8)),
+        ('DTrace4', ct.POINTER(ct.c_uint8)),
+    ]
+
+
+class _751ZLEWaveformsRaw(ct.Structure):
+    _fields_ = [
+        ('Ns', ct.c_uint32),
+        ('Trace1', ct.POINTER(ct.c_uint16)),
+        ('Discarded', ct.POINTER(ct.c_uint8)),
+    ]
+
+
+_DPPCIWaveformsRaw = _DPPPSDWaveformsRaw
+
+
+class _DPPQDCWaveformsRaw(ct.Structure):
+    _fields_ = [
+        ('Ns', ct.c_uint32),
+        ('dualTrace', ct.c_uint8),
+        ('anlgProbe', ct.c_uint8),
+        ('dgtProbe1', ct.c_uint8),
+        ('dgtProbe2', ct.c_uint8),
+        ('Trace1', ct.POINTER(ct.c_uint16)),
+        ('Trace2', ct.POINTER(ct.c_uint16)),
+        ('DTrace1', ct.POINTER(ct.c_uint8)),
+        ('DTrace2', ct.POINTER(ct.c_uint8)),
+        ('DTrace3', ct.POINTER(ct.c_uint8)),
+        ('DTrace4', ct.POINTER(ct.c_uint8)),
+    ]
 
 
 @unique
@@ -235,6 +496,115 @@ class DPPFirmware(IntEnum):
     QDC = 4
     DAW = 5
     NOT_DPP = -1
+
+
+class _DPPPHAParamsRaw(ct.Structure):
+    _fields_ = [
+        ('M', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('m', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('k', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('ftd', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('a', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('b', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('thr', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('nsbl', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('nspk', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('pkho', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('blho', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('otrej', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('trgho', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('twwdt', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('dgain', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('enf', ct.c_float * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('decimation', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('enskim', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('eskimlld', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('eskimuld', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('blrclip', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('dcomp', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('trapbsl', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+    ]
+
+
+class _DPPPSDParamsRaw(ct.Structure):
+    _fields_ = [
+        ('blthr', ct.c_int),
+        ('bltmo', ct.c_int),
+        ('trgho', ct.c_int),
+        ('thr', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('selft', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('csens', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('sgate', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('lgate', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('pgate', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('tvaw', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('nsbl', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('discr', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('cfdf', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('cfdd', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('trgc', ct.POINTER(ct.c_int) * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('purh', ct.c_int),
+        ('purgap', ct.c_int),
+    ]
+
+
+class _DPPCIParamsRaw(ct.Structure):
+    _fields_ = [
+        ('purgap', ct.c_int),
+        ('purh', ct.c_int),
+        ('blthr', ct.c_int),
+        ('bltmo', ct.c_int),
+        ('trgho', ct.c_int),
+        ('thr', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
+        ('selft', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
+        ('csens', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
+        ('gate', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
+        ('pgate', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
+        ('tvaw', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
+        ('nsbl', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
+        ('trgc', ct.POINTER(ct.c_int) * MAX_DPP_CI_CHANNEL_SIZE),
+    ]
+
+
+class _751ZLEParamsRaw(ct.Structure):
+    _fields_ = [
+        ('NSampBck', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
+        ('NSampAhe', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
+        ('ZleUppThr', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
+        ('ZleUndThr', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
+        ('selNumSampBsl', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
+        ('bslThrshld', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
+        ('bslTimeOut', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
+        ('preTrgg', ct.c_int),
+    ]
+
+
+class _DPPQDCParamsRaw(ct.Structure):
+    _fields_ = [
+        ('trgho', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('GateWidth', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('PreGate', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('FixedBaseline', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('DisTrigHist', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('DisSelfTrigger', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('BaselineMode', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('TrgMode', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('ChargeSensitivity', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('PulsePol', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('EnChargePed', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('TestPulsesRate', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('EnTestPulses', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('InputSmoothing', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
+        ('EnableExtendedTimeStamp', ct.c_int),
+    ]
+
+
+class _DRS4CorrectionRaw(ct.Structure):
+    _fields_ = [
+        ('cell', (ct.c_int16 * 1024) * MAX_X742_CHANNEL_SIZE),
+        ('nsample', (ct.c_int8 * 1024) * MAX_X742_CHANNEL_SIZE),
+        ('time', ct.c_float * 1024),
+    ]
 
 
 @unique
@@ -1150,7 +1520,7 @@ class Device:
         data = ct.string_at(l_event_ptr.contents, event_info.event_size)
         return event_info, data
 
-    def decode_event(self, data: bytes) -> None:
+    def decode_event(self, *args) -> None:
         """
         Binding of CAEN_DGTZ_DecodeEvent()
         """
