@@ -39,6 +39,8 @@ parser.add_argument('-n', '--conetnode', type=int, help='CONET node', default=0)
 parser.add_argument('-b', '--vmebaseaddress', type=partial(int, base=16), help='VME base address (as hex)', default=0)
 parser.add_argument('-a', '--ethaddress', type=str, help='ethernet address', default='')
 parser.add_argument('-w', '--waveform', action='store_true', help='waveform mode')
+parser.add_argument('-C', '--channel', type=int, help='reference channel', default=0)
+parser.add_argument('-H', '--hvchannel', type=int, help='reference HV channel', default=0)
 
 args = parser.parse_args()
 
@@ -47,10 +49,6 @@ print('CAEN DPPLib binding loaded')
 print('------------------------------------------------------------------------------------')
 
 print(f'Log path: {dpp.lib.log_path}')
-
-
-REF_CH = 0
-REF_HV_CH = 0
 
 
 def my_configuration(n_channels: int, adc_nbits: int) -> dpp.DgtzParams:
@@ -191,14 +189,12 @@ def shutdown_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:
     """
     print('Shutting down HV...')
     lib.set_hv_channel_power_on(board_id, hv_ch, False)
-
-    # Wait for HV to stabilize, cannot use lib.get_hv_channel_status
-    # on some platforms like GammaStream to check if HV is ramp is done.
     print('Waiting for HV ramping...')
     while True:
         mon = lib.read_hv_channel_monitoring(board_id, hv_ch)
         if mon.v_mon < 20:
             break
+    sleep(1.)
     print('Done.')
 
 
@@ -206,6 +202,9 @@ def main() -> None:
     """
     Main function
     """
+
+    ref_ch: int = args.channel
+    ref_hv_ch: int = args.hvchannel
 
     with dpp.Device.open(dpp.LogMask.ALL) as lib:
 
@@ -232,13 +231,13 @@ def main() -> None:
         lib.set_board_configuration(board_id, acq_mode, params)
         print('Done.')
 
-        if REF_HV_CH < info.hv_channels:
-            configure_hv(lib, board_id, REF_HV_CH)
-            enable_hv(lib, board_id, REF_HV_CH)
+        if ref_hv_ch < info.hv_channels:
+            configure_hv(lib, board_id, ref_hv_ch)
+            enable_hv(lib, board_id, ref_hv_ch)
 
         if acq_mode is dpp.AcqMode.WAVEFORM:
 
-            wf = lib.allocate_waveform(REF_CH)
+            wf = lib.allocate_waveform(ref_ch)
 
             # Set up the figure and axis
             fig, ax = plt.subplots()
@@ -259,7 +258,7 @@ def main() -> None:
 
             # Updater
             def _update_waveform(_):
-                samples, _ = lib.get_waveform(REF_CH, False, wf)
+                samples, _ = lib.get_waveform(ref_ch, False, wf)
                 valid_sample_range = np.arange(0, samples)
                 lines[0].set_data(valid_sample_range, wf.at1)
                 lines[1].set_data(valid_sample_range, wf.at2)
@@ -277,9 +276,9 @@ def main() -> None:
 
         else:
 
-            current_idx = lib.get_current_histogram_index(REF_CH)
-            nbins = lib.get_histogram_size(REF_CH, current_idx)
-            lib.clear_histogram(REF_CH, current_idx)
+            current_idx = lib.get_current_histogram_index(ref_ch)
+            nbins = lib.get_histogram_size(ref_ch, current_idx)
+            lib.clear_histogram(ref_ch, current_idx)
 
             # Set up the figure and axis for histogram
             fig, ax = plt.subplots()
@@ -293,7 +292,7 @@ def main() -> None:
 
             # Histogram update function
             def _update_histogram(_):
-                spectrum = lib.get_histogram(REF_CH, current_idx)
+                spectrum = lib.get_histogram(ref_ch, current_idx)
                 max_bin = max(spectrum.histo)
                 line.set_ydata(spectrum.histo)
                 ax.set_ylim(0, max(min_ylim, max_bin * 1.1))
@@ -308,8 +307,8 @@ def main() -> None:
 
             lib.stop_acquisition()
 
-        if REF_HV_CH < info.hv_channels:
-            shutdown_hv(lib, board_id, REF_HV_CH)
+        if ref_hv_ch < info.hv_channels:
+            shutdown_hv(lib, board_id, ref_hv_ch)
 
 if __name__ == '__main__':
     main()

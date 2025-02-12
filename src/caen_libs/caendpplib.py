@@ -2107,7 +2107,7 @@ class _Lib(_utils.Lib):
 
     def __api_errcheck(self, res: int, func, _: tuple) -> int:
         if res < 0:
-            raise Error(self.decode_error(res), res, func.__name__)
+            raise Error(self.check_log_hint(), res, func.__name__)
         return res
 
     def __get(self, name: str, *args: type) -> Callable[..., int]:
@@ -2125,12 +2125,11 @@ class _Lib(_utils.Lib):
         """
         raise NotImplementedError('Not available on CAENDPPLib')
 
-    def decode_error(self, error_code: int) -> str:
+    def check_log_hint(self) -> str:
         """
-        There is no function to decode error, we just use the
-        enumeration name.
+        User should check log for further details.
         """
-        return Error.Code(error_code).name
+        return f'Check log at {self.log_path} for further details.'
 
     @property
     def log_path(self) -> Path:
