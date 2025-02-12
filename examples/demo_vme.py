@@ -14,6 +14,7 @@ __license__ = 'MIT-0'
 # SPDX-License-Identifier: MIT-0
 __contact__ = 'https://www.caen.it/'
 
+from dataclasses import dataclass, field
 import sys
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
@@ -36,64 +37,64 @@ print('-------------------------------------------------------------------------
 print(f'CAEN VMELib binding loaded (lib version {vme.lib.sw_release()})')
 print('------------------------------------------------------------------------------------')
 
-with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetnode) as device:
 
-    # Default values
-    vme_base_address = 0
-    address_modifier = vme.AddressModifiers.A32_U_DATA
-    data_width = vme.DataWidth.D32
+@dataclass
+class InteractiveDemo:
+    """Interactive demo for CAEN VMELib"""
 
-    def set_vme_baseaddress():
+    device: vme.Device
+
+    # Private fields
+    __vme_base_address: int = field(default=0)
+    __address_modifier: vme.AddressModifiers = field(default=vme.AddressModifiers.A32_U_DATA)
+    __data_width: vme.DataWidth = field(default=vme.DataWidth.D32)
+
+    def set_vme_baseaddress(self):
         """Set VME base address"""
-        global vme_base_address
-        print(f'Current value: {vme_base_address:08x}')
+        print(f'Current value: {self.__vme_base_address:08x}')
         try:
-            vme_base_address = int(input('Set VME base address: 0x'), 16)
+            self.__vme_base_address = int(input('Set VME base address: 0x'), 16)
         except ValueError as ex:
             print(f'Invalid value: {ex}')
 
-    def set_address_modifier():
+    def set_address_modifier(self):
         """Set address modifier"""
-        global address_modifier
-        print(f'Current value: {address_modifier.name}')
+        print(f'Current value: {self.__address_modifier.name}')
         try:
-            address_modifier = vme.AddressModifiers[input('Set address modifier: ')]
+            self.__address_modifier = vme.AddressModifiers[input('Set address modifier: ')]
         except KeyError as ex:
             print(f'Invalid value: {ex}')
 
-    def set_data_width():
+    def set_data_width(self):
         """Set data width"""
-        global data_width
-        print(f'Current value: {data_width.name}')
+        print(f'Current value: {self.__data_width.name}')
         try:
-            data_width = vme.DataWidth[input('Set data width: ')]
+            self.__data_width = vme.DataWidth[input('Set data width: ')]
         except KeyError as ex:
             print(f'Invalid value: {ex}')
 
-    def read_cycle():
+    def read_cycle(self):
         """Read cycle"""
-        global device, vme_base_address, address_modifier, data_width
-        print(f'VME base address: {vme_base_address:08x}')
-        print(f'Address modifier: {address_modifier.name}')
-        print(f'Data width: {data_width.name}')
+        print(f'VME base address: {self.__vme_base_address:08x}')
+        print(f'Address modifier: {self.__address_modifier.name}')
+        print(f'Data width: {self.__data_width.name}')
         try:
             address = int(input('Set address: 0x'), 16)
         except ValueError as ex:
             print(f'Invalid input: {ex}')
             return
         try:
-            value = device.read_cycle(vme_base_address | address, address_modifier, data_width)
+            value = self.device.read_cycle(self.__vme_base_address | address, self.__address_modifier, self.__data_width)
         except vme.Error as ex:
             print(f'Failed: {ex}')
             return
         print(f'Value: {value:08x}')
 
-    def write_cycle():
+    def write_cycle(self):
         """Write cycle"""
-        global device, vme_base_address, address_modifier, data_width
-        print(f'VME base address: {vme_base_address:08x}')
-        print(f'Address modifier: {address_modifier.name}')
-        print(f'Data width: {data_width.name}')
+        print(f'VME base address: {self.__vme_base_address:08x}')
+        print(f'Address modifier: {self.__address_modifier.name}')
+        print(f'Data width: {self.__data_width.name}')
         try:
             address = int(input('Set address: 0x'), 16)
             value = int(input('Set value: 0x'), 16)
@@ -101,28 +102,26 @@ with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetn
             print(f'Invalid input: {ex}')
             return
         try:
-            device.write_cycle(vme_base_address | address, value, address_modifier, data_width)
+            self.device.write_cycle(self.__vme_base_address | address, value, self.__address_modifier, self.__data_width)
         except vme.Error as ex:
             print(f'Failed: {ex}')
 
-    def read_register():
+    def read_register(self):
         """Read register"""
-        global device
         try:
             address = int(input('Set address: 0x'), 16)
         except ValueError as ex:
             print(f'Invalid input: {ex}')
             return
         try:
-            value = device.registers[address]
+            value = self.device.registers[address]
         except vme.Error as ex:
             print(f'Failed: {ex}')
             return
         print(f'Value: {value:08x}')
 
-    def write_register():
+    def write_register(self):
         """Write register"""
-        global device
         try:
             address = int(input('Set address: 0x'), 16)
             value = int(input('Set value: 0x'), 16)
@@ -130,16 +129,15 @@ with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetn
             print(f'Invalid input: {ex}')
             return
         try:
-            device.registers[address] = value
+            self.device.registers[address] = value
         except vme.Error as ex:
             print(f'Failed: {ex}')
 
-    def blt_read_cycle():
+    def blt_read_cycle(self):
         """BLT read cycle"""
-        global device, vme_base_address, address_modifier, data_width, size
-        print(f'VME base address: {vme_base_address:08x}')
-        print(f'Address modifier: {address_modifier.name}')
-        print(f'Data width: {data_width.name}')
+        print(f'VME base address: {self.__vme_base_address:08x}')
+        print(f'Address modifier: {self.__address_modifier.name}')
+        print(f'Data width: {self.__data_width.name}')
         try:
             address = int(input('Set address: 0x'), 16)
             size = int(input('Set size: '))
@@ -147,7 +145,7 @@ with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetn
             print(f'Invalid input: {ex}')
             return
         try:
-            buffer = device.blt_read_cycle(vme_base_address | address, size, address_modifier, data_width)
+            buffer = self.device.blt_read_cycle(self.__vme_base_address | address, size, self.__address_modifier, self.__data_width)
         except vme.Error as ex:
             print(f'Failed: {ex}')
             return
@@ -155,33 +153,38 @@ with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetn
         for value in buffer:
             print(value)
 
-    def quit():
-        """Quit"""
-        print('Quitting...')
-        sys.exit()
 
-    def display_menu(menu):
-        """Display menu"""
-        print('------------------------------------------------------------------------------------')
-        print('Menu')
-        print('------------------------------------------------------------------------------------')
-        for k, function in menu.items():
-            print(k, function.__doc__)
+def _quit():
+    """Quit"""
+    print('Quitting...')
+    sys.exit()
+
+
+with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetnode) as device:
+
+    demo = InteractiveDemo(device)
 
     menu_items = {
-        'b': set_vme_baseaddress,
-        'a': set_address_modifier,
-        'd': set_data_width,
-        'r': read_cycle,
-        'w': write_cycle,
-        'R': read_register,
-        'W': write_register,
-        't': blt_read_cycle,
-        'q': quit,
+        'b': demo.set_vme_baseaddress,
+        'a': demo.set_address_modifier,
+        'd': demo.set_data_width,
+        'r': demo.read_cycle,
+        'w': demo.write_cycle,
+        'R': demo.read_register,
+        'W': demo.write_register,
+        't': demo.blt_read_cycle,
+        'q': _quit,
     }
 
     while True:
-        display_menu(menu_items)
+        print('------------------------------------------------------------------------------------')
+        print('Menu')
+        print('------------------------------------------------------------------------------------')
+        for k, function in menu_items.items():
+            print(k, function.__doc__)
         selection = input('Please enter your selection: ')
-        selected_value = menu_items[selection]
+        selected_value = menu_items.get(selection)
+        if selected_value is None:
+            print('Invalid selection')
+            continue
         selected_value()

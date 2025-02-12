@@ -11,11 +11,12 @@
 -----------------------------------------------------------------------------
 
 
-v1.4.0 (XX/XX/2025)
+v2.0.0 (XX/XX/2025)
 -------------------
 
 New features:
 - Support for CAEN DPP Library as `caendpplib`.
+- Improved `caenvme` demo.
 
 Changes:
 - Removed `caenhvwrapper.lib.get_error`, useless at library class level
