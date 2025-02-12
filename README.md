@@ -1,5 +1,5 @@
 # caen-libs
-Official Python binding for CAEN VMELib, CAEN Comm, CAEN PLU and CAEN HV Wrapper libraries.
+Official Python binding for CAEN VMELib, CAEN Comm, CAEN PLU, CAEN HV Wrapper and CAEN DPP Library libraries.
 
 ## Install
 You need to install the latest version of the libraries from [the CAEN website](https://www.caen.it/subfamilies/software-libraries/).

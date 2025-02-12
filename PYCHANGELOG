@@ -11,6 +11,13 @@
 -----------------------------------------------------------------------------
 
 
+v2.0.1 (12/02/2025)
+-------------------
+
+Fixes:
+- Fix README.md and docstring in CAEN DPP Library demo.
+
+
 v2.0.0 (12/02/2025)
 -------------------
 
@@ -33,7 +40,7 @@ Fixes:
     by the underlying C libraries.
 - Fix `caenplu.lib.usb_enumerate`.
 - `caenplu.BoardInfo` and `caenplu.USBDevice` were inheriting from
-    `ctypes.Stucture` by mistake.
+    `ctypes.Structure` by mistake.
 
 
 v1.3.0 (02/12/2024)
