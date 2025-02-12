@@ -65,7 +65,7 @@ def my_configuration(n_channels: int, adc_nbits: int) -> dpp.DgtzParams:
     res.list_params.enabled = False
     res.list_params.save_mode = dpp.ListSaveMode.FILE_BINARY
     res.list_params.file_name = 'data.bin'
-    res.list_params.max_buff_num_events = 0
+    res.list_params.max_buff_num_events = 10
     res.list_params.save_mask = dpp.DumpMask.ALL_
 
     # Board configuration
@@ -260,6 +260,7 @@ def main() -> None:
             def _update_waveform(_):
                 samples, _ = lib.get_waveform(ref_ch, False, wf)
                 valid_sample_range = np.arange(0, samples)
+                ax.set_title(f'Waveform (ch={ref_ch})')
                 lines[0].set_data(valid_sample_range, wf.at1)
                 lines[1].set_data(valid_sample_range, wf.at2)
                 lines[2].set_data(valid_sample_range, wf.dt1.astype(np.float64) * 1000 + 2000)
@@ -295,6 +296,7 @@ def main() -> None:
                 spectrum = lib.get_histogram(ref_ch, current_idx)
                 max_bin = max(spectrum.histo)
                 line.set_ydata(spectrum.histo)
+                ax.set_title(f'Histogram (ch={ref_ch}, realtime={spectrum.realtime})')
                 ax.set_ylim(0, max(min_ylim, max_bin * 1.1))
                 return line,
 

@@ -144,7 +144,7 @@ class TestDevice(unittest.TestCase):
 
     def test_hv_operations(self):
         """Test HV operations"""
-        config = dpp.HVChannelConfig(0.0, 0.0, 0.0, 0.0, 0.0, dpp.DPPPWDownMode.RAMP)
+        config = dpp.HVChannelConfig(0.0, 0.0, 0.0, 0.0, 0.0, dpp.PWDownMode.RAMP)
 
         self.device.set_hv_channel_configuration(0, 0, config)
         self.mock_lib.set_hv_channel_configuration.assert_called_once_with(self.device.handle, 0, 0, ANY)
