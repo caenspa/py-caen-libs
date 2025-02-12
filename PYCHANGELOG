@@ -32,6 +32,8 @@ Fixes:
 - Force ASCII encode/decode of strings, being the only encoding supported
     by the underlying C libraries.
 - Fix `caenplu.lib.usb_enumerate`.
+- `caenplu.BoardInfo` and `caenplu.USBDevice` were inheriting from
+    `ctypes.Stucture` by mistake.
 
 
 v1.3.0 (02/12/2024)
