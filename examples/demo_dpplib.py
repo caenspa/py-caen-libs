@@ -149,12 +149,12 @@ def my_configuration(n_channels: int, adc_nbits: int) -> dpp.DgtzParams:
 def configure_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:
     """
     Configure HV
+
+    Note: GammaStream does not support ramp and power down mode.
     """
-    # Configure HV using current values (that are persistents)
     print('Configuring HV...')
     hv_config = lib.get_hv_channel_configuration(board_id, hv_ch)
     hv_config.v_set = 650.
-    # Note: ramp and power down mode ignored by GammaStream
     hv_config.ramp_up = 10
     hv_config.ramp_down = 10
     hv_config.pw_down_mode = dpp.PWDownMode.KILL
@@ -162,12 +162,19 @@ def configure_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:
     lib.set_hv_channel_vmax(board_id, hv_ch, hv_config.v_set * 1.1)
     print('Done.')
 
+
+def enable_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:
+    """
+    Power on HV
+
+    Note: GammaStream does not support ramp and power down mode,
+    and we cannot rely on lib.get_hv_channel_status to check if HV is
+    ramped.
+    """
     print('Powering on HV...')
     lib.set_hv_channel_power_on(board_id, hv_ch, True)
-
-    # Wait for HV to stabilize, cannot use lib.get_hv_channel_status
-    # on some platforms like GammaStream to check if HV is ramp is done.
     print('Waiting for HV ramping...')
+    hv_config = lib.get_hv_channel_configuration(board_id, hv_ch)
     while True:
         mon = lib.read_hv_channel_monitoring(board_id, hv_ch)
         if mon.v_mon > hv_config.v_set * 0.9:
@@ -179,6 +186,8 @@ def configure_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:
 def shutdown_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:
     """
     Shutdown HV
+
+    Note: see comment on enable_hv
     """
     print('Shutting down HV...')
     lib.set_hv_channel_power_on(board_id, hv_ch, False)
@@ -190,6 +199,7 @@ def shutdown_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:
         mon = lib.read_hv_channel_monitoring(board_id, hv_ch)
         if mon.v_mon < 20:
             break
+    print('Done.')
 
 
 def main() -> None:
@@ -224,6 +234,7 @@ def main() -> None:
 
         if REF_HV_CH < info.hv_channels:
             configure_hv(lib, board_id, REF_HV_CH)
+            enable_hv(lib, board_id, REF_HV_CH)
 
         if acq_mode is dpp.AcqMode.WAVEFORM:
 
@@ -268,6 +279,7 @@ def main() -> None:
 
             current_idx = lib.get_current_histogram_index(REF_CH)
             nbins = lib.get_histogram_size(REF_CH, current_idx)
+            lib.clear_histogram(REF_CH, current_idx)
 
             # Set up the figure and axis for histogram
             fig, ax = plt.subplots()
