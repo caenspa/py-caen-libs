@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Python demo for CAEN Comm
+Python demo for CAEN DPP Library
 
 
-The demo aims to show users how to work with the CAENComm library in Python.
-It performs a dummy acquisition using a CAEN Digitizer.
-Once connected to the device, the acquisition starts, a software trigger is sent,
-and the data are read after stopping the acquisition.
+The demo aims to show users how to work with the CAEN DPP Library in Python.
+It performs a dummy acquisition using either a Digitizer with DPP-PHA
+firmware or a GammaStream.
+Please check carefully the parameters in the script before running it,
+expecially those related to the HV channels.
 """
 
-__author__ = 'Matteo Bianchini'
+__author__ = 'Giovanni Cerretani'
 __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'MIT-0'
 # SPDX-License-Identifier: MIT-0
