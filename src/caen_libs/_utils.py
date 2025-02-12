@@ -8,10 +8,12 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
+import os
 import sys
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Optional, overload
+from typing import Any, Optional, Union, overload
 
 if sys.platform == 'win32':
     _LibNotFoundClass = FileNotFoundError
@@ -19,40 +21,50 @@ else:
     _LibNotFoundClass = OSError
 
 
-class Lib:
+class Lib(ABC):
     """
     This class loads the shared library and exposes its functions on its
     public attributes using ctypes.
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, stdcall: bool = True, env: Optional[dict[str, str]] = None) -> None:
         self.__name = name
+        self.__stdcall = stdcall  # Ignored on Linux
+        self.__env = env
         self.__load_lib()
 
     def __load_lib(self) -> None:
-        loader: ct.LibraryLoader
-        loader_variadic: ct.LibraryLoader
-
-        # Platform dependent stuff
+        """
+        Variadic functions are __cdecl even if declared as __stdcall.
+        This difference applies only to 32 bit applications, 64 bit
+        applications have its own calling convention.
+        """
+        self.__lib_variadic: ct.CDLL
         if sys.platform == 'win32':
-            # API functions are declared as __stdcall, but variadic
-            # functions are __cdecl even if declared as __stdcall.
-            # This difference applies only to 32 bit applications,
-            # 64 bit applications have its own calling convention.
-            loader = ct.windll
-            loader_variadic = ct.cdll
-            path = f'{self.name}.dll'
+            self.__lib: Union[ct.CDLL, ct.WinDLL]
         else:
-            loader = ct.cdll
-            loader_variadic = ct.cdll
-            path = f'lib{self.name}.so'
+            self.__lib: ct.CDLL
 
-        self.__path = path
+        # Set env
+        if self.__env is not None:
+            for key, value in self.__env.items():
+                os.environ[key] = value
 
         # Load library
         try:
-            self.__lib = loader.LoadLibrary(self.path)
-            self.__lib_variadic = loader_variadic.LoadLibrary(self.path)
+            if sys.platform == 'win32':
+                self.__path = f'{self.name}.dll'
+                if self.__stdcall:
+                    self.__lib = ct.windll.LoadLibrary(self.__path)
+                    self.__lib_variadic = ct.cdll.LoadLibrary(self.__path)
+                else:
+                    self.__lib = ct.cdll.LoadLibrary(self.__path)
+                    self.__lib_variadic = self.__lib
+            else:
+                self.__path = f'lib{self.name}.so'
+                self.__lib = ct.cdll.LoadLibrary(self.__path)
+                self.__lib_variadic = self.__lib
+
         except _LibNotFoundClass as ex:
             raise RuntimeError(
                 f'Library {self.name} not found. This module requires '
@@ -71,15 +83,27 @@ class Lib:
         """Path of the shared library"""
         return self.__path
 
-    @property
-    def lib(self) -> Any:
-        """ctypes object to shared library"""
-        return self.__lib
+    @abstractmethod
+    def sw_release(self) -> str:
+        """
+        Get software release version as string with numeric format, like
+        N.N.N, where N is a number.
+        """
 
-    @property
-    def lib_variadic(self) -> Any:
-        """ctypes object to shared library (for variadic functions)"""
-        return self.__lib_variadic
+    def ver_at_least(self, target: tuple[int, ...]) -> bool:
+        """Check if the library version is at least the target"""
+        ver = self.sw_release()
+        return version_to_tuple(ver) >= target
+
+    def get(self, name: str, variadic: bool = False):
+        """
+        Get function by name.
+        Use CDLL.__getitem__ rather than CDLL.__getattr__ to avoid
+        caching, useless in our case.
+        """
+        if variadic:
+            return self.__lib_variadic[name]
+        return self.__lib[name]
 
     # Python utilities
 
@@ -133,12 +157,18 @@ class Registers:
         """Get multiple value"""
         if self.multi_getter is not None:
             return self.multi_getter(addresses)
-        return [self.get(i) for i in addresses]
+        return self.__multi_get_fallback(addresses)
 
     def multi_set(self, addresses: Sequence[int], values: Sequence[int]) -> None:
         """Set multiple value"""
         if self.multi_setter is not None:
             return self.multi_setter(addresses, values)
+        return self.__multi_set_fallback(addresses, values)
+
+    def __multi_get_fallback(self, addresses: Sequence[int]) -> list[int]:
+        return [self.get(a) for a in addresses]
+
+    def __multi_set_fallback(self, addresses: Sequence[int], values: Sequence[int]) -> None:
         for a, v in zip(addresses, values):
             self.set(a, v)
 

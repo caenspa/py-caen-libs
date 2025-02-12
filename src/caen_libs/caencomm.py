@@ -95,12 +95,11 @@ ErrorCode = Error.Code
 
 
 # Utility definitions
-_P = ct.POINTER
-_c_int_p = _P(ct.c_int)
-_c_uint8_p = _P(ct.c_uint8)
-_c_uint16_p = _P(ct.c_uint16)
-_c_int32_p = _P(ct.c_int32)
-_c_uint32_p = _P(ct.c_uint32)
+_c_int_p = ct.POINTER(ct.c_int)
+_c_uint8_p = ct.POINTER(ct.c_uint8)
+_c_uint16_p = ct.POINTER(ct.c_uint16)
+_c_int32_p = ct.POINTER(ct.c_int32)
+_c_uint32_p = ct.POINTER(ct.c_uint32)
 
 
 class _Lib(_utils.Lib):
@@ -143,7 +142,7 @@ class _Lib(_utils.Lib):
         # Load API available only on recent library versions
         self.__reboot_device = self.__get('RebootDevice', ct.c_int, ct.c_int, min_version=(1, 7, 0))
 
-    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
+    def __api_errcheck(self, res: int, func, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
@@ -151,21 +150,15 @@ class _Lib(_utils.Lib):
     def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         min_version = kwargs.get('min_version')
         if min_version is not None:
-            # This feature requires __sw_release to be already defined
-            assert self.__sw_release is not None
-            if not self.__ver_at_least(min_version):
+            if not self.ver_at_least(min_version):
                 def fallback(*args, **kwargs):
-                    raise RuntimeError(f'{name} requires {self.name} >= {min_version}. Please update it.')
+                    raise NotImplementedError(f'{name} requires {self.name} >= {min_version}.')
                 return fallback
-        func = getattr(self.lib, f'CAENComm_{name}')
+        func = self.get(f'CAENComm_{name}')
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck
+        func.errcheck = self.__api_errcheck  # type: ignore
         return func
-
-    def __ver_at_least(self, target: tuple[int, ...]) -> bool:
-        ver = self.sw_release()
-        return _utils.version_to_tuple(ver) >= target
 
     # C API bindings
 
@@ -175,7 +168,7 @@ class _Lib(_utils.Lib):
         """
         l_value = ct.create_string_buffer(256)  # Undocumented but, hopefully, long enough
         self.__decode_error(error_code, l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def sw_release(self) -> str:
         """
@@ -183,7 +176,7 @@ class _Lib(_utils.Lib):
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         self.__sw_release(l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def vme_irq_check(self, vme_handle: int) -> IRQLevels:
         """
@@ -230,7 +223,7 @@ lib = _Lib('CAENComm')
 def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
     if connection_type is ConnectionType.ETH_V4718:
         assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode()
+        return arg.encode('ascii')
     else:
         l_link_number = int(arg)
         l_link_number_ct = ct.c_uint32(l_link_number)
@@ -441,7 +434,7 @@ class Device:
         """
         l_value = ct.create_string_buffer(30)  # MAX_INFO_LENGTH
         lib.info(self.handle, info_type, ct.byref(l_value))
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def vme_handle(self) -> int:
         """

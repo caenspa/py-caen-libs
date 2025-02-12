@@ -11,6 +11,31 @@
 -----------------------------------------------------------------------------
 
 
+v2.0.0 (12/02/2025)
+-------------------
+
+New features:
+- Support for CAEN DPP Library as `caendpplib`. NumPy added as dependency
+    being required by this new submodule.
+- Improved `caenvme` demo.
+
+Changes:
+- Removed `caenhvwrapper.lib.get_error`, useless at library class level
+    because requires an handle as argument. The underlying function is still
+    called automatically on error constructor, if appropriate.
+- Removed `caenvme.DataWidth.ctypes`.
+
+Fixes:
+- Properly close event sockets on `caenhvwrapper.Device.close`.
+- Improved `subscribe_*_params`/`unsubscribe_*_params` error messages
+    on `caenhvwrapper`.
+- Force ASCII encode/decode of strings, being the only encoding supported
+    by the underlying C libraries.
+- Fix `caenplu.lib.usb_enumerate`.
+- `caenplu.BoardInfo` and `caenplu.USBDevice` were inheriting from
+    `ctypes.Stucture` by mistake.
+
+
 v1.3.0 (02/12/2024)
 -------------------
 

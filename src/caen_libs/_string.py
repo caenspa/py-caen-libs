@@ -24,7 +24,7 @@ def from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_str: int) -> Iterat
     for _ in range(n_str):
         value = ct.string_at(data_addr)
         data_addr += len(value) + 1
-        yield value.decode()
+        yield value.decode('ascii')
 
 
 def from_char_p(data: ct._Pointer, n_str: int) -> Iterator[str]:
@@ -51,7 +51,7 @@ def from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int) 
             return
         assert len(value) < str_size
         data_addr += str_size
-        yield value.decode()
+        yield value.decode('ascii')
 
 
 def from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int, n_str: int) -> Iterator[str]:
@@ -67,7 +67,7 @@ def from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int
         value = ct.string_at(data_addr)
         assert len(value) < str_size
         data_addr += str_size
-        yield value.decode()
+        yield value.decode('ascii')
 
 
 def from_n_char_array_p(data: ct._Pointer, str_size: int, n_str: int) -> Iterator[str]:

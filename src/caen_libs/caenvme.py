@@ -17,7 +17,6 @@ from typing import TypeVar, Union
 
 from caen_libs import error, _utils
 
-
 @unique
 class BoardType(IntEnum):
     """
@@ -31,7 +30,7 @@ class BoardType(IntEnum):
     USB_A4818_V2718_LOCAL = 5
     USB_A4818_V2718 = 6
 
-    #V3718
+    # V3718
     USB_V3718_LOCAL = 14
     USB_V3718 = 17
     PCI_A2818_V3718_LOCAL = 15
@@ -88,19 +87,16 @@ class DataWidth(IntEnum):
     D32_SWAP = D32 | _DSWAP  # 32 bit, swapped
     D64_SWAP = D64 | _DSWAP  # 64 bit, swapped
 
-    @property
-    def ctypes(self):
-        """Get underlying ctypes type"""
-        types = {
-            DataWidth.D8:       ct.c_uint8,
-            DataWidth.D16:      ct.c_uint16,
-            DataWidth.D16_SWAP: ct.c_uint16,
-            DataWidth.D32:      ct.c_uint32,
-            DataWidth.D32_SWAP: ct.c_uint32,
-            DataWidth.D64:      ct.c_uint64,
-            DataWidth.D64_SWAP: ct.c_uint64,
-        }
-        return types[self]
+
+_DATA_WIDTH_TYPE = {
+    DataWidth.D8:       ct.c_uint8,
+    DataWidth.D16:      ct.c_uint16,
+    DataWidth.D16_SWAP: ct.c_uint16,
+    DataWidth.D32:      ct.c_uint32,
+    DataWidth.D32_SWAP: ct.c_uint32,
+    DataWidth.D64:      ct.c_uint64,
+    DataWidth.D64_SWAP: ct.c_uint64,
+}
 
 
 @unique
@@ -135,9 +131,9 @@ class AddressModifiers(IntEnum):
     A40_BLT      = 0x37  # A40 block transfer (MD32) @warning Not yet implem
     A40_LCK      = 0x35  # A40 lock command @warning Not yet implemented
     A40          = 0x34  # A40 access @warning Not yet implemented
-    A64          = 0x01  # A64 single trnsfer access @warning Not yet implem
+    A64          = 0x01  # A64 single transfer access @warning Not yet implemented
     A64_BLT      = 0x03  # A64 block transfer @warning Not yet implemented
-    A64_MBLT     = 0x00  # A64 64-bit block transfer @warning Not yet implem
+    A64_MBLT     = 0x00  # A64 64-bit block transfer @warning Not yet implemented
     A64_LCK      = 0x04  # A64 lock command @warning Not yet implemented
     A3U_2EVME    = 0x21  # 2eVME for 3U modules @warning Not yet implemented
     A6U_2EVME    = 0x20  # 2eVME for 6U modules @warning Not yet implemented
@@ -221,8 +217,10 @@ class IOPolarity(IntEnum):
 
 if sys.platform == 'win32':
     _CaenBool = ct.c_short  # CAEN_BOOL
+    _CAEN_TRUE = -1  # CAEN_TRUE
 else:
     _CaenBool = ct.c_int  # CAEN_BOOL
+    _CAEN_TRUE = 1  # CAEN_TRUE
 
 
 class IRQLevels(IntFlag):
@@ -278,6 +276,27 @@ class Display:
     sysres: bool          # System Reset signal
     br: bool              # Bus Request signal
     bg: bool              # Bus Grant signal
+
+    @classmethod
+    def from_raw(cls, raw: _DisplayRaw):
+        """Instantiate from raw data"""
+        return cls(
+            raw.Address,
+            raw.Data,
+            AddressModifiers(raw.AM),
+            IRQLevels(raw.IRQ),
+            raw.DS0 == _CAEN_TRUE,
+            raw.DS1 == _CAEN_TRUE,
+            raw.AS == _CAEN_TRUE,
+            raw.IACK == _CAEN_TRUE,
+            raw.WRITE == _CAEN_TRUE,
+            raw.LWORD == _CAEN_TRUE,
+            raw.DTACK == _CAEN_TRUE,
+            raw.BERR == _CAEN_TRUE,
+            raw.SYSRES == _CAEN_TRUE,
+            raw.BR == _CAEN_TRUE,
+            raw.BG == _CAEN_TRUE,
+        )
 
 
 @unique
@@ -395,15 +414,14 @@ ErrorCode = Error.Code
 
 
 # Utility definitions
-_P = ct.POINTER
-_c_ubyte_p = _P(ct.c_ubyte)
-_c_short_p = _P(ct.c_short)
-_c_int_p = _P(ct.c_int)
-_c_uint_p = _P(ct.c_uint)
-_c_uint16_p = _P(ct.c_uint16)
-_c_int32_p = _P(ct.c_int32)
-_c_uint32_p = _P(ct.c_uint32)
-_display_p = _P(_DisplayRaw)
+_c_ubyte_p = ct.POINTER(ct.c_ubyte)
+_c_short_p = ct.POINTER(ct.c_short)
+_c_int_p = ct.POINTER(ct.c_int)
+_c_uint_p = ct.POINTER(ct.c_uint)
+_c_uint16_p = ct.POINTER(ct.c_uint16)
+_c_int32_p = ct.POINTER(ct.c_int32)
+_c_uint32_p = ct.POINTER(ct.c_uint32)
+_display_p = ct.POINTER(_DisplayRaw)
 
 
 class _Lib(_utils.Lib):
@@ -503,7 +521,7 @@ class _Lib(_utils.Lib):
         self.blt_read_async = self.__get('BLTReadAsync', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, linux_only=True)
         self.blt_read_wait = self.__get('BLTReadWait', ct.c_int32, _c_int_p, linux_only=True)
 
-    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
+    def __api_errcheck(self, res: int, func, _: tuple) -> int:
         if res < 0:
             raise Error(self.__decode_error(res), res, func.__name__)
         return res
@@ -513,17 +531,18 @@ class _Lib(_utils.Lib):
             def fallback_win(*args, **kwargs):
                 raise RuntimeError(f'{name} function is Linux only.')
             return fallback_win
-        func = getattr(self.lib, f'CAENVME_{name}')
+        func = self.get(f'CAENVME_{name}')
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck
+        func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     def __get_str(self, name: str, *args) -> Callable[..., str]:
-        func = getattr(self.lib, f'CAENVME_{name}')
+        func = self.get(f'CAENVME_{name}')
         func.argtypes = args
         func.restype = ct.c_char_p
-        func.errcheck = lambda res, func, args: res.decode()
+        # cannot fail, errcheck improperly used to cast bytes to str
+        func.errcheck = lambda res, *_: res.decode('ascii')  # type: ignore
         return func
 
     # C API bindings
@@ -534,7 +553,7 @@ class _Lib(_utils.Lib):
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         self.__sw_release(l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
 
 # Library name is platform dependent
@@ -550,7 +569,7 @@ lib = _Lib(_LIB_NAME)
 def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
     if board_type in (BoardType.ETH_V4718, BoardType.ETH_V4718_LOCAL):
         assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode()
+        return arg.encode('ascii')
     else:
         l_link_number = int(arg)
         l_link_number_ct = ct.c_uint32(l_link_number)
@@ -622,7 +641,7 @@ class Device:
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.board_fw_release(self.handle, l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def driver_release(self) -> str:
         """
@@ -630,7 +649,7 @@ class Device:
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.driver_release(self.handle, l_value)
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def device_reset(self) -> None:
         """
@@ -642,7 +661,7 @@ class Device:
         """
         Binding of CAENVME_ReadCycle()
         """
-        l_value = dw.ctypes()
+        l_value = _DATA_WIDTH_TYPE[dw]()
         lib.read_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
@@ -650,7 +669,7 @@ class Device:
         """
         Binding of CAENVME_RMWCycle()
         """
-        l_value = dw.ctypes(value)
+        l_value = _DATA_WIDTH_TYPE[dw](value)
         lib.rmw_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
@@ -658,7 +677,7 @@ class Device:
         """
         Binding of CAENVME_WriteCycle()
         """
-        l_value = dw.ctypes(value)
+        l_value = _DATA_WIDTH_TYPE[dw](value)
         lib.write_cycle(self.handle, address, ct.byref(l_value), am, dw)
 
     def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> list[int]:
@@ -696,21 +715,21 @@ class Device:
         """
         Binding of CAENVME_BLTReadCycle()
         """
-        n_data = size // ct.sizeof(dw.ctypes)
-        l_data = (dw.ctypes * n_data)()
+        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
         l_count = ct.c_int()
         lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_data[:l_count.value]
+        return l_data[:l_count.value]  # type: ignore
 
     def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> list[int]:
         """
         Binding of CAENVME_FIFOBLTReadCycle()
         """
-        n_data = size // ct.sizeof(dw.ctypes)
-        l_data = (dw.ctypes * n_data)()
+        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
         l_count = ct.c_int()
         lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_data[:l_count.value]
+        return l_data[:l_count.value]  # type: ignore
 
     def mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
@@ -735,8 +754,8 @@ class Device:
         Binding of CAENVME_BLTWriteCycle()
         """
         n_data = len(data)
-        size = n_data * ct.sizeof(dw.ctypes)  # in bytes
-        l_data = (dw.ctypes * n_data)(*data)
+        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
         l_count = ct.c_int()
         lib.blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_count.value
@@ -746,8 +765,8 @@ class Device:
         Binding of CAENVME_FIFOBLTWriteCycle()
         """
         n_data = len(data)
-        size = n_data * ct.sizeof(dw.ctypes)  # in bytes
-        l_data = (dw.ctypes * n_data)(*data)
+        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
         l_count = ct.c_int()
         lib.fifo_blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_count.value
@@ -784,7 +803,7 @@ class Device:
         """
         Binding of CAENVME_IACKCycle()
         """
-        l_data = dw.ctypes()
+        l_data = _DATA_WIDTH_TYPE[dw]()
         lib.iack_cycle(self.handle, levels, l_data, dw)
         return l_data.value
 
@@ -934,23 +953,7 @@ class Device:
         """
         l_d = _DisplayRaw()
         lib.read_display(self.handle, l_d)
-        return Display(
-            l_d.Address,
-            l_d.Data,
-            AddressModifiers(l_d.AM),
-            IRQLevels(l_d.IRQ),
-            bool(l_d.DS0),
-            bool(l_d.DS1),
-            bool(l_d.AS),
-            bool(l_d.IACK),
-            bool(l_d.WRITE),
-            bool(l_d.LWORD),
-            bool(l_d.DTACK),
-            bool(l_d.BERR),
-            bool(l_d.SYSRES),
-            bool(l_d.BR),
-            bool(l_d.BG),
-        )
+        return Display.from_raw(l_d)
 
     def set_arbiter_type(self, value: ArbiterTypes) -> None:
         """
@@ -1231,10 +1234,10 @@ class Device:
         """
         Binding of CAENVME_BLTReadAsync()
         """
-        n_data = size // ct.sizeof(dw.ctypes)
-        l_data = (dw.ctypes * n_data)()
+        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
         lib.blt_read_async(self.handle, address, l_data, size, am, dw)
-        return l_data[:]
+        return l_data[:]  # type: ignore
 
     def blt_read_wait(self) -> int:
         """

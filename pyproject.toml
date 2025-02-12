@@ -23,6 +23,7 @@ classifiers = [
 	"Typing :: Typed",
 ]
 dependencies = [
+	"numpy>=1.20",
 ]
 dynamic = ["version"]
 

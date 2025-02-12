@@ -51,13 +51,18 @@ class _USBDeviceRaw(ct.Structure):
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
-class USBDevice(ct.Structure):
+class USBDevice:
     """
     Binding of ::tUSBDevice
     """
     id: int
     sn: str
     desc: str
+
+    @classmethod
+    def from_raw(cls, raw: _USBDeviceRaw):
+        """Instantiate from raw data"""
+        return cls(raw.id, raw.SN.decode('ascii'), raw.DESC.decode('ascii'))
 
 
 class _BoardInfoRaw(ct.Structure):
@@ -93,7 +98,7 @@ class _BoardInfoRaw(ct.Structure):
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
-class BoardInfo(ct.Structure):
+class BoardInfo:
     """
     Binding of ::tBOARDInfo
     """
@@ -124,6 +129,39 @@ class BoardInfo(ct.Structure):
     sernum3_v2: int
     sernum1: int
     sernum0: int
+
+    @classmethod
+    def from_raw(cls, raw: _BoardInfoRaw):
+        """Instantiate from raw data"""
+        return cls(
+            raw.checksum,
+            raw.checksum_length2,
+            raw.checksum_length1,
+            raw.checksum_length0,
+            raw.checksum_constant2,
+            raw.checksum_constant1,
+            raw.checksum_constant0,
+            raw.c_code,
+            raw.r_code,
+            raw.oui2,
+            raw.oui1,
+            raw.oui0,
+            raw.version,
+            raw.board2,
+            raw.board1,
+            raw.board0,
+            raw.revis3,
+            raw.revis2,
+            raw.revis1,
+            raw.revis0,
+            tuple(raw.reserved),
+            raw.sernum0_v2,
+            raw.sernum1_v2,
+            raw.sernum2_v2,
+            raw.sernum3_v2,
+            raw.sernum1,
+            raw.sernum0,
+        )
 
 
 class Error(error.Error):
@@ -161,12 +199,11 @@ ErrorCode = Error.Code
 
 
 # Utility definitions
-_P = ct.POINTER
-_c_int_p = _P(ct.c_int)
-_c_uint_p = _P(ct.c_uint)
-_c_uint32_p = _P(ct.c_uint32)
-_usb_device_p = _P(_USBDeviceRaw)
-_board_info_p = _P(_BoardInfoRaw)
+_c_int_p = ct.POINTER(ct.c_int)
+_c_uint_p = ct.POINTER(ct.c_uint)
+_c_uint32_p = ct.POINTER(ct.c_uint32)
+_usb_device_p = ct.POINTER(_USBDeviceRaw)
+_board_info_p = ct.POINTER(_BoardInfoRaw)
 
 
 class _Lib(_utils.Lib):
@@ -203,19 +240,25 @@ class _Lib(_utils.Lib):
         self.get_serial_number = self.__get('GetSerialNumber', ct.c_int, ct.c_char_p, ct.c_uint32)
         self.connection_status = self.__get('ConnectionStatus', ct.c_int, _c_int_p)
 
-    def __api_errcheck(self, res: int, func: Callable, _: tuple) -> int:
+    def __api_errcheck(self, res: int, func, _: tuple) -> int:
         if res < 0:
             raise Error(self.decode_error(res), res, func.__name__)
         return res
 
     def __get(self, name: str, *args: type) -> Callable[..., int]:
-        func = getattr(self.lib, f'CAEN_PLU_{name}')
+        func = self.get(f'CAEN_PLU_{name}')
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck
+        func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     # C API bindings
+
+    def sw_release(self) -> str:
+        """
+        No equivalent function on CAEN_PLU
+        """
+        raise NotImplementedError('Not available on CAEN_PLU')
 
     def decode_error(self, error_code: int) -> str:
         """
@@ -233,13 +276,7 @@ class _Lib(_utils.Lib):
         l_num_devs = ct.c_uint32()
         self.__usb_enumerate(l_data, l_num_devs)
         assert l_data_size >= l_num_devs.value
-        return tuple(
-            USBDevice(
-                i.id,
-                i.SN.value.decode(),
-                i.DESC.value.decode(),
-            ) for i in l_data[:l_num_devs.value]
-        )
+        return tuple(map(USBDevice.from_raw, l_data[:l_num_devs.value]))
 
     def usb_enumerate_serial_number(self) -> tuple[str, ...]:
         """
@@ -268,7 +305,7 @@ lib = _Lib(_LIB_NAME)
 def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):
     if connection_mode in (ConnectionModes.DIRECT_ETH, ConnectionModes.VME_V4718_ETH):
         assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode()
+        return arg.encode('ascii')
     elif connection_mode in (ConnectionModes.DIRECT_USB, ConnectionModes.VME_V1718, ConnectionModes.VME_V2718):
         l_link_number_i = int(arg)
         l_link_number_i_ct = ct.c_int(l_link_number_i)
@@ -315,7 +352,7 @@ class Device:
         l_arg = _get_l_arg(connection_mode, arg)
         l_handle = ct.c_int()
         vme_base_address_str = f'{vme_base_address:X}' if isinstance(vme_base_address, int) else vme_base_address
-        l_vme_base_address = vme_base_address_str.encode()
+        l_vme_base_address = vme_base_address_str.encode('ascii')
         lib.open_device2(connection_mode, l_arg, conet_node, l_vme_base_address, l_handle)
         return cls(l_handle.value, connection_mode, arg, conet_node, vme_base_address_str)
 
@@ -330,7 +367,7 @@ class Device:
             raise RuntimeError('Already connected.')
         l_arg = _get_l_arg(self.connection_mode, self.arg)
         l_handle = ct.c_int()
-        l_vme_base_address = self.vme_base_address.encode()
+        l_vme_base_address = self.vme_base_address.encode('ascii')
         lib.open_device2(self.connection_mode, l_arg, self.conet_node, l_vme_base_address, l_handle)
         self.handle = l_handle.value
         self.__opened = True
@@ -403,7 +440,7 @@ class Device:
         """
         l_value = ct.create_string_buffer(32)  # Undocumented but, hopefully, long enough
         lib.get_serial_number(self.handle, l_value, len(l_value))
-        return l_value.value.decode()
+        return l_value.value.decode('ascii')
 
     def get_info(self) -> BoardInfo:
         """
@@ -411,35 +448,7 @@ class Device:
         """
         l_b = _BoardInfoRaw()
         lib.get_info(self.handle, l_b)
-        return BoardInfo(
-            l_b.checksum,
-            l_b.checksum_length2,
-            l_b.checksum_length1,
-            l_b.checksum_length0,
-            l_b.checksum_constant2,
-            l_b.checksum_constant1,
-            l_b.checksum_constant0,
-            l_b.c_code,
-            l_b.r_code,
-            l_b.oui2,
-            l_b.oui1,
-            l_b.oui0,
-            l_b.version,
-            l_b.board2,
-            l_b.board1,
-            l_b.board0,
-            l_b.revis3,
-            l_b.revis2,
-            l_b.revis1,
-            l_b.revis0,
-            tuple(l_b.reserved),
-            l_b.sernum0_v2,
-            l_b.sernum1_v2,
-            l_b.sernum2_v2,
-            l_b.sernum3_v2,
-            l_b.sernum1,
-            l_b.sernum0,
-        )
+        return BoardInfo.from_raw(l_b)
 
     # Python utilities
 
