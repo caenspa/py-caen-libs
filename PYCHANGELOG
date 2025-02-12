@@ -15,7 +15,8 @@ v2.0.0 (XX/XX/2025)
 -------------------
 
 New features:
-- Support for CAEN DPP Library as `caendpplib`.
+- Support for CAEN DPP Library as `caendpplib`. NumPy added as dependency
+    being required by this new submodule.
 - Improved `caenvme` demo.
 
 Changes:

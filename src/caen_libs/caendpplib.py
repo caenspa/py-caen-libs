@@ -474,6 +474,8 @@ class DPPCode(IntEnum):
     """
     Binding of ::CAENDPP_DPPCode_t
     """
+    UNKNOWN = 0xDEADFACE  # Special value for Python binding
+    X7GS_V1 = 1  # Undocumented value returned by Gamma Stream
     PHA_X724 = 0x80
     PHA_X730 = 0x8B
     CI_X720 = 0x82
@@ -483,6 +485,13 @@ class DPPCode(IntEnum):
     CI_X743 = 0x86
     PSD_X730 = 0x88
     PHA_XHEX = 0x8E
+
+    @classmethod
+    def _missing_(cls, _):
+        """
+        To avoid errors in case of unknown code, we return UNKNOWN
+        """
+        return cls.UNKNOWN
 
 
 @unique
@@ -1104,7 +1113,7 @@ class _RunSpecsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class RunSpecs:
     """
     Binding of ::CAENDPP_RunSpecs_t
@@ -1112,7 +1121,7 @@ class RunSpecs:
     run_name: str = field(default='dummy')
     run_duration_sec: int = field(default=0)
     pause_sec: int = field(default=0)
-    cycles_count: int = field(default=0)
+    cycles_count: int = field(default=1)
     save_lists: bool = field(default=False)
     gps_enable: bool = field(default=False)
     clear_histos: bool = field(default=False)
@@ -1644,7 +1653,7 @@ class _HVChannelConfigRaw(ct.Structure):
 
 
 @unique
-class DPPPWDownMode(IntEnum):
+class PWDownMode(IntEnum):
     """
     Binding of ::CAENDPP_PWDownMode_t
     """
@@ -1652,7 +1661,7 @@ class DPPPWDownMode(IntEnum):
     KILL = 1
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class HVChannelConfig:
     """
     Binding of ::CAENDPP_HVChannelConfig_t
@@ -1662,7 +1671,7 @@ class HVChannelConfig:
     ramp_up: float
     ramp_down: float
     v_max: float
-    pw_down_mode: DPPPWDownMode
+    pw_down_mode: PWDownMode
 
     @classmethod
     def from_raw(cls, raw: _HVChannelConfigRaw):
@@ -1673,7 +1682,7 @@ class HVChannelConfig:
             raw.RampUp,
             raw.RampDown,
             raw.VMax,
-            DPPPWDownMode(raw.PWDownMode),
+            PWDownMode(raw.PWDownMode),
         )
 
     def to_raw(self) -> _HVChannelConfigRaw:
@@ -1686,6 +1695,24 @@ class HVChannelConfig:
             self.v_max,
             self.pw_down_mode,
         )
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class HVChannelMonitoring:
+    """
+    Return value for ::CAENDPP_ReadHVChannelMonitoring binding
+    """
+    v_mon: float
+    i_mon: float
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class HVChannelExternals:
+    """
+    Return value for ::CAENDPP_ReadHVChannelExternals binding
+    """
+    v_ext: float
+    t_res: float
 
 
 class _EnumerationSingleDeviceRaw(ct.Structure):
@@ -1848,6 +1875,17 @@ class Waveforms:
         self.at2 = np.empty(self.samples, dtype=np.int16)
         self.dt1 = np.empty(self.samples, dtype=np.uint8)
         self.dt2 = np.empty(self.samples, dtype=np.uint8)
+
+
+@dataclass(**_utils.dataclass_slots)
+class Histogram:
+    """
+    Class to store histogram data.
+    """
+    histo: npt.NDArray[np.uint32]
+    counts: int
+    realtime: int
+    deadtime: int
 
 
 @unique
@@ -2247,19 +2285,19 @@ class Device:
         lib.is_channel_acquiring(self.handle, channel, l_acquiring)
         return AcqStatus(l_acquiring.value)
 
-    def start_acquisition(self, channel: int) -> None:
+    def start_acquisition(self, channel: int = -1) -> None:
         """
         Binding of CAENDPP_StartAcquisition()
         """
         lib.start_acquisition(self.handle, channel)
 
-    def arm_acquisition(self, channel: int) -> None:
+    def arm_acquisition(self, channel: int = -1) -> None:
         """
         Binding of CAENDPP_ArmAcquisition()
         """
         lib.arm_acquisition(self.handle, channel)
 
-    def stop_acquisition(self, channel: int) -> None:
+    def stop_acquisition(self, channel: int = -1) -> None:
         """
         Binding of CAENDPP_StopAcquisition()
         """
@@ -2329,10 +2367,11 @@ class Device:
 
     def allocate_waveform(self, channel: int) -> Waveforms:
         """
-        Allocate memory for waveforms data.
+        Allocate memory for waveforms data
 
-        This method should be used before calling get_waveform() to
-        allocate memory for the waveforms data.
+        This method does not bind any C API function. It is just a helper
+        method to allocate memory for waveforms data to be used as
+        argument for get_waveform().
         """
         l_length = self.get_waveform_length(channel)
         return Waveforms(l_length)
@@ -2340,6 +2379,8 @@ class Device:
     def get_waveform(self, channel: int, auto: bool, waveforms: Waveforms) -> tuple[int, float]:
         """
         Binding of CAENDPP_GetWaveform()
+
+        Waveforms data should be allocated with allocate_waveform().
         """
         l_auto = ct.c_int16(auto)
         l_at1 = waveforms.at1.ctypes.data_as(_c_int16_p)
@@ -2351,7 +2392,7 @@ class Device:
         lib.get_waveform(self.handle, channel, l_auto, l_at1, l_at2, l_dt1, l_dt2, l_ns, l_tsample)
         return l_ns.value, l_tsample.value
 
-    def get_histogram(self, channel: int, index: int) -> tuple[npt.NDArray[np.uint32], int, int, int]:
+    def get_histogram(self, channel: int, index: int) -> Histogram:
         """
         Binding of CAENDPP_GetHistogram()
         """
@@ -2361,15 +2402,15 @@ class Device:
         l_realtime = ct.c_uint64()
         l_deadtime = ct.c_uint64()
         lib.get_histogram(self.handle, channel, index, histo.ctypes, l_counts, l_realtime, l_deadtime)
-        return histo, l_counts.value, l_realtime.value, l_deadtime.value
+        return Histogram(histo, l_counts.value, l_realtime.value, l_deadtime.value)
 
-    def set_histogram(self, channel: int, index: int, realtime_ns: int, deadtime_ns: int, histo: npt.NDArray[np.uint32]) -> None:
+    def set_histogram(self, channel: int, index: int, histogram: Histogram) -> None:
         """
         Binding of CAENDPP_SetHistogram()
         """
-        lib.set_histogram(self.handle, channel, index, realtime_ns, deadtime_ns, len(histo), histo.ctypes.data)
+        lib.set_histogram(self.handle, channel, index, histogram.realtime, histogram.deadtime, len(histogram.histo), histogram.histo.ctypes.data)
 
-    def get_current_histogram(self, channel: int) -> tuple[npt.NDArray[np.uint32], int, int, int, AcqStatus]:
+    def get_current_histogram(self, channel: int) -> tuple[Histogram, AcqStatus]:
         """
         Binding of CAENDPP_GetCurrentHistogram()
         """
@@ -2381,7 +2422,7 @@ class Device:
         l_deadtime = ct.c_uint64()
         l_status = ct.c_int()
         lib.get_current_histogram(self.handle, channel, histo.ctypes, l_counts, l_realtime, l_deadtime, l_status)
-        return histo, l_counts.value, l_realtime.value, l_deadtime.value, AcqStatus(l_status.value)
+        return Histogram(histo, l_counts.value, l_realtime.value, l_deadtime.value), AcqStatus(l_status.value)
 
     def save_histogram(self, channel: int, index: int, filename: str) -> None:
         """
@@ -2609,23 +2650,23 @@ class Device:
         lib.get_hv_channel_power_on(self.handle, board_id, channel, l_value)
         return bool(l_value.value)
 
-    def read_hv_channel_monitoring(self, board_id: int, channel: int) -> tuple[float, float]:
+    def read_hv_channel_monitoring(self, board_id: int, channel: int) -> HVChannelMonitoring:
         """
         Binding of CAENDPP_ReadHVChannelMonitoring()
         """
         l_vmon = ct.c_double()
         l_imon = ct.c_double()
         lib.read_hv_channel_monitoring(self.handle, board_id, channel, l_vmon, l_imon)
-        return l_vmon.value, l_imon.value
+        return HVChannelMonitoring(l_vmon.value, l_imon.value)
 
-    def read_hv_channel_externals(self, board_id: int, channel: int) -> tuple[float, float]:
+    def read_hv_channel_externals(self, board_id: int, channel: int) -> HVChannelExternals:
         """
         Binding of CAENDPP_ReadHVChannelExternals()
         """
         l_vext = ct.c_double()
         l_tres = ct.c_double()
         lib.read_hv_channel_externals(self.handle, board_id, channel, l_vext, l_tres)
-        return l_vext.value, l_tres.value
+        return HVChannelExternals(l_vext.value, l_tres.value)
 
     def enumerate_devices(self) -> EnumeratedDevices:
         """
