@@ -15,7 +15,7 @@ v2.0.1 (12/02/2025)
 -------------------
 
 Fixes:
-- Fix README.md and docstring in CAEN DPP Library demo.
+- Fix README and docstring in `caendpplib` demo.
 
 
 v2.0.0 (12/02/2025)
