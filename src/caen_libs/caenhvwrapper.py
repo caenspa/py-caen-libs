@@ -12,7 +12,7 @@ import ctypes.wintypes as ctw
 import os
 import socket
 import sys
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterator, Sequence
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
@@ -424,6 +424,9 @@ _PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_IdValueRaw], Union[str, float,
 }
 
 
+_R = TypeVar('_R', bound='ct._CData')
+
+
 class _Lib(_utils.Lib):
 
     def __init__(self, name: str) -> None:
@@ -525,7 +528,7 @@ class _Lib(_utils.Lib):
         return self.ver_at_least((7, 0, 0))
 
     @contextmanager
-    def auto_ptr(self, pointer_type):
+    def auto_ptr(self, pointer_type: type[_R]) -> Generator[ct._Pointer[_R], None, None]:
         """
         Context manager to auto free on scope exit.
 
@@ -540,7 +543,7 @@ class _Lib(_utils.Lib):
             self.__free(value)
 
     @contextmanager
-    def evt_data_auto_ptr(self):
+    def evt_data_auto_ptr(self) -> Generator[ct._Pointer[_EventDataRaw], None, None]:
         """
         Context manager to auto free event data on scope exit
 
@@ -966,8 +969,6 @@ class Device:
 
     # Private utilities
 
-    _R = TypeVar('_R', bound='ct._CData')
-
     def __get_prop(self, slot: int, name: str, prop_name: bytes, channel: Optional[int], var_type: Callable[..., _R], *args, **kwargs) -> _R:
         """
         Get single parameter property.
@@ -1112,10 +1113,9 @@ class Device:
             lib.subscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
             lib.subscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {param_list[i]: ec for i, ec in enumerate(result_codes) if ec}
+        # l_result_codes values are not instances of ::CAENHVRESULT
+        failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
+        if failed_params:
             raise RuntimeError(f'subscribe failed at params {failed_params}')
 
     def __unsubscribe_params(self, param_list: Sequence[str], slot: Optional[int], channel: Optional[int]) -> None:
@@ -1133,10 +1133,9 @@ class Device:
             lib.unsubscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
             lib.unsubscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        result_codes = [int.from_bytes(ec, 'big') for ec in l_result_codes]
-        if any(result_codes):
-            # resuls_codes values are not instances of ::CAENHVRESULT
-            failed_params = {param_list[i]: ec for i, ec in enumerate(result_codes) if ec}
+        # l_result_codes values are not instances of ::CAENHVRESULT
+        failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
+        if failed_params:
             raise RuntimeError(f'unsubscribe failed at params {failed_params}')
 
     def __create_server(self):
@@ -1191,12 +1190,8 @@ class Device:
                 # that should contain the string used as InitSystem argument,
                 # except when connecting using TCPIP.
                 assert addr_info[0] == '127.0.0.1'
-                arg = bytearray()
-                while True:
-                    char = self.__skt_client.recv(1)
-                    if char == b'\x00':
-                        break
-                    arg.extend(char)
+                # Read char by char until null terminator
+                arg = b''.join(iter(lambda: self.__skt_client.recv(1), b'\x00'))
                 assert self.arg == arg.decode('ascii')
 
     def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:

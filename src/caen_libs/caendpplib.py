@@ -2010,7 +2010,7 @@ def _default_log_file_path() -> Path:
     """Generate file log path"""
     # Platform dependent stuff
     if sys.platform == 'win32':
-        app_data = os.getenv('APPDATA')
+        app_data = os.getenv('LOCALAPPDATA')
         assert app_data is not None
         user_path = Path(app_data) / 'CAEN'
     else:

@@ -11,6 +11,14 @@
 -----------------------------------------------------------------------------
 
 
+v2.0.2 (XX/XX/2025)
+-------------------
+
+Fixes:
+- Change default log path of `caendpplib` on Windows from `%APPDATA%\CAEN` to
+    `%LOCALAPPDATA%\CAEN`.
+
+
 v2.0.1 (12/02/2025)
 -------------------
 
