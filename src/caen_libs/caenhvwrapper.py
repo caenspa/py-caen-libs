@@ -568,6 +568,38 @@ else:
 lib = _Lib(_LIB_NAME)
 
 
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class _TcpPorts:
+    first: int
+    last: int
+
+
+def _bind_tcp_prots() -> _TcpPorts:
+    """
+    Determine the TCP ports to use for event handling, that can be
+    overridden by an environment variable to simplify firewall setup.
+    Range is exclusive, so that the ports used are [first, last).
+    First port can be specified using HV_FIRST_BIND_PORT, last port
+    can be specified HV_LAST_BIND_PORT. Default first port is 0, last
+    default is 1 if first is 0 (meaning that TCP port choice is left
+    to the operating system), 65536 otherwise.
+    """
+    first_env = os.environ.get('HV_FIRST_BIND_PORT')
+    first = int(first_env) if first_env is not None else 0
+    if first < 0 or first > 65535:
+        raise ValueError('First port must be between 0 and 65535.')
+    last_default = 1 if first == 0 else 65536
+    last_env = os.environ.get('HV_LAST_BIND_PORT')
+    last = int(last_env) if last_env is not None else last_default
+    if last < 1 or last > 65536:
+        raise ValueError('Last port must be between 1 and 65536.')
+    if first == 0 and last != 1:
+        raise ValueError('Last port must be 1 if first port is 0.')
+    if first >= last:
+        raise ValueError('First port must be lower than last port.')
+    return _TcpPorts(first, last)
+
+
 @dataclass(**_utils.dataclass_slots_weakref)
 class Device:
     """
@@ -595,7 +627,7 @@ class Device:
 
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
-    __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
+    __bind_tcp_ports: ClassVar[_TcpPorts] = _bind_tcp_prots()
 
     def __del__(self) -> None:
         if self.__opened:
@@ -1142,11 +1174,12 @@ class Device:
         """
         # If possible, bind to loopback to prevent ask for administator rights on Windows
         bind_addr = '127.0.0.1' if self.__library_event_thread() else ''
-        for port in range(self.__first_bind_port, 65536):
+        ports = self.__bind_tcp_ports
+        for port in range(ports.first, ports.last):
             # Suppress OSError raised if bind fails
             with suppress(OSError):
                 return socket.create_server((bind_addr, port), family=socket.AF_INET, backlog=1)
-        raise RuntimeError('No available port found.')
+        raise RuntimeError(f'No available port found in range [{ports.first}, {ports.last}).')
 
     def __init_events_server(self):
         if self.__skt_server is not None:
