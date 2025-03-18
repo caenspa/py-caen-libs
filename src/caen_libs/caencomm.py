@@ -329,8 +329,8 @@ class Device:
         l_data = (ct.c_uint32 * n_cycles)(*data)
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_write32(self.handle, l_address, n_cycles, l_data, l_error_code)
-        if any(l_error_code):
-            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        if failed_cycles:
             raise RuntimeError(f'multi_write32 failed at cycles {failed_cycles}')
 
     def multi_write16(self, address: Sequence[int], data: Sequence[int]) -> None:
@@ -342,8 +342,8 @@ class Device:
         l_data = (ct.c_uint16 * n_cycles)(*data)
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_write16(self.handle, l_address, n_cycles, l_data, l_error_code)
-        if any(l_error_code):
-            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        if failed_cycles:
             raise RuntimeError(f'multi_write16 failed at cycles {failed_cycles}')
 
     def multi_read32(self, address: Sequence[int]) -> list[int]:
@@ -355,8 +355,8 @@ class Device:
         l_data = (ct.c_uint32 * n_cycles)()
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_read32(self.handle, l_address, n_cycles, l_data, l_error_code)
-        if any(l_error_code):
-            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        if failed_cycles:
             raise RuntimeError(f'multi_read32 failed at cycles {failed_cycles}')
         return l_data[:]
 
@@ -369,8 +369,8 @@ class Device:
         l_data = (ct.c_uint16 * n_cycles)()
         l_error_code = (ct.c_int * n_cycles)()
         lib.multi_read16(self.handle, l_address, n_cycles, l_data, l_error_code)
-        if any(l_error_code):
-            failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        if failed_cycles:
             raise RuntimeError(f'multi_read16 failed at cycles {failed_cycles}')
         return l_data[:]
 

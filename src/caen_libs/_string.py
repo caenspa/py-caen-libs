@@ -27,7 +27,7 @@ def from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_str: int) -> Iterat
         yield value.decode('ascii')
 
 
-def from_char_p(data: ct._Pointer, n_str: int) -> Iterator[str]:
+def from_char_p(data: 'ct._Pointer[ct.c_char]', n_str: int) -> Iterator[str]:
     """
     Same of from_char.
     For pointers to ct.c_char, to avoid dereferences in case of zero size.
@@ -45,11 +45,9 @@ def from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int) 
     For ct.c_char and arrays of it.
     """
     data_addr = ct.addressof(data)
-    while True:
-        value = ct.string_at(data_addr)
-        if len(value) == 0:
-            return
-        assert len(value) < str_size
+    while (value := ct.string_at(data_addr)) != b'':
+        if len(value) >= str_size:
+            raise ValueError('String longer than buffer size')
         data_addr += str_size
         yield value.decode('ascii')
 
@@ -65,12 +63,13 @@ def from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int
     data_addr = ct.addressof(data)
     for _ in range(n_str):
         value = ct.string_at(data_addr)
-        assert len(value) < str_size
+        if len(value) >= str_size:
+            raise ValueError('String longer than buffer size')
         data_addr += str_size
         yield value.decode('ascii')
 
 
-def from_n_char_array_p(data: ct._Pointer, str_size: int, n_str: int) -> Iterator[str]:
+def from_n_char_array_p(data: 'ct._Pointer[ct.c_char]', str_size: int, n_str: int) -> Iterator[str]:
     """
     Same of from_n_char_array.
     For pointers to ct.c_char, to avoid dereferences in case of zero size.

@@ -11,6 +11,19 @@
 -----------------------------------------------------------------------------
 
 
+v2.0.2 (18/03/2025)
+-------------------
+
+Fixes:
+- Fixed regression in `caenhvwrapper.Device.subscribe_*_params` introduced in
+    v2.0.0 affecting all modules except R6060. The issue caused subscription
+    failures on systems where `socket.has_dualstack_ipv6()` returns True.
+
+Changes:
+- Changed default log directory for `caendpplib` on Windows from
+    `%APPDATA%\CAEN` to `%LOCALAPPDATA%\CAEN`.
+
+
 v2.0.1 (12/02/2025)
 -------------------
 

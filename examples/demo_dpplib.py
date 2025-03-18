@@ -174,10 +174,9 @@ def enable_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:
     lib.set_hv_channel_power_on(board_id, hv_ch, True)
     print('Waiting for HV ramping...')
     hv_config = lib.get_hv_channel_configuration(board_id, hv_ch)
-    while True:
-        mon = lib.read_hv_channel_monitoring(board_id, hv_ch)
-        if mon.v_mon > hv_config.v_set * 0.9:
-            break
+    thr = hv_config.v_set * 0.9
+    while lib.read_hv_channel_monitoring(board_id, hv_ch).v_mon < thr:
+        sleep(.5)
     sleep(1.)
     print('Done.')
 
@@ -191,10 +190,8 @@ def shutdown_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:
     print('Shutting down HV...')
     lib.set_hv_channel_power_on(board_id, hv_ch, False)
     print('Waiting for HV ramping...')
-    while True:
-        mon = lib.read_hv_channel_monitoring(board_id, hv_ch)
-        if mon.v_mon < 20:
-            break
+    while lib.read_hv_channel_monitoring(board_id, hv_ch).v_mon > 20:
+        sleep(.5)
     sleep(1.)
     print('Done.')
 
