@@ -1179,7 +1179,7 @@ class Device:
             # Suppress OSError raised if bind fails
             with suppress(OSError):
                 return socket.create_server((bind_addr, port), family=socket.AF_INET, backlog=1)
-        raise RuntimeError(f'No available port found in range [{ports.first}, {ports.last}).')
+        raise RuntimeError(f'No available TCP ports found in range [{ports.first}, {ports.last}).')
 
     def __init_events_server(self):
         if self.__skt_server is not None:
