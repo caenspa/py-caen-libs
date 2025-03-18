@@ -1072,7 +1072,7 @@ class ListParams:
     """
     enabled: bool = field(default=False)
     save_mode: ListSaveMode = field(default=ListSaveMode.MEMORY)
-    file_name: str = field(default='dummy.txt')
+    file_name: str = field(default='py_dpplib_default.txt')
     max_buff_num_events: int = field(default=0)
     save_mask: DumpMask = field(default=DumpMask.TTT | DumpMask.ENERGY | DumpMask.EXTRAS)
     enable_fakes: bool = field(default=False)
@@ -1118,7 +1118,7 @@ class RunSpecs:
     """
     Binding of ::CAENDPP_RunSpecs_t
     """
-    run_name: str = field(default='dummy')
+    run_name: str = field(default='py_dpplib_default')
     run_duration_sec: int = field(default=0)
     pause_sec: int = field(default=0)
     cycles_count: int = field(default=1)

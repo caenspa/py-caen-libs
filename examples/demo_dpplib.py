@@ -62,10 +62,10 @@ def my_configuration(n_channels: int, adc_nbits: int) -> dpp.DgtzParams:
     # Define configuration
     res = dpp.DgtzParams()
 
-    # List mode parameters
+    # List mode parameters (ignored by GammaStream, see run_specifications below)
     res.list_params.enabled = False
     res.list_params.save_mode = dpp.ListSaveMode.FILE_BINARY
-    res.list_params.file_name = 'data.bin'
+    res.list_params.file_name = 'py_dpplib_demo.bin'
     res.list_params.max_buff_num_events = 10
     res.list_params.save_mask = dpp.DumpMask.ALL_
 
@@ -86,8 +86,10 @@ def my_configuration(n_channels: int, adc_nbits: int) -> dpp.DgtzParams:
     res.wf_params.probe_trigger = dpp.ProbeTrigger.MAIN_TRIG
 
     # Parameters for Gamma Stream
+    res.run_specifications.run_name = 'py_dpplib_demo'
     res.run_specifications.run_duration_sec = 0  # 0 means infinite
     res.run_specifications.cycles_count = 1
+    res.run_specifications.save_lists = False
 
     res.resize(n_channels)
 
