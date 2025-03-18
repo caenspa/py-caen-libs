@@ -528,7 +528,7 @@ class _Lib(_utils.Lib):
         return self.ver_at_least((7, 0, 0))
 
     @contextmanager
-    def auto_ptr(self, pointer_type: type[_R]) -> Generator[ct._Pointer[_R], None, None]:
+    def auto_ptr(self, pointer_type: type[_R]) -> Generator['ct._Pointer[_R]', None, None]:
         """
         Context manager to auto free on scope exit.
 
@@ -543,7 +543,7 @@ class _Lib(_utils.Lib):
             self.__free(value)
 
     @contextmanager
-    def evt_data_auto_ptr(self) -> Generator[ct._Pointer[_EventDataRaw], None, None]:
+    def evt_data_auto_ptr(self) -> Generator['ct._Pointer[_EventDataRaw]', None, None]:
         """
         Context manager to auto free event data on scope exit
 
@@ -590,16 +590,12 @@ class Device:
 
     # Private members
     __opened: bool = field(default=True, repr=False)
-    __port: int = field(default=0, repr=False)
     __skt_server: Optional[socket.socket] = field(default=None, repr=False)
     __skt_client: Optional[socket.socket] = field(default=None, repr=False)
 
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
     __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
-    __family: ClassVar[int] = socket.AF_INET6 if socket.has_dualstack_ipv6() else socket.AF_INET
-    __skt_options: ClassVar[dict] = {'family': __family, 'dualstack_ipv6': __family is socket.AF_INET6, 'backlog': 1} # Just one client
-    __localhost: ClassVar[str] = '::1' if __family is socket.AF_INET6 else '127.0.0.1'  # Unclear if 'localhost' is valid too, so we use the IP
 
     def __del__(self) -> None:
         if self.__opened:
@@ -1108,11 +1104,11 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * param_list_len)()
         if slot is None:
-            lib.subscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_system_params(self.handle, self.__skt_port, l_param_name_list, param_list_len, l_result_codes)
         elif channel is None:
-            lib.subscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_board_params(self.handle, self.__skt_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
-            lib.subscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_channel_params(self.handle, self.__skt_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
@@ -1128,11 +1124,11 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * param_list_len)()
         if slot is None:
-            lib.unsubscribe_system_params(self.handle, self.__port, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_system_params(self.handle, self.__skt_port, l_param_name_list, param_list_len, l_result_codes)
         elif channel is None:
-            lib.unsubscribe_board_params(self.handle, self.__port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_board_params(self.handle, self.__skt_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
-            lib.unsubscribe_channel_params(self.handle, self.__port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_channel_params(self.handle, self.__skt_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
@@ -1145,11 +1141,11 @@ class Device:
         Socket will be compatible with both IPv6 and IPv4, if supported.
         """
         # If possible, bind to loopback to prevent ask for administator rights on Windows
-        bind_addr = self.__localhost if self.__library_event_thread() else ''
+        bind_addr = '127.0.0.1' if self.__library_event_thread() else ''
         for port in range(self.__first_bind_port, 65536):
             # Suppress OSError raised if bind fails
             with suppress(OSError):
-                return socket.create_server((bind_addr, port), **self.__skt_options)
+                return socket.create_server((bind_addr, port), family=socket.AF_INET, backlog=1)
         raise RuntimeError('No available port found.')
 
     def __init_events_server(self):
@@ -1164,7 +1160,6 @@ class Device:
             self.__skt_server = socket.socket()
         else:
             self.__skt_server = self.__create_server()
-            _, self.__port = self.__skt_server.getsockname()
 
     def __init_events_client(self):
         if self.__skt_client is not None:
@@ -1193,6 +1188,11 @@ class Device:
                 # Read char by char until null terminator
                 arg = b''.join(iter(lambda: self.__skt_client.recv(1), b'\x00'))
                 assert self.arg == arg.decode('ascii')
+
+    @property
+    def __skt_port(self) -> int:
+        assert self.__skt_server is not None
+        return self.__skt_server.getsockname()[1]  # Return (host, port) on IPv4 and (host, port, flowinfo, scopeid) on IPv6
 
     def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
         """

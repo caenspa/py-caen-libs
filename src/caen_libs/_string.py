@@ -27,7 +27,7 @@ def from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_str: int) -> Iterat
         yield value.decode('ascii')
 
 
-def from_char_p(data: ct._Pointer, n_str: int) -> Iterator[str]:
+def from_char_p(data: 'ct._Pointer[ct.c_char]', n_str: int) -> Iterator[str]:
     """
     Same of from_char.
     For pointers to ct.c_char, to avoid dereferences in case of zero size.
@@ -69,7 +69,7 @@ def from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int
         yield value.decode('ascii')
 
 
-def from_n_char_array_p(data: ct._Pointer, str_size: int, n_str: int) -> Iterator[str]:
+def from_n_char_array_p(data: 'ct._Pointer[ct.c_char]', str_size: int, n_str: int) -> Iterator[str]:
     """
     Same of from_n_char_array.
     For pointers to ct.c_char, to avoid dereferences in case of zero size.
