@@ -89,7 +89,7 @@ def my_configuration(n_channels: int, adc_nbits: int) -> dpp.DgtzParams:
     res.run_specifications.run_name = 'py_dpplib_demo'
     res.run_specifications.run_duration_sec = 0  # 0 means infinite
     res.run_specifications.cycles_count = 1
-    res.run_specifications.save_lists = False
+    res.run_specifications.save_lists = True
 
     res.resize(n_channels)
 

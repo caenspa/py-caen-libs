@@ -15,13 +15,14 @@ v2.0.3 (XX/XX/2025)
 -------------------
 
 New features:
-- Added ability to customize TCP port range for `caenhvwrapper` event
-    handling. Users can now specify the upper port limit using the
-    `HV_LAST_BIND_PORT` environment variable, while the first port is still
-    configurable using `HV_FIRST_BIND_PORT`. Default values changed from
-    exclusive range [10001, 65536) to [0, 1), meaning that the port is
-    chosen automatically by the operating system when users don't require a
-    specific port range for firewall configuration.
+- Enhanced `caenhvwrapper` event handling with customizable TCP port ranges
+    through two new class methods: `Device.set_events_tcp_ports()` and
+    `Device.get_events_tcp_ports()`. Users can now specify the upper port
+    limit, with default behavior changed from fixed range [10001, 65536) to
+    [0, 1), allowing the operating system to automatically select ports when
+    no specific range is required for firewall configuration. The environmental
+    variable `HV_FIRST_BIND_PORT` is now deprecated in favor of this more
+    flexible approach.
 
 Changes:
 - Renamed default filenames and run names in `caendpplib` to more clearly

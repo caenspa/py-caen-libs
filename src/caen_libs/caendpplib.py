@@ -872,7 +872,14 @@ class PHAParams:
     x770_extraparameters: list[ExtraParameters] = field(default_factory=list)
 
     def resize(self, n_channels: int):
-        """Resize to n_channels"""
+        """
+        Resize to n_channels.
+
+        This method is required because this class is a class of lists,
+        rather than a class used as member of a list in the parent class
+        DgtzParams. In other words, the other members of DgtzParams are
+        indexed like `params.x[ch].y`, while this like `params.x.y[ch]`.
+        """
         self.m_ = [0] * n_channels
         self.m = [0] * n_channels
         self.k = [0] * n_channels
@@ -1461,7 +1468,7 @@ class DgtzParams:
         self.dc_offset = [0] * n_channels
         self.temp_corr_parameters = [TempCorrParams() for _ in range(n_channels)]
         self.input_coupling = [INCoupling.DC] * n_channels
-        self.dpp_params.resize(n_channels)
+        self.dpp_params.resize(n_channels)  # Weird because it a class of lists rather than a list of classes
         self.coinc_params = [CoincParams() for _ in range(n_channels)]
         self.gate_params = [GateParams() for _ in range(n_channels)]
         self.spectrum_control = [SpectrumControl() for _ in range(n_channels)]
