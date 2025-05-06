@@ -22,7 +22,11 @@ New features:
     [0, 1), allowing the operating system to automatically select ports when
     no specific range is required for firewall configuration. The environmental
     variable `HV_FIRST_BIND_PORT` is now deprecated in favor of this more
-    flexible approach.
+    flexible approach. The selected port can be accessed with a new property
+    `Device.events_tcp_port`.
+
+Fixes:
+- Fixed support for events on R6060, regression introduced in v2.0.0.
 
 Changes:
 - Renamed default filenames and run names in `caendpplib` to more clearly

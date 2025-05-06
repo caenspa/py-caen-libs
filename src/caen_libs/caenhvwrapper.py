@@ -619,16 +619,16 @@ class Device:
     username: str = field(repr=False)
     password: str = field(repr=False)
 
-    # Constants
-    MAX_PARAM_NAME: ClassVar[int] = 10  # From CAENHVWrapper.h
-    MAX_CH_NAME: ClassVar[int] = 12  # From CAENHVWrapper.h
-    MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
-    MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
-
     # Private members
     __opened: bool = field(default=True, repr=False)
     __skt_server: Optional[socket.socket] = field(default=None, repr=False)
     __skt_client: Optional[socket.socket] = field(default=None, repr=False)
+
+    # Private constants
+    __MAX_PARAM_NAME: ClassVar[int] = 10  # From CAENHVWrapper.h
+    __MAX_CH_NAME: ClassVar[int] = 12  # From CAENHVWrapper.h
+    __MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
+    __MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
 
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
@@ -822,7 +822,7 @@ class Device:
         g_value = lib.auto_ptr(ct.c_char)
         with g_value as l_value:
             lib.get_bd_param_info(self.handle, slot, l_value)
-            return tuple(_string.from_char_array(l_value.contents, self.MAX_PARAM_NAME))
+            return tuple(_string.from_char_array(l_value.contents, self.__MAX_PARAM_NAME))
 
     def test_bd_presence(self, slot: int) -> Board:
         """
@@ -861,7 +861,7 @@ class Device:
         with g_value as l_value:
             l_size = ct.c_int()
             lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
-            return tuple(_string.from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value))
+            return tuple(_string.from_n_char_array_p(l_value, self.__MAX_PARAM_NAME, l_size.value))
 
     def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> tuple[str, ...]:
         """
@@ -872,9 +872,9 @@ class Device:
             return []  # type: ignore
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
-        l_value = (ct.c_char * (self.MAX_CH_NAME * n_allocated_values))()
+        l_value = (ct.c_char * (self.__MAX_CH_NAME * n_allocated_values))()
         lib.get_ch_name(self.handle, slot, n_indexes, l_index_list, l_value)
-        return tuple(_string.from_n_char_array(l_value, self.MAX_CH_NAME, n_indexes))
+        return tuple(_string.from_n_char_array(l_value, self.__MAX_CH_NAME, n_indexes))
 
     def set_ch_name(self, slot: int, channel_list: Sequence[int], name: str) -> None:
         """
@@ -949,14 +949,19 @@ class Device:
     @classmethod
     def set_events_tcp_ports(cls, first: int, last: int) -> None:
         """
-        Set the TCP ports to use for event handling.
+        Set the TCP port range to use for event handling. The range is
+        exclusive, so that the ports used are [first, last). If first
+        is 0, the last port must be 1. The default value is (0, 1).
+        Port 0 is used to bind to a random port chosen by the OS.
         """
         cls.__bind_tcp_ports = _TcpPorts(first, last)
 
     @classmethod
     def get_events_tcp_ports(cls) -> tuple[int, int]:
         """
-        Get the TCP ports to use for event handling.
+        Get the TCP port range to use for event handling, as tuple
+        (first, last). The range is exclusive, so that the ports used
+        are [first, last).
         """
         return cls.__bind_tcp_ports.first, cls.__bind_tcp_ports.last
 
@@ -1067,9 +1072,9 @@ class Device:
             res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float).value
             res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float).value
             n_enums = int(res.maxval - res.minval + 1)
-            assert n_enums <= self.MAX_ENUM_VALS
-            l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.MAX_ENUM_NAME * self.MAX_ENUM_VALS))
-            res.enum = tuple(_string.from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
+            assert n_enums <= self.__MAX_ENUM_VALS
+            l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.__MAX_ENUM_NAME * self.__MAX_ENUM_VALS))
+            res.enum = tuple(_string.from_n_char_array(l_value, self.__MAX_ENUM_NAME, n_enums))
         return res
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
@@ -1155,11 +1160,11 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * param_list_len)()
         if slot is None:
-            lib.subscribe_system_params(self.handle, self.__skt_port, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, param_list_len, l_result_codes)
         elif channel is None:
-            lib.subscribe_board_params(self.handle, self.__skt_port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
-            lib.subscribe_channel_params(self.handle, self.__skt_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
@@ -1175,11 +1180,11 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * param_list_len)()
         if slot is None:
-            lib.unsubscribe_system_params(self.handle, self.__skt_port, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, param_list_len, l_result_codes)
         elif channel is None:
-            lib.unsubscribe_board_params(self.handle, self.__skt_port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
-            lib.unsubscribe_channel_params(self.handle, self.__skt_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
@@ -1208,7 +1213,7 @@ class Device:
             # Nothing to do, client socket initialized within the library. We store
             # an uninitialized value just as a reminder that a subscription has been
             # made, to be checked later in __init_events_client to be sure
-            # EventDataSocket is meaningful. No need to set port value, it's ignored.
+            # EventDataSocket is meaningful.
             self.__skt_server = socket.socket()
         else:
             self.__skt_server = self.__create_server()
@@ -1242,9 +1247,20 @@ class Device:
                 assert self.arg == arg.decode('ascii')
 
     @property
-    def __skt_port(self) -> int:
-        assert self.__skt_server is not None
-        return self.__skt_server.getsockname()[1]  # Return (host, port) on IPv4 and (host, port, flowinfo, scopeid) on IPv6
+    def events_tcp_port(self) -> int:
+        """
+        TCP port used for events subscription, that must be accessed by
+        the events server. It returns -1 if the socket is managed by the
+        library.
+        """
+        if self.__skt_server is None:
+            raise RuntimeError('No subscription done.')
+        if self.__new_events_format():
+            # Port is not used, since the library manages the socket
+            return -1
+        else:
+            # Return (host, port) on IPv4 and (host, port, flowinfo, scopeid) on IPv6
+            return self.__skt_server.getsockname()[1]
 
     def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
         """
