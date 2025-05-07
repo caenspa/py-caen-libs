@@ -349,14 +349,15 @@ else:
     _socket = ct.c_int
 
 
-_SYS_PROP_TYPE_GET_ARG: dict[SysPropType, Callable] = {
+# Prefer from_buffer_copy to avoid possible alignment issues
+_SYS_PROP_TYPE_GET_ARG: dict[SysPropType, Callable[[ct.Array[ct.c_char]], Any]] = {
     SysPropType.STR:        lambda v: v.value.decode('ascii'),
-    SysPropType.REAL:       lambda v: ct.cast(v, ct.POINTER(ct.c_float)).contents.value,
-    SysPropType.UINT2:      lambda v: ct.cast(v, ct.POINTER(ct.c_uint16)).contents.value,
-    SysPropType.UINT4:      lambda v: ct.cast(v, ct.POINTER(ct.c_uint32)).contents.value,
-    SysPropType.INT2:       lambda v: ct.cast(v, ct.POINTER(ct.c_int16)).contents.value,
-    SysPropType.INT4:       lambda v: ct.cast(v, ct.POINTER(ct.c_int32)).contents.value,
-    SysPropType.BOOLEAN:    lambda v: bool(ct.cast(v, _c_uint_p).contents.value),
+    SysPropType.REAL:       lambda v: ct.c_float.from_buffer_copy(v).value,
+    SysPropType.UINT2:      lambda v: ct.c_uint16.from_buffer_copy(v).value,
+    SysPropType.UINT4:      lambda v: ct.c_uint32.from_buffer_copy(v).value,
+    SysPropType.INT2:       lambda v: ct.c_int16.from_buffer_copy(v).value,
+    SysPropType.INT4:       lambda v: ct.c_int32.from_buffer_copy(v).value,
+    SysPropType.BOOLEAN:    lambda v: bool(ct.c_uint.from_buffer_copy(v).value),
 }
 
 
