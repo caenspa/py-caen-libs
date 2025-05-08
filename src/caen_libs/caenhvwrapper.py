@@ -349,30 +349,34 @@ else:
     _socket = ct.c_int
 
 
-# Prefer from_buffer_copy to avoid possible alignment issues
-_SYS_PROP_TYPE_GET_ARG: dict[SysPropType, Callable[[ct.Array[ct.c_char]], Any]] = {
-    SysPropType.STR:        lambda v: v.value.decode('ascii'),
-    SysPropType.REAL:       lambda v: ct.c_float.from_buffer_copy(v).value,
-    SysPropType.UINT2:      lambda v: ct.c_uint16.from_buffer_copy(v).value,
-    SysPropType.UINT4:      lambda v: ct.c_uint32.from_buffer_copy(v).value,
-    SysPropType.INT2:       lambda v: ct.c_int16.from_buffer_copy(v).value,
-    SysPropType.INT4:       lambda v: ct.c_int32.from_buffer_copy(v).value,
-    SysPropType.BOOLEAN:    lambda v: bool(ct.c_uint.from_buffer_copy(v).value),
-}
-
-
-_SYS_PROP_TYPE_SET_ARG: dict[SysPropType, Callable] = {
-    SysPropType.STR:        lambda v: v.encode('ascii'),
-    SysPropType.REAL:       lambda v: ct.pointer(ct.c_float(v)),
-    SysPropType.UINT2:      lambda v: ct.pointer(ct.c_uint16(v)),
-    SysPropType.UINT4:      lambda v: ct.pointer(ct.c_uint32(v)),
-    SysPropType.INT2:       lambda v: ct.pointer(ct.c_int16(v)),
-    SysPropType.INT4:       lambda v: ct.pointer(ct.c_int32(v)),
-    SysPropType.BOOLEAN:    lambda v: ct.pointer(ct.c_uint(v)),
-}
+_R = TypeVar('_R', bound='ct._CData')
 
 
 _STR_SIZE = 1024  # Undocumented but, hopefully, long enough
+
+
+_SYS_PROP_TYPE_GET_ARG: dict[SysPropType, Callable[[int], ct.Array]] = {
+    # Always called with n=1, kept for consistency with _PARAM_TYPE_GET_ARG
+    SysPropType.STR:        lambda n: (ct.c_char * (_STR_SIZE * n))(),
+    SysPropType.REAL:       lambda n: (ct.c_float * n)(),
+    SysPropType.UINT2:      lambda n: (ct.c_uint16 * n)(),
+    SysPropType.UINT4:      lambda n: (ct.c_uint32 * n)(),
+    SysPropType.INT2:       lambda n: (ct.c_int16 * n)(),
+    SysPropType.INT4:       lambda n: (ct.c_int32 * n)(),
+    SysPropType.BOOLEAN:    lambda n: (ct.c_uint * n)(),
+}
+
+
+_SYS_PROP_TYPE_SET_ARG: dict[SysPropType, Callable[[Any, int], Any]] = {
+    # Always called with n=1, kept for consistency with _PARAM_TYPE_SET_ARG
+    SysPropType.STR:        lambda v, n: v.encode('ascii'),  # no array here, only first value is used
+    SysPropType.REAL:       lambda v, n: (ct.c_float * n)(*[v]*n),
+    SysPropType.UINT2:      lambda v, n: (ct.c_uint16 * n)(*[v]*n),
+    SysPropType.UINT4:      lambda v, n: (ct.c_uint32 * n)(*[v]*n),
+    SysPropType.INT2:       lambda v, n: (ct.c_int16 * n)(*[v]*n),
+    SysPropType.INT4:       lambda v, n: (ct.c_int32 * n)(*[v]*n),
+    SysPropType.BOOLEAN:    lambda v, n: (ct.c_uint * n)(*[v]*n),
+}
 
 
 _PARAM_TYPE_GET_ARG: dict[ParamType, Callable[[int], ct.Array]] = {
@@ -424,9 +428,6 @@ _PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_IdValueRaw], Union[str, float,
     ParamType.ENUM:         lambda v: v.IntValue,
     ParamType.CMD:          lambda v: v.IntValue,
 }
-
-
-_R = TypeVar('_R', bound='ct._CData')
 
 
 class _Lib(_utils.Lib):
@@ -743,18 +744,23 @@ class Device:
         """
         Binding of CAENHV_GetSysProp()
         """
-        l_value = ct.create_string_buffer(1024)  # Should be enough for all types
-        lib.get_sys_prop(self.handle, name.encode('ascii'), l_value)
         prop_type = self.get_sys_prop_info(name).type
-        return _SYS_PROP_TYPE_GET_ARG[prop_type](l_value)
+        l_data = _SYS_PROP_TYPE_GET_ARG[prop_type](1)
+        lib.get_sys_prop(self.handle, name.encode('ascii'), l_data)
+        if prop_type is SysPropType.STR:
+            return next(_string.from_n_char_array(l_data, _STR_SIZE, 1))
+        elif prop_type is SysPropType.BOOLEAN:
+            return bool(l_data[0])
+        else:
+            return l_data[0]
 
     def set_sys_prop(self, name: str, value: Union[str, float, int, bool]) -> None:
         """
         Binding of CAENHV_SetSysProp()
         """
         prop_type = self.get_sys_prop_info(name).type
-        l_value = _SYS_PROP_TYPE_SET_ARG[prop_type](value)
-        lib.set_sys_prop(self.handle, name.encode('ascii'), l_value)
+        l_data = _SYS_PROP_TYPE_SET_ARG[prop_type](value, 1)
+        lib.set_sys_prop(self.handle, name.encode('ascii'), l_data)
 
     def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[list[str], list[float], list[int]]:
         """
