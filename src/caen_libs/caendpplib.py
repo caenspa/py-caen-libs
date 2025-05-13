@@ -63,6 +63,9 @@ class ConnectionType(IntEnum):
     PCI_OPTICAL_LINK = 1
     ETH = 2
     SERIAL = 3
+    USB_A4818 = 5
+    ETH_V4718 = 6
+    USB_V4718 = 7
 
 
 class _ConnectionParamsRaw(ct.Structure):
@@ -872,7 +875,14 @@ class PHAParams:
     x770_extraparameters: list[ExtraParameters] = field(default_factory=list)
 
     def resize(self, n_channels: int):
-        """Resize to n_channels"""
+        """
+        Resize to n_channels.
+
+        This method is required because this class is a class of lists,
+        rather than a class used as member of a list in the parent class
+        DgtzParams. In other words, the other members of DgtzParams are
+        indexed like `params.x[ch].y`, while this like `params.x.y[ch]`.
+        """
         self.m_ = [0] * n_channels
         self.m = [0] * n_channels
         self.k = [0] * n_channels
@@ -1072,7 +1082,7 @@ class ListParams:
     """
     enabled: bool = field(default=False)
     save_mode: ListSaveMode = field(default=ListSaveMode.MEMORY)
-    file_name: str = field(default='dummy.txt')
+    file_name: str = field(default='py_dpplib_default.txt')
     max_buff_num_events: int = field(default=0)
     save_mask: DumpMask = field(default=DumpMask.TTT | DumpMask.ENERGY | DumpMask.EXTRAS)
     enable_fakes: bool = field(default=False)
@@ -1118,7 +1128,7 @@ class RunSpecs:
     """
     Binding of ::CAENDPP_RunSpecs_t
     """
-    run_name: str = field(default='dummy')
+    run_name: str = field(default='py_dpplib_default')
     run_duration_sec: int = field(default=0)
     pause_sec: int = field(default=0)
     cycles_count: int = field(default=1)
@@ -1461,7 +1471,7 @@ class DgtzParams:
         self.dc_offset = [0] * n_channels
         self.temp_corr_parameters = [TempCorrParams() for _ in range(n_channels)]
         self.input_coupling = [INCoupling.DC] * n_channels
-        self.dpp_params.resize(n_channels)
+        self.dpp_params.resize(n_channels)  # Weird because it a class of lists rather than a list of classes
         self.coinc_params = [CoincParams() for _ in range(n_channels)]
         self.gate_params = [GateParams() for _ in range(n_channels)]
         self.spectrum_control = [SpectrumControl() for _ in range(n_channels)]
@@ -1995,7 +2005,6 @@ _c_uint16_p = ct.POINTER(ct.c_uint16)
 _c_uint32_p = ct.POINTER(ct.c_uint32)
 _c_uint64_p = ct.POINTER(ct.c_uint64)
 _c_double_p = ct.POINTER(ct.c_double)
-_connection_params_p = ct.POINTER(_ConnectionParamsRaw)
 _info_p = ct.POINTER(_InfoRaw)
 _dgtz_params_p = ct.POINTER(_DgtzParamsRaw)
 _list_event_p = ct.POINTER(_ListEventRaw)
@@ -2036,7 +2045,7 @@ class _Lib(_utils.Lib):
         # Load API
         self.init_library = self.__get('InitLibrary', _c_int32_p, ct.c_int32)
         self.end_library = self.__get('EndLibrary', ct.c_int32)
-        self.add_board = self.__get('AddBoard', ct.c_int32, _connection_params_p, _c_int32_p)
+        self.add_board = self.__get('AddBoard', ct.c_int32, _ConnectionParamsRaw, _c_int32_p)
         self.get_dpp_info = self.__get('GetDPPInfo', ct.c_int32, ct.c_int32, _info_p)
         self.start_board_parameters_guess = self.__get('StartBoardParametersGuess', ct.c_int32, ct.c_int32, ct.c_uint32, _dgtz_params_p)
         self.get_board_parameters_guess_status = self.__get('GetBoardParametersGuessStatus', ct.c_int32, ct.c_int32, _c_int_p)

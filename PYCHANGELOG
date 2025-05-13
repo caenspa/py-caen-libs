@@ -11,6 +11,33 @@
 -----------------------------------------------------------------------------
 
 
+v2.1.0 (13/05/2025)
+-------------------
+
+New features:
+- Enhanced `caenhvwrapper` event handling with customizable TCP port ranges
+    through two new class methods: `Device.set_events_tcp_ports()` and
+    `Device.get_events_tcp_ports()`. Users can now specify the upper port
+    limit, with default behavior changed from fixed range [10001, 65536) to
+    [0, 1), allowing the operating system to automatically select ports when
+    no specific range is required for firewall configuration. The environmental
+    variable `HV_FIRST_BIND_PORT` is now deprecated in favor of this more
+    flexible approach. The selected port can be accessed with a new property
+    `Device.events_tcp_port`.
+- Add new values of `caendpplib.ConnectionType`, introduced on CAENDPPLib
+     v1.16.0.
+
+Fixes:
+- Fixed support for events on R6060, regression introduced in v2.0.0.
+- Fix possible undefined behavior on `caenhvwrapper.Device.get_sys_prop`.
+- Fix ABI definition of `caendpplib.Device.add_board`, working on Windows by
+    change but broken on Linux.
+
+Changes:
+- Renamed default filenames and run names in `caendpplib` to more clearly
+    indicate their origin from the Python binding.
+
+
 v2.0.2 (18/03/2025)
 -------------------
 

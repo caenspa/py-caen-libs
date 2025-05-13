@@ -47,7 +47,7 @@ def from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int) 
     data_addr = ct.addressof(data)
     while (value := ct.string_at(data_addr)) != b'':
         if len(value) >= str_size:
-            raise ValueError('String longer than buffer size')
+            raise ValueError('String longer than buffer size.')
         data_addr += str_size
         yield value.decode('ascii')
 
@@ -64,7 +64,7 @@ def from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int
     for _ in range(n_str):
         value = ct.string_at(data_addr)
         if len(value) >= str_size:
-            raise ValueError('String longer than buffer size')
+            raise ValueError('String longer than buffer size.')
         data_addr += str_size
         yield value.decode('ascii')
 

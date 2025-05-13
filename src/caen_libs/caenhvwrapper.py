@@ -12,6 +12,7 @@ import ctypes.wintypes as ctw
 import os
 import socket
 import sys
+import warnings
 from collections.abc import Callable, Generator, Iterator, Sequence
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
@@ -348,29 +349,34 @@ else:
     _socket = ct.c_int
 
 
-_SYS_PROP_TYPE_GET_ARG: dict[SysPropType, Callable] = {
-    SysPropType.STR:        lambda v: v.value.decode('ascii'),
-    SysPropType.REAL:       lambda v: ct.cast(v, ct.POINTER(ct.c_float)).contents.value,
-    SysPropType.UINT2:      lambda v: ct.cast(v, ct.POINTER(ct.c_uint16)).contents.value,
-    SysPropType.UINT4:      lambda v: ct.cast(v, ct.POINTER(ct.c_uint32)).contents.value,
-    SysPropType.INT2:       lambda v: ct.cast(v, ct.POINTER(ct.c_int16)).contents.value,
-    SysPropType.INT4:       lambda v: ct.cast(v, ct.POINTER(ct.c_int32)).contents.value,
-    SysPropType.BOOLEAN:    lambda v: bool(ct.cast(v, _c_uint_p).contents.value),
-}
-
-
-_SYS_PROP_TYPE_SET_ARG: dict[SysPropType, Callable] = {
-    SysPropType.STR:        lambda v: v.encode('ascii'),
-    SysPropType.REAL:       lambda v: ct.pointer(ct.c_float(v)),
-    SysPropType.UINT2:      lambda v: ct.pointer(ct.c_uint16(v)),
-    SysPropType.UINT4:      lambda v: ct.pointer(ct.c_uint32(v)),
-    SysPropType.INT2:       lambda v: ct.pointer(ct.c_int16(v)),
-    SysPropType.INT4:       lambda v: ct.pointer(ct.c_int32(v)),
-    SysPropType.BOOLEAN:    lambda v: ct.pointer(ct.c_uint(v)),
-}
+_R = TypeVar('_R', bound='ct._CData')
 
 
 _STR_SIZE = 1024  # Undocumented but, hopefully, long enough
+
+
+_SYS_PROP_TYPE_GET_ARG: dict[SysPropType, Callable[[int], ct.Array]] = {
+    # Always called with n=1, kept for consistency with _PARAM_TYPE_GET_ARG
+    SysPropType.STR:        lambda n: (ct.c_char * (_STR_SIZE * n))(),
+    SysPropType.REAL:       lambda n: (ct.c_float * n)(),
+    SysPropType.UINT2:      lambda n: (ct.c_uint16 * n)(),
+    SysPropType.UINT4:      lambda n: (ct.c_uint32 * n)(),
+    SysPropType.INT2:       lambda n: (ct.c_int16 * n)(),
+    SysPropType.INT4:       lambda n: (ct.c_int32 * n)(),
+    SysPropType.BOOLEAN:    lambda n: (ct.c_uint * n)(),
+}
+
+
+_SYS_PROP_TYPE_SET_ARG: dict[SysPropType, Callable[[Any, int], Any]] = {
+    # Always called with n=1, kept for consistency with _PARAM_TYPE_SET_ARG
+    SysPropType.STR:        lambda v, n: v.encode('ascii'),  # no array here, only first value is used
+    SysPropType.REAL:       lambda v, n: (ct.c_float * n)(*[v]*n),
+    SysPropType.UINT2:      lambda v, n: (ct.c_uint16 * n)(*[v]*n),
+    SysPropType.UINT4:      lambda v, n: (ct.c_uint32 * n)(*[v]*n),
+    SysPropType.INT2:       lambda v, n: (ct.c_int16 * n)(*[v]*n),
+    SysPropType.INT4:       lambda v, n: (ct.c_int32 * n)(*[v]*n),
+    SysPropType.BOOLEAN:    lambda v, n: (ct.c_uint * n)(*[v]*n),
+}
 
 
 _PARAM_TYPE_GET_ARG: dict[ParamType, Callable[[int], ct.Array]] = {
@@ -422,9 +428,6 @@ _PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_IdValueRaw], Union[str, float,
     ParamType.ENUM:         lambda v: v.IntValue,
     ParamType.CMD:          lambda v: v.IntValue,
 }
-
-
-_R = TypeVar('_R', bound='ct._CData')
 
 
 class _Lib(_utils.Lib):
@@ -568,6 +571,42 @@ else:
 lib = _Lib(_LIB_NAME)
 
 
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class _TcpPorts:
+    """
+    TCP port range to bind to for event handling. Range is exclusive,
+    so that the ports used are [first, last).
+    """
+    first: int = field(default=0)
+    last: int = field(default=1)
+
+    def __post_init__(self) -> None:
+        if self.first < 0 or self.first > 65535:
+            raise ValueError('First port must be between 0 and 65535.')
+        if self.last < 1 or self.last > 65536:
+            raise ValueError('Last port must be between 1 and 65536.')
+        if self.first == 0 and self.last != 1:
+            raise ValueError('Last port must be 1 if first port is 0.')
+        if self.first >= self.last:
+            raise ValueError('First port must be lower than last port.')
+
+    _T = TypeVar('_T', bound='_TcpPorts')
+
+    @classmethod
+    def load_defaults(cls: type[_T]) -> _T:
+        """
+        Utility function to handle deprecation of HV_FIRST_BIND_PORT.
+        """
+        env = 'HV_FIRST_BIND_PORT'
+        first_env = os.environ.get(env)
+        if first_env is not None:
+            msg = f'Environment variable {env} is deprecated. Use Device.set_events_tcp_ports() instead.'
+            warnings.warn(msg, DeprecationWarning)
+        first = int(first_env) if first_env is not None else 0
+        last = 1 if first == 0 else 65536
+        return cls(first, last)
+
+
 @dataclass(**_utils.dataclass_slots_weakref)
 class Device:
     """
@@ -582,20 +621,20 @@ class Device:
     username: str = field(repr=False)
     password: str = field(repr=False)
 
-    # Constants
-    MAX_PARAM_NAME: ClassVar[int] = 10  # From CAENHVWrapper.h
-    MAX_CH_NAME: ClassVar[int] = 12  # From CAENHVWrapper.h
-    MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
-    MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
-
     # Private members
     __opened: bool = field(default=True, repr=False)
     __skt_server: Optional[socket.socket] = field(default=None, repr=False)
     __skt_client: Optional[socket.socket] = field(default=None, repr=False)
 
+    # Private constants
+    __MAX_PARAM_NAME: ClassVar[int] = 10  # From CAENHVWrapper.h
+    __MAX_CH_NAME: ClassVar[int] = 12  # From CAENHVWrapper.h
+    __MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
+    __MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
+
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
-    __first_bind_port: ClassVar[int] = int(os.environ.get('HV_FIRST_BIND_PORT', '10001'))  # This binding will bind TCP ports starting from this value
+    __bind_tcp_ports: ClassVar[_TcpPorts] = _TcpPorts.load_defaults()
 
     def __del__(self) -> None:
         if self.__opened:
@@ -705,18 +744,23 @@ class Device:
         """
         Binding of CAENHV_GetSysProp()
         """
-        l_value = ct.create_string_buffer(1024)  # Should be enough for all types
-        lib.get_sys_prop(self.handle, name.encode('ascii'), l_value)
         prop_type = self.get_sys_prop_info(name).type
-        return _SYS_PROP_TYPE_GET_ARG[prop_type](l_value)
+        l_data = _SYS_PROP_TYPE_GET_ARG[prop_type](1)
+        lib.get_sys_prop(self.handle, name.encode('ascii'), l_data)
+        if prop_type is SysPropType.STR:
+            return next(_string.from_n_char_array(l_data, _STR_SIZE, 1))
+        elif prop_type is SysPropType.BOOLEAN:
+            return bool(l_data[0])
+        else:
+            return l_data[0]
 
     def set_sys_prop(self, name: str, value: Union[str, float, int, bool]) -> None:
         """
         Binding of CAENHV_SetSysProp()
         """
         prop_type = self.get_sys_prop_info(name).type
-        l_value = _SYS_PROP_TYPE_SET_ARG[prop_type](value)
-        lib.set_sys_prop(self.handle, name.encode('ascii'), l_value)
+        l_data = _SYS_PROP_TYPE_SET_ARG[prop_type](value, 1)
+        lib.set_sys_prop(self.handle, name.encode('ascii'), l_data)
 
     def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[list[str], list[float], list[int]]:
         """
@@ -785,7 +829,7 @@ class Device:
         g_value = lib.auto_ptr(ct.c_char)
         with g_value as l_value:
             lib.get_bd_param_info(self.handle, slot, l_value)
-            return tuple(_string.from_char_array(l_value.contents, self.MAX_PARAM_NAME))
+            return tuple(_string.from_char_array(l_value.contents, self.__MAX_PARAM_NAME))
 
     def test_bd_presence(self, slot: int) -> Board:
         """
@@ -824,7 +868,7 @@ class Device:
         with g_value as l_value:
             l_size = ct.c_int()
             lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
-            return tuple(_string.from_n_char_array_p(l_value, self.MAX_PARAM_NAME, l_size.value))
+            return tuple(_string.from_n_char_array_p(l_value, self.__MAX_PARAM_NAME, l_size.value))
 
     def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> tuple[str, ...]:
         """
@@ -835,9 +879,9 @@ class Device:
             return []  # type: ignore
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
-        l_value = (ct.c_char * (self.MAX_CH_NAME * n_allocated_values))()
+        l_value = (ct.c_char * (self.__MAX_CH_NAME * n_allocated_values))()
         lib.get_ch_name(self.handle, slot, n_indexes, l_index_list, l_value)
-        return tuple(_string.from_n_char_array(l_value, self.MAX_CH_NAME, n_indexes))
+        return tuple(_string.from_n_char_array(l_value, self.__MAX_CH_NAME, n_indexes))
 
     def set_ch_name(self, slot: int, channel_list: Sequence[int], name: str) -> None:
         """
@@ -908,6 +952,25 @@ class Device:
         Binding of CAENHV_ExecComm()
         """
         lib.exec_comm(self.handle, name.encode('ascii'))
+
+    @classmethod
+    def set_events_tcp_ports(cls, first: int, last: int) -> None:
+        """
+        Set the TCP port range to use for event handling. The range is
+        exclusive, so that the ports used are [first, last). If first
+        is 0, the last port must be 1. The default value is (0, 1).
+        Port 0 is used to bind to a random port chosen by the OS.
+        """
+        cls.__bind_tcp_ports = _TcpPorts(first, last)
+
+    @classmethod
+    def get_events_tcp_ports(cls) -> tuple[int, int]:
+        """
+        Get the TCP port range to use for event handling, as tuple
+        (first, last). The range is exclusive, so that the ports used
+        are [first, last).
+        """
+        return cls.__bind_tcp_ports.first, cls.__bind_tcp_ports.last
 
     def subscribe_system_params(self, param_list: Sequence[str]) -> None:
         """
@@ -1016,9 +1079,9 @@ class Device:
             res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float).value
             res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float).value
             n_enums = int(res.maxval - res.minval + 1)
-            assert n_enums <= self.MAX_ENUM_VALS
-            l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.MAX_ENUM_NAME * self.MAX_ENUM_VALS))
-            res.enum = tuple(_string.from_n_char_array(l_value, self.MAX_ENUM_NAME, n_enums))
+            assert n_enums <= self.__MAX_ENUM_VALS
+            l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.__MAX_ENUM_NAME * self.__MAX_ENUM_VALS))
+            res.enum = tuple(_string.from_n_char_array(l_value, self.__MAX_ENUM_NAME, n_enums))
         return res
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
@@ -1104,11 +1167,11 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * param_list_len)()
         if slot is None:
-            lib.subscribe_system_params(self.handle, self.__skt_port, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, param_list_len, l_result_codes)
         elif channel is None:
-            lib.subscribe_board_params(self.handle, self.__skt_port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
-            lib.subscribe_channel_params(self.handle, self.__skt_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
@@ -1124,11 +1187,11 @@ class Device:
         l_param_name_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * param_list_len)()
         if slot is None:
-            lib.unsubscribe_system_params(self.handle, self.__skt_port, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, param_list_len, l_result_codes)
         elif channel is None:
-            lib.unsubscribe_board_params(self.handle, self.__skt_port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
-            lib.unsubscribe_channel_params(self.handle, self.__skt_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
@@ -1142,11 +1205,12 @@ class Device:
         """
         # If possible, bind to loopback to prevent ask for administator rights on Windows
         bind_addr = '127.0.0.1' if self.__library_event_thread() else ''
-        for port in range(self.__first_bind_port, 65536):
+        ports = self.__bind_tcp_ports
+        for port in range(ports.first, ports.last):
             # Suppress OSError raised if bind fails
             with suppress(OSError):
                 return socket.create_server((bind_addr, port), family=socket.AF_INET, backlog=1)
-        raise RuntimeError('No available port found.')
+        raise RuntimeError(f'No available TCP ports found in range [{ports.first}, {ports.last}).')
 
     def __init_events_server(self):
         if self.__skt_server is not None:
@@ -1156,7 +1220,7 @@ class Device:
             # Nothing to do, client socket initialized within the library. We store
             # an uninitialized value just as a reminder that a subscription has been
             # made, to be checked later in __init_events_client to be sure
-            # EventDataSocket is meaningful. No need to set port value, it's ignored.
+            # EventDataSocket is meaningful.
             self.__skt_server = socket.socket()
         else:
             self.__skt_server = self.__create_server()
@@ -1190,9 +1254,20 @@ class Device:
                 assert self.arg == arg.decode('ascii')
 
     @property
-    def __skt_port(self) -> int:
-        assert self.__skt_server is not None
-        return self.__skt_server.getsockname()[1]  # Return (host, port) on IPv4 and (host, port, flowinfo, scopeid) on IPv6
+    def events_tcp_port(self) -> int:
+        """
+        TCP port used for events subscription, that must be accessed by
+        the events server. It returns -1 if the socket is managed by the
+        library.
+        """
+        if self.__skt_server is None:
+            raise RuntimeError('No subscription done.')
+        if self.__new_events_format():
+            # Port is not used, since the library manages the socket
+            return -1
+        else:
+            # Return (host, port) on IPv4 and (host, port, flowinfo, scopeid) on IPv6
+            return self.__skt_server.getsockname()[1]
 
     def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
         """
