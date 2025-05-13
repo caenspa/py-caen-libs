@@ -63,6 +63,9 @@ class ConnectionType(IntEnum):
     PCI_OPTICAL_LINK = 1
     ETH = 2
     SERIAL = 3
+    USB_A4818 = 5
+    ETH_V4718 = 6
+    USB_V4718 = 7
 
 
 class _ConnectionParamsRaw(ct.Structure):
@@ -2002,7 +2005,6 @@ _c_uint16_p = ct.POINTER(ct.c_uint16)
 _c_uint32_p = ct.POINTER(ct.c_uint32)
 _c_uint64_p = ct.POINTER(ct.c_uint64)
 _c_double_p = ct.POINTER(ct.c_double)
-_connection_params_p = ct.POINTER(_ConnectionParamsRaw)
 _info_p = ct.POINTER(_InfoRaw)
 _dgtz_params_p = ct.POINTER(_DgtzParamsRaw)
 _list_event_p = ct.POINTER(_ListEventRaw)
@@ -2043,7 +2045,7 @@ class _Lib(_utils.Lib):
         # Load API
         self.init_library = self.__get('InitLibrary', _c_int32_p, ct.c_int32)
         self.end_library = self.__get('EndLibrary', ct.c_int32)
-        self.add_board = self.__get('AddBoard', ct.c_int32, _connection_params_p, _c_int32_p)
+        self.add_board = self.__get('AddBoard', ct.c_int32, _ConnectionParamsRaw, _c_int32_p)
         self.get_dpp_info = self.__get('GetDPPInfo', ct.c_int32, ct.c_int32, _info_p)
         self.start_board_parameters_guess = self.__get('StartBoardParametersGuess', ct.c_int32, ct.c_int32, ct.c_uint32, _dgtz_params_p)
         self.get_board_parameters_guess_status = self.__get('GetBoardParametersGuessStatus', ct.c_int32, ct.c_int32, _c_int_p)

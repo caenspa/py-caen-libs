@@ -11,7 +11,7 @@
 -----------------------------------------------------------------------------
 
 
-v2.0.3 (XX/XX/2025)
+v2.0.3 (13/05/2025)
 -------------------
 
 New features:
@@ -24,10 +24,14 @@ New features:
     variable `HV_FIRST_BIND_PORT` is now deprecated in favor of this more
     flexible approach. The selected port can be accessed with a new property
     `Device.events_tcp_port`.
+- Add new values of `caendpplib.ConnectionType`, introduced on CAENDPPLib
+     v1.16.0.
 
 Fixes:
 - Fixed support for events on R6060, regression introduced in v2.0.0.
 - Fix possible undefined behavior on `caenhvwrapper.Device.get_sys_prop`.
+- Fix ABI definition of `caendpplib.Device.add_board`, working on Windows by
+    change but broken on Linux.
 
 Changes:
 - Renamed default filenames and run names in `caendpplib` to more clearly
