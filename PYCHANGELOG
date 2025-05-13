@@ -30,8 +30,9 @@ New features:
 Fixes:
 - Fixed support for events on R6060, regression introduced in v2.0.0.
 - Fix possible undefined behavior on `caenhvwrapper.Device.get_sys_prop`.
-- Fix ABI definition of `caendpplib.Device.add_board`, working on Windows by
-    change but broken on Linux.
+- Fixed ABI compatibility issue in `caendpplib.Device.add_board` that was
+    functioning correctly on Windows by coincidence but failed on Linux
+    platforms.
 
 Changes:
 - Renamed default filenames and run names in `caendpplib` to more clearly
