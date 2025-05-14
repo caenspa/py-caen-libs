@@ -112,6 +112,7 @@ class _ParamInfoRaw(ct.Structure):
     ]
 
 
+@unique
 class InfoType(IntEnum):
     """
     Binding of ::CAENDPP_InfoType_t
@@ -120,6 +121,7 @@ class InfoType(IntEnum):
     LIST = 1
 
 
+@unique
 class Units(IntEnum):
     """
     Binding of ::CAENDPP_Units_t
@@ -173,6 +175,7 @@ class _HVRangeInfoRaw(ct.Structure):
     ]
 
 
+@unique
 class HVRange(IntEnum):
     """
     Binding of ::CAENDPP_HVRange_t
@@ -223,6 +226,7 @@ class _HVChannelInfoRaw(ct.Structure):
     ]
 
 
+@unique
 class HVFamilyCode(IntEnum):
     """
     Binding of ::CAENDPP_HVFamilyCode_t
@@ -348,6 +352,7 @@ class BoardFormFactor(IntEnum):
     NIM = 3
 
 
+@unique
 class InputRange(IntEnum):
     """
     Binding of ::CAENDPP_InputRange_t
@@ -617,6 +622,7 @@ class _GPIORaw(ct.Structure):
     ]
 
 
+@unique
 class GPIOMode(IntEnum):
     """
     Binding of ::CAENDPP_GPIOMode_t
@@ -1289,6 +1295,7 @@ class _SpectrumControlRaw(ct.Structure):
     ]
 
 
+@unique
 class SpectrumMode(IntEnum):
     """
     Binding of ::CAENDPP_SpectrumMode_t
