@@ -217,10 +217,11 @@ class IOPolarity(IntEnum):
 
 if sys.platform == 'win32':
     _CaenBool = ct.c_short  # CAEN_BOOL
-    _CAEN_TRUE = -1  # CAEN_TRUE
 else:
     _CaenBool = ct.c_int  # CAEN_BOOL
-    _CAEN_TRUE = 1  # CAEN_TRUE
+
+_CAEN_FALSE = 0  # CAEN_FALSE
+_CAEN_TRUE = -1  # CAEN_TRUE
 
 
 class IRQLevels(IntFlag):
