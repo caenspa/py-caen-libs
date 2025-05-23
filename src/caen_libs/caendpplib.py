@@ -675,11 +675,21 @@ class GPIO:
     @classmethod
     def from_raw(cls, raw: _GPIORaw):
         """Instantiate from raw data"""
-        return cls(GPIOMode(raw.Mode), OutSignal(raw.SigOut), bool(raw.DACInvert), raw.DACOffset)
+        return cls(
+            GPIOMode(raw.Mode),
+            OutSignal(raw.SigOut),
+            bool(raw.DACInvert),
+            raw.DACOffset
+        )
 
     def to_raw(self) -> _GPIORaw:
         """Convert to raw data"""
-        return _GPIORaw(self.mode, self.sig_out, self.dac_invert, self.dac_offset)
+        return _GPIORaw(
+            self.mode,
+            self.sig_out,
+            self.dac_invert,
+            self.dac_offset
+        )
 
 
 class _GPIOConfigRaw(ct.Structure):
@@ -733,7 +743,7 @@ class GPIOConfig:
     def from_raw(cls, raw: _GPIOConfigRaw):
         """Instantiate from raw data"""
         return cls(
-            [GPIO.from_raw(i) for i in raw.GPIOs],
+            list(map(GPIO.from_raw, raw.GPIOs)),
             TriggerControl(raw.TRGControl),
             GPIOLogic(raw.GPIOLogic),
             raw.TimeWindow,
@@ -1395,11 +1405,19 @@ class MonOutParams:
     @classmethod
     def from_raw(cls, raw: _MonOutParamsRaw):
         """Instantiate from raw data"""
-        return cls(raw.channel, bool(raw.enabled), PHAMonOutProbe(raw.probe))
+        return cls(
+            raw.channel,
+            bool(raw.enabled),
+            PHAMonOutProbe(raw.probe)
+        )
 
     def to_raw(self) -> _MonOutParamsRaw:
         """Convert to raw data"""
-        return _MonOutParamsRaw(self.channel, self.enabled, self.probe)
+        return _MonOutParamsRaw(
+            self.channel,
+            self.enabled,
+            self.probe
+        )
 
 
 class _DgtzParamsRaw(ct.Structure):
@@ -1492,25 +1510,27 @@ class DgtzParams:
             raw.GWdata[:raw.GWn],
             raw.GWmask[:raw.GWn],
             raw.ChannelMask,
-            [PulsePolarity(i) for i in raw.PulsePolarity],
+            list(map(PulsePolarity, raw.PulsePolarity)),
             raw.DCoffset,
-            [TempCorrParams.from_raw(i) for i in raw.TempCorrParameters],
-            [INCoupling(i) for i in raw.InputCoupling],
+            list(map(TempCorrParams.from_raw, raw.TempCorrParameters)),
+            list(map(INCoupling, raw.InputCoupling)),
             raw.EventAggr,
             PHAParams.from_raw(raw.DPPParams),
             IOLevel(raw.IOlev),
             WaveformParams.from_raw(raw.WFParams),
             ListParams.from_raw(raw.ListParams),
             RunSpecs.from_raw(raw.RunSpecifications),
-            [CoincParams.from_raw(i) for i in raw.CoincParams],
-            [GateParams.from_raw(i) for i in raw.GateParams],
-            [SpectrumControl.from_raw(i) for i in raw.SpectrumControl],
-            [TRReset.from_raw(i) for i in raw.ResetDetector],
+            list(map(CoincParams.from_raw, raw.CoincParams)),
+            list(map(GateParams.from_raw, raw.GateParams)),
+            list(map(SpectrumControl.from_raw, raw.SpectrumControl)),
+            list(map(TRReset.from_raw, raw.ResetDetector)),
             MonOutParams.from_raw(raw.MonOutParams),
         )
 
     def to_raw(self) -> _DgtzParamsRaw:
         """Convert to raw data"""
+        if not len(self.gw_addr) == len(self.gw_data) == len(self.gw_mask):
+            raise ValueError('gw_addr, gw_data and gw_mask must have the same length.')
         return _DgtzParamsRaw(
             len(self.gw_addr),
             tuple(self.gw_addr),
