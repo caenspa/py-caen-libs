@@ -91,8 +91,8 @@ class SystemStatus:
     def from_raw(cls, raw: _SystemStatusRaw):
         """Instantiate from raw data"""
         return cls(
-            system=EventStatus(raw.System),
-            board=tuple(map(EventStatus, raw.Board)),
+            EventStatus(raw.System),
+            tuple(map(EventStatus, raw.Board)),
         )
 
 
@@ -1172,7 +1172,8 @@ class Device:
             lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
             lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        # l_result_codes values are not instances of ::CAENHVRESULT
+        # l_result_codes values are not instances of ::CAENHVRESULT: zero always means
+        # success, but other values are not consistent across all systems.
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
             raise RuntimeError(f'subscribe failed at params {failed_params}')
@@ -1192,7 +1193,7 @@ class Device:
             lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
             lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        # l_result_codes values are not instances of ::CAENHVRESULT
+        # See comment in __subscribe_params
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
             raise RuntimeError(f'unsubscribe failed at params {failed_params}')

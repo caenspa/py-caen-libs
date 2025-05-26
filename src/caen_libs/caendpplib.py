@@ -679,7 +679,7 @@ class GPIO:
             GPIOMode(raw.Mode),
             OutSignal(raw.SigOut),
             bool(raw.DACInvert),
-            raw.DACOffset
+            raw.DACOffset,
         )
 
     def to_raw(self) -> _GPIORaw:
@@ -688,7 +688,7 @@ class GPIO:
             self.mode,
             self.sig_out,
             self.dac_invert,
-            self.dac_offset
+            self.dac_offset,
         )
 
 
@@ -1371,7 +1371,7 @@ class TRReset:
             ResetDetectionMode(raw.ResetDetectionMode),
             raw.thrhold,
             raw.reslenmin,
-            raw.reslength
+            raw.reslength,
         )
 
     def to_raw(self) -> _TRResetRaw:
@@ -1381,7 +1381,7 @@ class TRReset:
             self.reset_detection_mode,
             self.thrhold,
             self.reslenmin,
-            self.reslength
+            self.reslength,
         )
 
 
@@ -1408,7 +1408,7 @@ class MonOutParams:
         return cls(
             raw.channel,
             bool(raw.enabled),
-            PHAMonOutProbe(raw.probe)
+            PHAMonOutProbe(raw.probe),
         )
 
     def to_raw(self) -> _MonOutParamsRaw:
@@ -1416,7 +1416,7 @@ class MonOutParams:
         return _MonOutParamsRaw(
             self.channel,
             self.enabled,
-            self.probe
+            self.probe,
         )
 
 

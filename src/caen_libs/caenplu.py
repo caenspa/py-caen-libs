@@ -62,7 +62,11 @@ class USBDevice:
     @classmethod
     def from_raw(cls, raw: _USBDeviceRaw):
         """Instantiate from raw data"""
-        return cls(raw.id, raw.SN.decode('ascii'), raw.DESC.decode('ascii'))
+        return cls(
+            raw.id,
+            raw.SN.decode('ascii'),
+            raw.DESC.decode('ascii'),
+        )
 
 
 class _BoardInfoRaw(ct.Structure):
