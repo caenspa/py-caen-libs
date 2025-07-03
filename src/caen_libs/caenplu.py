@@ -274,6 +274,11 @@ class _Lib(_utils.Lib):
     def usb_enumerate(self) -> tuple[USBDevice, ...]:
         """
         Binding of CAEN_PLU_USBEnumerate()
+
+        Note: the underlying library is bugged, as of version v1.3, if
+        there is one board that is already connected: in this case, it
+        return a tuple with the correct size, but with the fields of
+        the connected board set to empty strings.
         """
         l_data_size = 128  # Undocumented but, hopefully, long enough
         l_data = (_USBDeviceRaw * l_data_size)()
@@ -287,7 +292,8 @@ class _Lib(_utils.Lib):
         Binding of CAEN_PLU_USBEnumerateSerialNumber()
 
         Note: the underlying library is bugged, as of version v1.3, if
-        there is more than one board.
+        there is one board that is already connected: in this case, it
+        returns an empty tuple.
         """
         l_num_devs = ct.c_uint()
         l_device_sn_length = 512  # Undocumented but, hopefully, long enough
@@ -425,7 +431,7 @@ class Device:
         l_data = (ct.c_uint32 * size)()
         l_nw = ct.c_uint32()
         lib.read_data32(self.handle, start_address, size, l_data, l_nw)
-        return list(l_data[:l_nw.value])
+        return l_data[:l_nw.value]
 
     def read_fifo32(self, start_address: int, size: int) -> list[int]:
         """
@@ -434,7 +440,7 @@ class Device:
         l_data = (ct.c_uint32 * size)()
         l_nw = ct.c_uint32()
         lib.read_fifo32(self.handle, start_address, size, l_data, l_nw)
-        return list(l_data[:l_nw.value])
+        return l_data[:l_nw.value]
 
     def init_gate_and_delay_generators(self) -> None:
         """
