@@ -879,7 +879,7 @@ class Device:
             return []  # type: ignore
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
-        l_value = (ct.c_char * (self.__MAX_CH_NAME * n_allocated_values))()
+        l_value = ct.create_string_buffer(self.__MAX_CH_NAME * n_allocated_values)
         lib.get_ch_name(self.handle, slot, n_indexes, l_index_list, l_value)
         return tuple(_string.from_n_char_array(l_value, self.__MAX_CH_NAME, n_indexes))
 

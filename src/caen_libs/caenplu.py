@@ -500,6 +500,14 @@ class Device:
         lib.read_flash_data(self.handle, fpga, address, l_data, l_data_length)
         return bytes(l_data)
 
+    def get_info(self) -> BoardInfo:
+        """
+        Binding of CAEN_PLU_GetInfo()
+        """
+        l_b = _BoardInfoRaw()
+        lib.get_info(self.handle, l_b)
+        return BoardInfo.from_raw(l_b)
+
     def get_serial_number(self) -> str:
         """
         Binding of CAEN_PLU_GetSerialNumber()
@@ -508,13 +516,13 @@ class Device:
         lib.get_serial_number(self.handle, l_value, len(l_value))
         return l_value.value.decode('ascii')
 
-    def get_info(self) -> BoardInfo:
+    def connection_status(self) -> int:
         """
-        Binding of CAEN_PLU_GetInfo()
+        Binding of CAEN_PLU_ConnectionStatus()
         """
-        l_b = _BoardInfoRaw()
-        lib.get_info(self.handle, l_b)
-        return BoardInfo.from_raw(l_b)
+        l_status = ct.c_int()
+        lib.connection_status(self.handle, l_status)
+        return l_status.value
 
     # Python utilities
 

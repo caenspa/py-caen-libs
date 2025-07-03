@@ -11,13 +11,13 @@
 -----------------------------------------------------------------------------
 
 
-v2.2.0 (XX/XX/2025)
+v2.2.0 (03/07/2025)
 -------------------
 
 New features:
-- Add `write_data32`, `write_fifo32`, `read_data32`, `read_fifo32` and
-    functions related to gate and delay generators to `caenplu.Device`,
-    missing in the previous releases.
+- Add some functions missing on `caenplu.Device`: `write_data32`,
+    `write_fifo32`, `read_data32`, `read_fifo32`, `connection_status` and
+    functions related to gate and delay generators.
 
 Fixes:
 - Fix regression on `caenvme.Device.read_display` on Linux, introduced on
