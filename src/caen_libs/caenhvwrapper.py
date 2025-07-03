@@ -91,8 +91,8 @@ class SystemStatus:
     def from_raw(cls, raw: _SystemStatusRaw):
         """Instantiate from raw data"""
         return cls(
-            system=EventStatus(raw.System),
-            board=tuple(map(EventStatus, raw.Board)),
+            EventStatus(raw.System),
+            tuple(map(EventStatus, raw.Board)),
         )
 
 
@@ -879,7 +879,7 @@ class Device:
             return []  # type: ignore
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
-        l_value = (ct.c_char * (self.__MAX_CH_NAME * n_allocated_values))()
+        l_value = ct.create_string_buffer(self.__MAX_CH_NAME * n_allocated_values)
         lib.get_ch_name(self.handle, slot, n_indexes, l_index_list, l_value)
         return tuple(_string.from_n_char_array(l_value, self.__MAX_CH_NAME, n_indexes))
 
@@ -1172,7 +1172,8 @@ class Device:
             lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
             lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        # l_result_codes values are not instances of ::CAENHVRESULT
+        # l_result_codes values are not instances of ::CAENHVRESULT: zero always means
+        # success, but other values are not consistent across all systems.
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
             raise RuntimeError(f'subscribe failed at params {failed_params}')
@@ -1192,7 +1193,7 @@ class Device:
             lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
         else:
             lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
-        # l_result_codes values are not instances of ::CAENHVRESULT
+        # See comment in __subscribe_params
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
             raise RuntimeError(f'unsubscribe failed at params {failed_params}')

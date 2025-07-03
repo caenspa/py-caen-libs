@@ -13,7 +13,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import TypeVar, Union
+from typing import Sequence, TypeVar, Union
 
 from caen_libs import error, _string, _utils
 
@@ -62,7 +62,11 @@ class USBDevice:
     @classmethod
     def from_raw(cls, raw: _USBDeviceRaw):
         """Instantiate from raw data"""
-        return cls(raw.id, raw.SN.decode('ascii'), raw.DESC.decode('ascii'))
+        return cls(
+            raw.id,
+            raw.SN.decode('ascii'),
+            raw.DESC.decode('ascii'),
+        )
 
 
 class _BoardInfoRaw(ct.Structure):
@@ -398,6 +402,68 @@ class Device:
         """Utility to simplify register access"""
         return self.__registers
 
+    def write_data32(self, start_address: int, data: Sequence[int]) -> None:
+        """
+        Binding of CAEN_PLU_WriteData32()
+        """
+        size = len(data)
+        l_data = (ct.c_uint32 * size)(*data)
+        lib.write_data32(self.handle, start_address, size, l_data)
+
+    def write_fifo32(self, start_address: int, data: Sequence[int]) -> None:
+        """
+        Binding of CAEN_PLU_WriteFIFO32()
+        """
+        size = len(data)
+        l_data = (ct.c_uint32 * size)(*data)
+        lib.write_fifo32(self.handle, start_address, size, l_data)
+
+    def read_data32(self, start_address: int, size: int) -> list[int]:
+        """
+        Binding of CAEN_PLU_ReadData32()
+        """
+        l_data = (ct.c_uint32 * size)()
+        l_nw = ct.c_uint32()
+        lib.read_data32(self.handle, start_address, size, l_data, l_nw)
+        return list(l_data[:l_nw.value])
+
+    def read_fifo32(self, start_address: int, size: int) -> list[int]:
+        """
+        Binding of CAEN_PLU_ReadFIFO32()
+        """
+        l_data = (ct.c_uint32 * size)()
+        l_nw = ct.c_uint32()
+        lib.read_fifo32(self.handle, start_address, size, l_data, l_nw)
+        return list(l_data[:l_nw.value])
+
+    def init_gate_and_delay_generators(self) -> None:
+        """
+        Binding of CAEN_PLU_InitGateAndDelayGenerators()
+        """
+        lib.init_gate_and_delay_generators(self.handle)
+
+    def set_gate_and_delay_generator(self, channel: int, enable: int, gate: int, delay: int, scale_factor: int) -> None:
+        """
+        Binding of CAEN_PLU_SetGateAndDelayGenerator()
+        """
+        lib.set_gate_and_delay_generator(self.handle, channel, enable, gate, delay, scale_factor)
+
+    def set_gate_and_delay_generators(self, gate: int, delay: int, scale_factor: int) -> None:
+        """
+        Binding of CAEN_PLU_SetGateAndDelayGenerators()
+        """
+        lib.set_gate_and_delay_generators(self.handle, gate, delay, scale_factor)
+
+    def get_gate_and_delay_generator(self, channel: int) -> tuple[int, int, int]:
+        """
+        Binding of CAEN_PLU_GetGateAndDelayGenerator()
+        """
+        l_gate = ct.c_uint32()
+        l_delay = ct.c_uint32()
+        l_scale_factor = ct.c_uint32()
+        lib.get_gate_and_delay_generator(self.handle, channel, l_gate, l_delay, l_scale_factor)
+        return l_gate.value, l_delay.value, l_scale_factor.value
+
     def enable_flash_access(self, fpga: FPGA) -> None:
         """
         Binding of CAEN_PLU_EnableFlashAccess()
@@ -434,6 +500,14 @@ class Device:
         lib.read_flash_data(self.handle, fpga, address, l_data, l_data_length)
         return bytes(l_data)
 
+    def get_info(self) -> BoardInfo:
+        """
+        Binding of CAEN_PLU_GetInfo()
+        """
+        l_b = _BoardInfoRaw()
+        lib.get_info(self.handle, l_b)
+        return BoardInfo.from_raw(l_b)
+
     def get_serial_number(self) -> str:
         """
         Binding of CAEN_PLU_GetSerialNumber()
@@ -442,13 +516,13 @@ class Device:
         lib.get_serial_number(self.handle, l_value, len(l_value))
         return l_value.value.decode('ascii')
 
-    def get_info(self) -> BoardInfo:
+    def connection_status(self) -> int:
         """
-        Binding of CAEN_PLU_GetInfo()
+        Binding of CAEN_PLU_ConnectionStatus()
         """
-        l_b = _BoardInfoRaw()
-        lib.get_info(self.handle, l_b)
-        return BoardInfo.from_raw(l_b)
+        l_status = ct.c_int()
+        lib.connection_status(self.handle, l_status)
+        return l_status.value
 
     # Python utilities
 
