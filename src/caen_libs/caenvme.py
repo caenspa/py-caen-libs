@@ -1267,3 +1267,6 @@ class Device:
         """Called when exiting from `with` block"""
         if self.__opened:
             self.close()
+
+    def __hash__(self) -> int:
+        return hash(self.handle)

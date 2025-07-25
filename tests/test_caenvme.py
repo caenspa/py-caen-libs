@@ -45,33 +45,45 @@ class TestDevice(unittest.TestCase):
 
     def test_read_register(self):
         """Test read_register"""
-        value = self.device.read_register(0x1000)
+        address = 0x1000
+        value = self.device.read_register(address)
         self.assertEqual(value, 0)
-        self.mock_lib.read_register.assert_called_once_with(self.device.handle, 0x1000, ANY)
+        self.mock_lib.read_register.assert_called_once_with(self.device.handle, address, ANY)
 
     def test_write_register(self):
         """Test write_register"""
-        self.device.write_register(0x1000, 0x1234)
-        self.mock_lib.write_register.assert_called_once_with(self.device.handle, 0x1000, 0x1234)
+        address = 0x1000
+        value = 0x1234
+        self.device.write_register(address, value)
+        self.mock_lib.write_register.assert_called_once_with(self.device.handle, address, value)
 
     def test_read_cycle(self):
         """Test read_cycle"""
-        value = self.device.read_cycle(0x1000, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
+        address = 0x1000
+        # Not easy to write a side_effect since args[2] is a pointer passed by ct.byref
+        value = self.device.read_cycle(address, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
         self.assertEqual(value, 0)
-        self.mock_lib.read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
+        self.mock_lib.read_cycle.assert_called_once_with(self.device.handle, address, ANY, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
 
     def test_write_cycle(self):
         """Test write_cycle"""
-        self.device.write_cycle(0x1000, 0x1234, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
-        self.mock_lib.write_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
+        address = 0x1000
+        value = 0x1234
+        self.device.write_cycle(address, value, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
+        self.mock_lib.write_cycle.assert_called_once_with(self.device.handle, address, ANY, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
 
     def test_multi_read(self):
         """Test multi_read"""
         addrs = [0x1000, 0x2000]
+        data = [0x1234, 0x5678]
         ams = [vme.AddressModifiers.A32_U_DATA, vme.AddressModifiers.A32_U_DATA]
         dws = [vme.DataWidth.D32, vme.DataWidth.D32]
+        def side_effect(*args):
+            args[2][:] = data
+            return DEFAULT
+        self.mock_lib.multi_read.side_effect = side_effect
         values = self.device.multi_read(addrs, ams, dws)
-        self.assertEqual(values, [0, 0])
+        self.assertEqual(values, data)
         self.mock_lib.multi_read.assert_called_once_with(self.device.handle, ANY, ANY, 2, ANY, ANY, ANY)
 
     def test_multi_write(self):
@@ -85,63 +97,116 @@ class TestDevice(unittest.TestCase):
 
     def test_irq_enable(self):
         """Test irq_enable"""
-        self.device.irq_enable(vme.IRQLevels.L1)
-        self.mock_lib.irq_enable.assert_called_once_with(self.device.handle, vme.IRQLevels.L1)
+        level = vme.IRQLevels.L1
+        self.device.irq_enable(level)
+        self.mock_lib.irq_enable.assert_called_once_with(self.device.handle, level)
 
     def test_irq_disable(self):
         """Test irq_disable"""
-        self.device.irq_disable(vme.IRQLevels.L1)
-        self.mock_lib.irq_disable.assert_called_once_with(self.device.handle, vme.IRQLevels.L1)
+        level = vme.IRQLevels.L1
+        self.device.irq_disable(level)
+        self.mock_lib.irq_disable.assert_called_once_with(self.device.handle, level)
 
     def test_irq_wait(self):
         """Test irq_wait"""
-        self.device.irq_wait(vme.IRQLevels.L1, 1000)
-        self.mock_lib.irq_wait.assert_called_once_with(self.device.handle, vme.IRQLevels.L1, 1000)
+        level = vme.IRQLevels.L1
+        timeout = 1000
+        self.device.irq_wait(level, timeout)
+        self.mock_lib.irq_wait.assert_called_once_with(self.device.handle, level, timeout)
 
     def test_blt_read_cycle(self):
         """Test blt_read_cycle"""
-        values = self.device.blt_read_cycle(0x1000, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
-        self.assertEqual(values, [])
-        self.mock_lib.blt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, ANY)
+        address = 0x1000
+        size = 256
+        address_modifier = vme.AddressModifiers.A32_U_DATA
+        data_width = vme.DataWidth.D32
+        data = list(i for i in range(size // 4))
+        def side_effect(*args):
+            args[2][:] = data
+            args[6].value = len(data)
+            return DEFAULT
+        self.mock_lib.blt_read_cycle.side_effect = side_effect
+        values = self.device.blt_read_cycle(address, size, address_modifier, data_width)
+        self.assertEqual(values, data)
+        self.mock_lib.blt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
 
     def test_fifo_blt_read_cycle(self):
         """Test fifo_blt_read_cycle"""
-        values = self.device.fifo_blt_read_cycle(0x1000, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
-        self.assertEqual(values, [])
-        self.mock_lib.fifo_blt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 256, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, ANY)
+        address = 0x1000
+        size = 256
+        address_modifier = vme.AddressModifiers.A32_U_DATA
+        data_width = vme.DataWidth.D32
+        data = list(i for i in range(size // 4))
+        def side_effect(*args):
+            args[2][:] = data
+            args[6].value = len(data)
+            return DEFAULT
+        self.mock_lib.fifo_blt_read_cycle.side_effect = side_effect
+        values = self.device.fifo_blt_read_cycle(address, size, address_modifier, data_width)
+        self.assertEqual(values, data)
+        self.mock_lib.fifo_blt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
 
     def test_mblt_read_cycle(self):
         """Test mblt_read_cycle"""
-        values = self.device.mblt_read_cycle(0x1000, 256, vme.AddressModifiers.A32_U_DATA)
-        self.assertEqual(values, b'')
-        self.mock_lib.mblt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 256, vme.AddressModifiers.A32_U_DATA, ANY)
+        address = 0x1000
+        size = 256
+        address_modifier = vme.AddressModifiers.A32_U_DATA
+        data = list(i for i in range(size))
+        def side_effect(*args):
+            args[2][:] = data
+            args[5].value = len(data)
+            return DEFAULT
+        self.mock_lib.mblt_read_cycle.side_effect = side_effect
+        values = self.device.mblt_read_cycle(address, size, address_modifier)
+        self.assertEqual(list(values), data)
+        self.mock_lib.mblt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, ANY)
 
     def test_fifo_mblt_read_cycle(self):
         """Test fifo_mblt_read_cycle"""
+        address = 0x1000
+        size = 256
+        address_modifier = vme.AddressModifiers.A32_U_DATA
+        data = list(i for i in range(size))
         def side_effect(*args):
-            args[2][0:4] = b'\x12\x34\x56\x78'
-            args[5].value = 2
+            args[2][:] = data
+            args[5].value = len(data)
             return DEFAULT
         self.mock_lib.fifo_mblt_read_cycle.side_effect = side_effect
-        values = self.device.fifo_mblt_read_cycle(0x1000, 256, vme.AddressModifiers.A32_U_DATA)
-        self.assertEqual(values, b'\x12\x34')
-        self.mock_lib.fifo_mblt_read_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 256, vme.AddressModifiers.A32_U_DATA, ANY)
+        values = self.device.fifo_mblt_read_cycle(address, size, address_modifier)
+        self.assertEqual(list(values), data)
+        self.mock_lib.fifo_mblt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, ANY)
 
     def test_blt_write_cycle(self):
         """Test blt_write_cycle"""
+        address = 0x1000
+        data = [0x1234, 0x5678]
+        size = len(data) * 4
+        address_modifier = vme.AddressModifiers.A32_U_DATA
+        data_width = vme.DataWidth.D32
+        res = 10
         def side_effect(*args):
-            args[6].value = 10
+            args[6].value = res
             return DEFAULT
         self.mock_lib.blt_write_cycle.side_effect = side_effect
-        count = self.device.blt_write_cycle(0x1000, [0x1234, 0x5678], vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
-        self.assertEqual(count, 10)
-        self.mock_lib.blt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 8, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, ANY)
+        count = self.device.blt_write_cycle(address, data, address_modifier, data_width)
+        self.assertEqual(count, res)
+        self.mock_lib.blt_write_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
 
     def test_fifo_blt_write_cycle(self):
         """Test fifo_blt_write_cycle"""
-        count = self.device.fifo_blt_write_cycle(0x1000, [0x1234, 0x5678], vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32)
-        self.assertEqual(count, 0)
-        self.mock_lib.fifo_blt_write_cycle.assert_called_once_with(self.device.handle, 0x1000, ANY, 8, vme.AddressModifiers.A32_U_DATA, vme.DataWidth.D32, ANY)
+        address = 0x1000
+        data = [0x1234, 0x5678]
+        size = len(data) * 4
+        address_modifier = vme.AddressModifiers.A32_U_DATA
+        data_width = vme.DataWidth.D32
+        res = 10
+        def side_effect(*args):
+            args[6].value = res
+            return DEFAULT
+        self.mock_lib.fifo_blt_write_cycle.side_effect = side_effect
+        count = self.device.fifo_blt_write_cycle(address, data, address_modifier, vme.DataWidth.D32)
+        self.assertEqual(count, res)
+        self.mock_lib.fifo_blt_write_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
 
     def test_mblt_write_cycle(self):
         """Test mblt_write_cycle"""

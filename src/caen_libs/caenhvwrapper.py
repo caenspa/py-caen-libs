@@ -446,7 +446,7 @@ class _Lib(_utils.Lib):
         ser_num_type = _c_uint_p_p if self.support_32bit_pid() else _c_ushort_p_p
 
         # Load API
-        self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p)
+        self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p, handle_errcheck=False)
         self.deinit_system = self.__get('DeinitSystem', ct.c_int)
         self.get_crate_map = self.__get('GetCrateMap', ct.c_int, _c_ushort_p, _c_ushort_p_p, _c_char_p_p, _c_char_p_p, ser_num_type, _c_ubyte_p_p, _c_ubyte_p_p)
         self.get_sys_prop_list = self.__get('GetSysPropList', ct.c_int, _c_ushort_p, _c_char_p_p)

@@ -11,6 +11,14 @@
 -----------------------------------------------------------------------------
 
 
+v2.3.0 (XX/XX/2025)
+-------------------
+
+Fixes:
+- Fix error check in functions using `caenhvwrapper.lib.init_system`, i.e.
+    `caenhvwrapper.Device.open` and `caenhvwrapper.Device.connect`.
+
+
 v2.2.0 (03/07/2025)
 -------------------
 
