@@ -217,9 +217,10 @@ class ParamMode(IntEnum):
     """
     Binding of ::PARAM_MODE_*
     """
-    RDONLY  = 0
-    WRONLY  = 1
-    RDWR    = 2
+    _INVALID    = 0xBAAAAAAD  # Special value for Python binding
+    RDONLY      = 0
+    WRONLY      = 1
+    RDWR        = 2
 
 
 @unique
@@ -446,7 +447,7 @@ class _Lib(_utils.Lib):
         ser_num_type = _c_uint_p_p if self.support_32bit_pid() else _c_ushort_p_p
 
         # Load API
-        self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p, handle_errcheck=False)
+        self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p, handle_errcheck=False)  # no errcheck, see __api_handle_errcheck docstring
         self.deinit_system = self.__get('DeinitSystem', ct.c_int)
         self.get_crate_map = self.__get('GetCrateMap', ct.c_int, _c_ushort_p, _c_ushort_p_p, _c_char_p_p, _c_char_p_p, ser_num_type, _c_ubyte_p_p, _c_ubyte_p_p)
         self.get_sys_prop_list = self.__get('GetSysPropList', ct.c_int, _c_ushort_p, _c_char_p_p)
@@ -488,6 +489,11 @@ class _Lib(_utils.Lib):
         because actually it has to be called after a failed call.
         The handle is obtained assuming it is the first argument
         of the failed function.
+
+        This could be used also for InitSystem, since it sets handle
+        to -1 in case of error and this function return something like
+        "connection failed" if handle is -1, but it is not used because
+        it seems too weird.
         """
         if res != Error.Code.OK:
             handle = func_args[0]  # first argument is always handle
@@ -1110,8 +1116,8 @@ class Device:
         """
         # See comment on __get_param_type
         # pylint: disable=W0212
-        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, ParamType._INVALID).value
-        if value == ParamType._INVALID:
+        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, ParamMode._INVALID).value
+        if value == ParamMode._INVALID:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamMode(value)
 
