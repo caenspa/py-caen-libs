@@ -23,6 +23,12 @@ Fixes:
 - Fix error check in functions using `caenhvwrapper.lib.init_system`, i.e.
     `caenhvwrapper.Device.open` and `caenhvwrapper.Device.connect`.
 
+Changes:
+- On `caenhvwrapper.EventData`, `board_index` and `channel_index` fields has
+    been renamed respectively `slot` and `channel`, and now their value is an
+    `Optional[int]`, and is set to None if the value of the underlying library
+    is -1. Old fields are kept as class property for backward compatibility.
+
 
 v2.2.0 (03/07/2025)
 -------------------

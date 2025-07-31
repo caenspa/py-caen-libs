@@ -133,9 +133,19 @@ class EventData:
     """
     type: EventType
     item_id: str
-    board_index: int
-    channel_index: int
+    slot: Optional[int]
+    channel: Optional[int]
     value: Union[str, float, int]
+
+    @property
+    def board_index(self) -> int:
+        """Kept for backward compatibility"""
+        return -1 if self.slot is None else self.slot
+    
+    @property
+    def channel_index(self) -> int:
+        """Kept for backward compatibility"""
+        return -1 if self.channel is None else self.channel
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
@@ -1289,13 +1299,13 @@ class Device:
             return ParamType.STRING
         return self.__get_param_type(slot, name, channel)
 
-    def __decode_event_value(self, event_type: EventType, board_index: int, channel_index: int, item_id: str, value: _IdValueRaw) -> Union[str, float, int]:
+    def __decode_event_value(self, event_type: EventType, slot: Optional[int], channel: Optional[int], item_id: str, value: _IdValueRaw) -> Union[str, float, int]:
         if event_type is not EventType.PARAMETER:
             return -1
-        if board_index == -1:
+        if slot is None:
             prop_type = self.get_sys_prop_info(item_id).type
             return _SYS_PROP_TYPE_EVENT_ARG[prop_type](value)
-        param_type = self.__extended_get_param_type(board_index, item_id, channel_index if channel_index != -1 else None)
+        param_type = self.__extended_get_param_type(slot, item_id, channel)
         return _PARAM_TYPE_EVENT_ARG[param_type](value)
 
     def __decode_event_data(self, event_data: ct._Pointer, n_events: int) -> Iterator[EventData]:
@@ -1309,10 +1319,10 @@ class Device:
             event_type = EventType(event.Type)
             system_handle = event.SystemHandle
             assert system_handle == self.handle  # should always be the same
-            board_index = event.BoardIndex
-            channel_index = event.ChannelIndex
-            value = self.__decode_event_value(event_type, board_index, channel_index, item_id, event.Value)
-            yield EventData(event_type, item_id, board_index, channel_index, value)
+            slot = event.BoardIndex if event.BoardIndex != -1 else None
+            channel = event.ChannelIndex if event.ChannelIndex != -1 else None
+            value = self.__decode_event_value(event_type, slot, channel, item_id, event.Value)
+            yield EventData(event_type, item_id, slot, channel, value)
 
     # Python utilities
 
