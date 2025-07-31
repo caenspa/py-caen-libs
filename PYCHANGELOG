@@ -14,6 +14,11 @@
 v2.3.0 (XX/XX/2025)
 -------------------
 
+New features:
+- Add `slot` field to `caenhvwrapper.Board` to get the slot directly from
+    the object returned by `caenhvwrapper.Device.get_crate_map` and
+    `caenhvwrapper.Device.test_bd_presence`.
+
 Fixes:
 - Fix error check in functions using `caenhvwrapper.lib.init_system`, i.e.
     `caenhvwrapper.Device.open` and `caenhvwrapper.Device.connect`.

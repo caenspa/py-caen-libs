@@ -51,26 +51,26 @@ with hv.Device.open(hv.SystemType[args.systemtype], hv.LinkType[args.linktype], 
             print('VALUE', prop_value)
             device.subscribe_system_params([prop_name])
 
-    for slot, board in enumerate(slots):
+    for board in slots:
         if board is None:
             continue
-        bd_params = device.get_bd_param_info(slot)
+        bd_params = device.get_bd_param_info(board.slot)
         for param_name in bd_params:
-            param_prop = device.get_bd_param_prop(slot, param_name)
-            print('BD_PARAM', slot, param_name, param_prop.type.name)
+            param_prop = device.get_bd_param_prop(board.slot, param_name)
+            print('BD_PARAM', board.slot, param_name, param_prop.type.name)
             if param_prop.mode is not hv.ParamMode.WRONLY:
-                param_value = device.get_bd_param([slot], param_name)
+                param_value = device.get_bd_param([board.slot], param_name)
                 print('VALUE', param_value)
-                device.subscribe_board_params(slot, [param_name])
+                device.subscribe_board_params(board.slot, [param_name])
         for ch in range(board.n_channel):
-            ch_params = device.get_ch_param_info(slot, ch)
+            ch_params = device.get_ch_param_info(board.slot, ch)
             for param_name in ch_params:
-                param_prop = device.get_ch_param_prop(slot, ch, param_name)
-                print('CH_PARAM', slot, ch, param_name, param_prop.type.name)
+                param_prop = device.get_ch_param_prop(board.slot, ch, param_name)
+                print('CH_PARAM', board.slot, ch, param_name, param_prop.type.name)
                 if param_prop.mode is not hv.ParamMode.WRONLY:
-                    param_value = device.get_ch_param(slot, [ch], param_name)
+                    param_value = device.get_ch_param(board.slot, [ch], param_name)
                     print('VALUE', param_value)
-                    device.subscribe_channel_params(slot, ch, [param_name])
+                    device.subscribe_channel_params(board.slot, ch, [param_name])
 
     # Listen for events
     for _ in range(10):

@@ -153,8 +153,9 @@ class FwVersion:
 @dataclass(frozen=True, **_utils.dataclass_slots)
 class Board:
     """
-    Type returned by ::CAENHV_GetCrateMap
+    Type returned by ::CAENHV_GetCrateMap and ::CAENHV_TestBdPresence
     """
+    slot: int
     model: str
     description: str
     serial_number: int
@@ -717,6 +718,7 @@ class Device:
             dl = tuple(_string.from_char_p(l_dl, l_nos.value))
             return tuple(
                 Board(
+                    i,
                     ml[i],
                     dl[i],
                     l_snl[i],
@@ -852,6 +854,7 @@ class Device:
             model = l_m.contents.value.decode('ascii')
             description = l_d.contents.value.decode('ascii')
             return Board(
+                slot,
                 model,
                 description,
                 l_ser_num.value,
