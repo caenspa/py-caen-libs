@@ -789,7 +789,7 @@ class Device:
             return []  # type: ignore
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         first_index = slot_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(first_index, name, None)
+        param_type = self.__get_param_type(first_index, None, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
         if param_type is ParamType.STRING and self.__char_p_p_str_bd_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
@@ -829,7 +829,7 @@ class Device:
             return
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         first_index = slot_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(first_index, name, None)
+        param_type = self.__get_param_type(first_index, None, name)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode('ascii'), l_data)
 
@@ -837,7 +837,7 @@ class Device:
         """
         Binding of CAENHV_GetBdParamProp()
         """
-        return self.__get_param_prop(slot, name, None)
+        return self.__get_param_prop(slot, None, name)
 
     @_cache.cached(cache_manager=__cache_manager)
     def get_bd_param_info(self, slot: int) -> tuple[str, ...]:
@@ -876,7 +876,7 @@ class Device:
         """
         Binding of CAENHV_GetChParamProp()
         """
-        return self.__get_param_prop(slot, name, channel)
+        return self.__get_param_prop(slot, channel, name)
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
     def get_ch_param_info(self, slot: int, channel: int) -> tuple[str, ...]:
@@ -921,7 +921,7 @@ class Device:
             return []  # type: ignore
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         first_index = channel_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(slot, name, first_index)
+        param_type = self.__get_param_type(slot, first_index, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
         if param_type is ParamType.STRING and self.__char_p_p_str_ch_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
@@ -951,7 +951,7 @@ class Device:
             return
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         first_index = channel_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(slot, name, first_index)
+        param_type = self.__get_param_type(slot, first_index, name)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
         lib.set_ch_param(self.handle, slot, name.encode('ascii'), n_indexes, l_index_list, ct.byref(l_data))
 
@@ -1047,7 +1047,7 @@ class Device:
 
     # Private utilities
 
-    def __get_prop(self, slot: int, name: str, prop_name: bytes, channel: Optional[int], var_type: Callable[..., _R], *args, **kwargs) -> _R:
+    def __get_prop(self, slot: int, channel: Optional[int], name: str, prop_name: bytes, var_type: Callable[..., _R], *args, **kwargs) -> _R:
         """
         Get single parameter property.
 
@@ -1070,41 +1070,41 @@ class Device:
             raise ex
         return l_value
 
-    def __get_param_prop(self, slot: int, name: str, channel: Optional[int]) -> ParamProp:
+    def __get_param_prop(self, slot: int, channel: Optional[int], name: str) -> ParamProp:
         """
         Get all parameter properties.
         Cannot be cached since minval/maxval may depend on the value of
         other parameters.
         """
         # Mandatory values (raise if name is not valid)
-        param_type = self.__get_param_type(slot, name, channel)
-        param_mode = self.__get_param_mode(slot, name, channel)
+        param_type = self.__get_param_type(slot, channel, name)
+        param_mode = self.__get_param_mode(slot, channel, name)
         res = ParamProp(param_type, param_mode)
         # Optional values
         if param_type is ParamType.NUMERIC:
             # Always defined
-            res.unit = ParamUnit(self.__get_prop(slot, name, b'Unit', channel, ct.c_ushort).value)
-            res.exp = self.__get_prop(slot, name, b'Exp', channel, ct.c_short).value
+            res.unit = ParamUnit(self.__get_prop(slot, channel, name, b'Unit', ct.c_ushort).value)
+            res.exp = self.__get_prop(slot, channel, name, b'Exp', ct.c_short).value
             # Not defined on some old systems
-            res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float, default=0.).value
-            res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float, default=0.).value
-            res.decimal = self.__get_prop(slot, name, b'Decimal', channel, ct.c_short, default=0).value
+            res.minval = self.__get_prop(slot, channel, name, b'Minval', ct.c_float, default=0.).value
+            res.maxval = self.__get_prop(slot, channel, name, b'Maxval', ct.c_float, default=0.).value
+            res.decimal = self.__get_prop(slot, channel, name, b'Decimal', ct.c_short, default=0).value
             if self.__resol_param_prop():
-                res.resol = self.__get_prop(slot, name, b'Resol', channel, ct.c_short, default=1).value
+                res.resol = self.__get_prop(slot, channel, name, b'Resol', ct.c_short, default=1).value
         elif param_type is ParamType.ONOFF:
-            res.onstate = self.__get_prop(slot, name, b'Onstate', channel, ct.c_char * _STR_SIZE).value.decode('ascii')
-            res.offstate = self.__get_prop(slot, name, b'Offstate', channel, ct.c_char * _STR_SIZE).value.decode('ascii')
+            res.onstate = self.__get_prop(slot, channel, name, b'Onstate', ct.c_char * _STR_SIZE).value.decode('ascii')
+            res.offstate = self.__get_prop(slot, channel, name, b'Offstate', ct.c_char * _STR_SIZE).value.decode('ascii')
         elif param_type is ParamType.ENUM:
-            res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float).value
-            res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float).value
+            res.minval = self.__get_prop(slot, channel, name, b'Minval', ct.c_float).value
+            res.maxval = self.__get_prop(slot, channel, name, b'Maxval', ct.c_float).value
             n_enums = int(res.maxval - res.minval + 1)
             assert n_enums <= self.__MAX_ENUM_VALS
-            l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.__MAX_ENUM_NAME * self.__MAX_ENUM_VALS))
+            l_value = self.__get_prop(slot, channel, name, b'Enum', ct.c_char * (self.__MAX_ENUM_NAME * self.__MAX_ENUM_VALS))
             res.enum = tuple(_string.from_n_char_array(l_value, self.__MAX_ENUM_NAME, n_enums))
         return res
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
-    def __get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
+    def __get_param_type(self, slot: int, channel: Optional[int], name: str) -> ParamType:
         """
         Simplified version of __get_param_prop used internally to
         retrieve just param type.
@@ -1116,20 +1116,20 @@ class Device:
         # properties because, in case of invalid parameter, it will fail in the very
         # first call.
         # pylint: disable=W0212
-        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, ParamType._INVALID).value
+        value = self.__get_prop(slot, channel, name, b'Type', ct.c_uint, ParamType._INVALID).value
         if value == ParamType._INVALID:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_type')
         return ParamType(value)
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
-    def __get_param_mode(self, slot: int, name: str, channel: Optional[int]) -> ParamMode:
+    def __get_param_mode(self, slot: int, channel: Optional[int], name: str) -> ParamMode:
         """
         Simplified version of __get_param_prop used internally to
         retrieve just param mode.
         """
         # See comment on __get_param_type
         # pylint: disable=W0212
-        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, ParamMode._INVALID).value
+        value = self.__get_prop(slot, channel, name, b'Mode', ct.c_uint, ParamMode._INVALID).value
         if value == ParamMode._INVALID:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamMode(value)
@@ -1179,18 +1179,18 @@ class Device:
         """
         Binding of CAENHV_Subscribe*Params()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
+        n_params = len(param_list)
+        if n_params == 0:
             return
         self.__init_events_server()
         l_param_name_list = ':'.join(param_list).encode('ascii')
-        l_result_codes = (ct.c_char * param_list_len)()
+        l_result_codes = (ct.c_char * n_params)()
         if slot is None:
-            lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, n_params, l_result_codes)
         elif channel is None:
-            lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, n_params, l_result_codes)
         else:
-            lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, n_params, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT: zero always means
         # success, but other values are not consistent across all systems.
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
@@ -1201,17 +1201,17 @@ class Device:
         """
         Binding of CAENHV_UnSubscribe*Params()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
+        n_params = len(param_list)
+        if n_params == 0:
             return
         l_param_name_list = ':'.join(param_list).encode('ascii')
-        l_result_codes = (ct.c_char * param_list_len)()
+        l_result_codes = (ct.c_char * n_params)()
         if slot is None:
-            lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, n_params, l_result_codes)
         elif channel is None:
-            lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, n_params, l_result_codes)
         else:
-            lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, n_params, l_result_codes)
         # See comment in __subscribe_params
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
@@ -1289,7 +1289,7 @@ class Device:
             # Return (host, port) on IPv4 and (host, port, flowinfo, scopeid) on IPv6
             return self.__skt_server.getsockname()[1]
 
-    def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
+    def __extended_get_param_type(self, slot: int, channel: Optional[int], name: str) -> ParamType:
         """
         Same of __get_param_type, with a workaround for Name: even if
         not being a real channel parameter, i.e. get_ch_param_prop does
@@ -1297,7 +1297,7 @@ class Device:
         """
         if channel is not None and name == 'Name':
             return ParamType.STRING
-        return self.__get_param_type(slot, name, channel)
+        return self.__get_param_type(slot, channel, name)
 
     def __decode_event_value(self, event_type: EventType, slot: Optional[int], channel: Optional[int], item_id: str, value: _IdValueRaw) -> Union[str, float, int]:
         if event_type is not EventType.PARAMETER:
@@ -1305,7 +1305,7 @@ class Device:
         if slot is None:
             prop_type = self.get_sys_prop_info(item_id).type
             return _SYS_PROP_TYPE_EVENT_ARG[prop_type](value)
-        param_type = self.__extended_get_param_type(slot, item_id, channel)
+        param_type = self.__extended_get_param_type(slot, channel, item_id)
         return _PARAM_TYPE_EVENT_ARG[param_type](value)
 
     def __decode_event_data(self, event_data: ct._Pointer, n_events: int) -> Iterator[EventData]:
