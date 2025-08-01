@@ -1183,14 +1183,14 @@ class Device:
         if n_params == 0:
             return
         self.__init_events_server()
-        l_param_name_list = ':'.join(param_list).encode('ascii')
+        l_param_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * n_params)()
         if slot is None:
-            lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, n_params, l_result_codes)
+            lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_list, n_params, l_result_codes)
         elif channel is None:
-            lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, n_params, l_result_codes)
+            lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_list, n_params, l_result_codes)
         else:
-            lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, n_params, l_result_codes)
+            lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_list, n_params, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT: zero always means
         # success, but other values are not consistent across all systems.
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
@@ -1204,14 +1204,14 @@ class Device:
         n_params = len(param_list)
         if n_params == 0:
             return
-        l_param_name_list = ':'.join(param_list).encode('ascii')
+        l_param_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * n_params)()
         if slot is None:
-            lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, n_params, l_result_codes)
+            lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_list, n_params, l_result_codes)
         elif channel is None:
-            lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, n_params, l_result_codes)
+            lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_list, n_params, l_result_codes)
         else:
-            lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, n_params, l_result_codes)
+            lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_list, n_params, l_result_codes)
         # See comment in __subscribe_params
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
