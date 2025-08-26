@@ -1142,7 +1142,7 @@ class Device:
         if self.system_type in (SystemType.SY1527, SystemType.SY2527):
             raise NotImplementedError('Legacy events not supported by this binding.')
 
-    def __library_event_thread(self) -> bool:
+    def __library_events_thread(self) -> bool:
         """
         Devices with polling thread within library
         """
@@ -1224,7 +1224,7 @@ class Device:
         Socket will be compatible with both IPv6 and IPv4, if supported.
         """
         # If possible, bind to loopback to prevent ask for administator rights on Windows
-        bind_addr = '127.0.0.1' if self.__library_event_thread() else ''
+        bind_addr = '127.0.0.1' if self.__library_events_thread() else ''
         ports = self.__bind_tcp_ports
         for port in range(ports.first, ports.last):
             # Suppress OSError raised if bind fails
@@ -1264,7 +1264,7 @@ class Device:
             self.__skt_client = socket.socket(fileno=l_value.value)
         else:
             self.__skt_client, addr_info = self.__skt_server.accept()
-            if self.__library_event_thread():
+            if self.__library_events_thread():
                 # If connecting to library event thread, ignore the first string
                 # that should contain the string used as InitSystem argument,
                 # except when connecting using TCPIP.
@@ -1314,7 +1314,7 @@ class Device:
             item_id = event.ItemID.decode('ascii')
             if not item_id:
                 # There could be empty events, expecially from library event thread, to be ignored.
-                assert self.__library_event_thread()
+                assert self.__library_events_thread()
                 continue
             event_type = EventType(event.Type)
             system_handle = event.SystemHandle
