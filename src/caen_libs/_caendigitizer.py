@@ -161,7 +161,7 @@ class _X743EventRaw(ct.Structure):
     ]
 
 
-class _DPPPHAEvtRaw(ct.Structure):
+class _DPPPHAEventRaw(ct.Structure):
     _fields_ = [
         ('Format', ct.c_uint32),
         ('TimeTag', ct.c_uint64),
@@ -172,7 +172,7 @@ class _DPPPHAEvtRaw(ct.Structure):
     ]
 
 
-class _DPPPSDEvtRaw(ct.Structure):
+class _DPPPSDEventRaw(ct.Structure):
     _fields_ = [
         ('Format', ct.c_uint32),
         ('Format2', ct.c_uint32),
@@ -1886,17 +1886,21 @@ class Device:
         lib.get_sam_sampling_frequency(self.handle, l_value)
         return SAMFrequency(l_value.value)
 
-    def read_eeprom(self) -> None:
+    def read_eeprom(self, eeprom_index: int, add: int, num_bytes: int) -> bytes:
         """
         Binding of _CAEN_DGTZ_Read_EEPROM()
         """
-        raise NotImplementedError()
+        buf = (ct.c_ubyte * num_bytes)()
+        lib.read_eeprom(self.handle, eeprom_index, add, num_bytes, buf)
+        return bytes(buf)
 
-    def write_eeprom(self) -> None:
+    def write_eeprom(self, eeprom_index: int, add: int, data: bytes) -> None:
         """
         Binding of _CAEN_DGTZ_Write_EEPROM()
         """
-        raise NotImplementedError()
+        l_num_bytes = len(data)
+        buf = (ct.c_ubyte * l_num_bytes)(*data)
+        lib.write_eeprom(self.handle, eeprom_index, add, l_num_bytes, buf)
 
     def load_sam_correction_data(self) -> None:
         """
