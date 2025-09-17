@@ -1281,7 +1281,7 @@ class DPPPHAParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)(**_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class DPPPHAParams:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Params_t
@@ -1813,6 +1813,26 @@ class DPPQDCParams:
             list(map(bool, raw.EnTestPulses)),
             list(raw.InputSmoothing),
             bool(raw.EnableExtendedTimeStamp),
+        )
+
+    def to_raw(self) -> DPPQDCParamsRaw:
+        """Convert to raw data"""
+        return DPPQDCParamsRaw(
+            tuple(self.trgho),
+            tuple(self.gate_width),
+            tuple(self.pre_gate),
+            tuple(self.fixed_baseline),
+            tuple(self.dis_trig_hist),
+            tuple(self.dis_self_trigger),
+            tuple(self.baseline_mode),
+            tuple(self.trg_mode),
+            tuple(self.charge_sensitivity),
+            tuple(self.pulse_pol),
+            tuple(self.en_charge_ped),
+            tuple(self.test_pulses_rate),
+            tuple(self.en_test_pulses),
+            tuple(self.input_smoothing),
+            self.enable_extended_time_stamp,
         )
 
 

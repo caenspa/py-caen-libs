@@ -12,7 +12,7 @@ from typing import Any, Optional, TypeVar, Union
 
 from caen_libs import error, _utils
 import caen_libs._caendigitizertypes as _types
-from caen_libs._caendigitizertypes import (
+from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     AcqMode,
     AnalogMonitorInspectorInverter,
     AnalogMonitorMagnify,
@@ -22,19 +22,25 @@ from caen_libs._caendigitizertypes import (
     ConnectionType,
     DPPAcqMode,
     DPPCIEvent,
+    DPPCIParams,
     DPPCIWaveforms,
     DPPDAWEvent,
     DPPDAWWaveforms,
     DPPFirmware,
     DPPPHAEvent,
+    DPPPHAParams,
     DPPPHAWaveforms,
     DPPPSDEvent,
+    DPPPSDParams,
     DPPPSDWaveforms,
     DPPQDCEvent,
+    DPPQDCParams,
     DPPQDCWaveforms,
     DPPSaveParam,
+    DPPTriggerConfig,
     DPPTriggerMode,
     DPPX743Event,
+    DPPX743Params,
     DRS4Frequency,
     EnaDis,
     EventInfo,
@@ -57,11 +63,6 @@ from caen_libs._caendigitizertypes import (
     X742Event,
     X743Event,
     ZSMode,
-    DPPPHAParams,
-    DPPPSDParams,
-    DPPQDCParams,
-    DPPCIParams,
-    DPPX743Params,
 )
 
 
@@ -1032,7 +1033,8 @@ class Device:
         """
         Binding of CAEN_DGTZ_SetDPPParameters()
         """
-        lib.set_dpp_parameters(self.handle, channel_mask, params.to_raw())
+        l_params = params.to_raw()
+        lib.set_dpp_parameters(self.handle, channel_mask, ct.byref(l_params))
 
     def set_dpp_acquisition_mode(self, mode: DPPAcqMode, param: DPPSaveParam) -> None:
         """
@@ -1047,7 +1049,7 @@ class Device:
         l_mode = ct.c_int()
         l_param = ct.c_int()
         lib.get_dpp_acquisition_mode(self.handle, l_mode, l_param)
-        return AcqMode(l_mode.value), DPPSaveParam(l_param.value)
+        return DPPAcqMode(l_mode.value), DPPSaveParam(l_param.value)
 
     def set_dpp_trigger_mode(self, mode: DPPTriggerMode) -> None:
         """

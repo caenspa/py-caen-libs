@@ -54,12 +54,26 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
     device.set_dpp_event_aggregation(0, 0)
     device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
 
+    dpp_params = dgtz.DPPPSDParams()
+    dpp_params.resize(info.channels)
+    for ch in range(info.channels):
+        dpp_params.thr[ch] = 2
+        dpp_params.nsbl[ch] = 2
+        dpp_params.lgate[ch] = 32
+        dpp_params.sgate[ch] = 24
+        dpp_params.pgate[ch] = 8
+        dpp_params.selft[ch] = 1
+        dpp_params.trgc[ch] = dgtz.DPPTriggerConfig.THRESHOLD
+        dpp_params.tvaw[ch] = 50
+        dpp_params.csens[ch] = 0
+
+    device.set_dpp_parameters(0xff, dpp_params)
+
     device.malloc_readout_buffer()
     device.malloc_dpp_events()
     device.malloc_dpp_waveforms()
 
     device.sw_start_acquisition()
-    device.send_sw_trigger()
     device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
     for ch, ch_evt in enumerate(device.get_dpp_events()):
         for evt in ch_evt:
