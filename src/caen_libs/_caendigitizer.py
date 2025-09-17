@@ -957,13 +957,10 @@ class Device:
         """
         Binding of CAEN_DGTZ_DecodeEvent()
         """
-        if evt is None:
-            l_evt = ct.c_void_p()
-        else:
-            l_evt = ct.pointer(evt.raw)
+        l_evt = ct.c_void_p() if evt is None else ct.pointer(evt.raw)
         lib.decode_event(self.handle, event_ptr.data, ct.byref(l_evt))
         evt_type, raw_type = self.__get_event_type()
-        evt_ptr = ct.cast(l_evt.content, ct.POINTER(raw_type))
+        evt_ptr = ct.cast(l_evt, ct.POINTER(raw_type))
         return evt_type(evt_ptr.contents)
 
     def free_event(self, event: Union[Uint16Event, Uint8Event, X742Event, X743Event]) -> None:
