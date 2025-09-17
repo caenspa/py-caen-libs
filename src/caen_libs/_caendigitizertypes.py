@@ -1485,23 +1485,23 @@ class DPPPSDParams:
     def from_raw(cls, raw: DPPPSDParamsRaw):
         """Instantiate from raw data"""
         return cls(
-            blthr = raw.blthr,
-            bltmo = raw.bltmo,
-            trgho = raw.trgho,
-            thr = list(raw.thr),
-            selft = list(raw.selft),
-            csens = list(raw.csens),
-            sgate = list(raw.sgate),
-            lgate = list(raw.lgate),
-            pgate = list(raw.pgate),
-            tvaw = list(raw.tvaw),
-            nsbl = list(raw.nsbl),
-            discr = list(raw.discr),
-            cfdf = list(raw.cfdf),
-            cfdd = list(raw.cfdd),
-            trgc = list(map(DPPTriggerConfig, raw.trgc)),
-            purh = DPPPUR(raw.purh),
-            purgap = raw.purgap,
+            raw.blthr,
+            raw.bltmo,
+            raw.trgho,
+            list(raw.thr),
+            list(raw.selft),
+            list(raw.csens),
+            list(raw.sgate),
+            list(raw.lgate),
+            list(raw.pgate),
+            list(raw.tvaw),
+            list(raw.nsbl),
+            list(raw.discr),
+            list(raw.cfdf),
+            list(raw.cfdd),
+            list(map(DPPTriggerConfig, raw.trgc)),
+            DPPPUR(raw.purh),
+            raw.purgap,
         )
 
     def to_raw(self) -> DPPPSDParamsRaw:
@@ -1581,19 +1581,19 @@ class DPPCIParams:
     def from_raw(cls, raw: DPPCIParamsRaw):
         """Instantiate from raw data"""
         return cls(
-            purgap = raw.purgap,
-            purh = raw.purh,
-            blthr = raw.blthr,
-            bltmo = raw.bltmo,
-            trgho = raw.trgho,
-            thr = list(raw.thr),
-            selft = list(raw.selft),
-            csens = list(raw.csens),
-            gate = list(raw.gate),
-            pgate = list(raw.pgate),
-            tvaw = list(raw.tvaw),
-            nsbl = list(raw.nsbl),
-            trgc = list(map(DPPTriggerConfig, raw.trgc)),
+            raw.purgap,
+            raw.purh,
+            raw.blthr,
+            raw.bltmo,
+            raw.trgho,
+            list(raw.thr),
+            list(raw.selft),
+            list(raw.csens),
+            list(raw.gate),
+            list(raw.pgate),
+            list(raw.tvaw),
+            list(raw.nsbl),
+            list(map(DPPTriggerConfig, raw.trgc)),
         )
 
     def to_raw(self) -> DPPCIParamsRaw:
@@ -1658,14 +1658,14 @@ class ZLEParams751:
     def from_raw(cls, raw: ZLEParams751Raw):
         """Instantiate from raw data"""
         return cls(
-            nsamp_bck = list(raw.NSampBck),
-            nsamp_ahe = list(raw.NSampAhe),
-            zle_upp_thr = list(raw.ZleUppThr),
-            zle_und_thr = list(raw.ZleUndThr),
-            sel_num_samp_bsl = list(raw.selNumSampBsl),
-            bsl_thrshld = list(raw.bslThrshld),
-            bsl_time_out = list(raw.bslTimeOut),
-            pre_trgg = raw.preTrgg,
+            list(raw.NSampBck),
+            list(raw.NSampAhe),
+            list(raw.ZleUppThr),
+            list(raw.ZleUndThr),
+            list(raw.selNumSampBsl),
+            list(raw.bslThrshld),
+            list(raw.bslTimeOut),
+            raw.preTrgg,
         )
 
     def to_raw(self) -> ZLEParams751Raw:
@@ -1716,11 +1716,11 @@ class DPPX743Params:
     def from_raw(cls, raw: DPPX743ParamsRaw):
         """Instantiate from raw data"""
         return cls(
-            disable_suppress_baseline = EnaDis(raw.disableSuppressBaseline),
-            start_cell = list(raw.startCell),
-            charge_length = list(raw.chargeLength),
-            enable_charge_threshold = list(map(EnaDis, raw.enableChargeThreshold)),
-            charge_threshold = list(raw.chargeThreshold),
+            EnaDis(raw.disableSuppressBaseline),
+            list(raw.startCell),
+            list(raw.chargeLength),
+            list(map(EnaDis, raw.enableChargeThreshold)),
+            list(raw.chargeThreshold),
         )
 
     def to_raw(self) -> DPPX743ParamsRaw:
@@ -1798,21 +1798,21 @@ class DPPQDCParams:
     def from_raw(cls, raw: DPPQDCParamsRaw):
         """Instantiate from raw data"""
         return cls(
-            trgho = list(raw.trgho),
-            gate_width = list(raw.GateWidth),
-            pre_gate = list(raw.PreGate),
-            fixed_baseline = list(raw.FixedBaseline),
-            dis_trig_hist = list(map(bool, raw.DisTrigHist)),
-            dis_self_trigger = list(map(bool, raw.DisSelfTrigger)),
-            baseline_mode = list(raw.BaselineMode),
-            trg_mode = list(raw.TrgMode),
-            charge_sensitivity = list(raw.ChargeSensitivity),
-            pulse_pol = list(map(PulsePolarity, raw.PulsePol)),
-            en_charge_ped = list(map(bool, raw.EnChargePed)),
-            test_pulses_rate = list(raw.TestPulsesRate),
-            en_test_pulses = list(map(bool, raw.EnTestPulses)),
-            input_smoothing = list(raw.InputSmoothing),
-            enable_extended_time_stamp = bool(raw.EnableExtendedTimeStamp),
+            list(raw.trgho),
+            list(raw.GateWidth),
+            list(raw.PreGate),
+            list(raw.FixedBaseline),
+            list(map(bool, raw.DisTrigHist)),
+            list(map(bool, raw.DisSelfTrigger)),
+            list(raw.BaselineMode),
+            list(raw.TrgMode),
+            list(raw.ChargeSensitivity),
+            list(map(PulsePolarity, raw.PulsePol)),
+            list(map(bool, raw.EnChargePed)),
+            list(raw.TestPulsesRate),
+            list(map(bool, raw.EnTestPulses)),
+            list(raw.InputSmoothing),
+            bool(raw.EnableExtendedTimeStamp),
         )
 
 
