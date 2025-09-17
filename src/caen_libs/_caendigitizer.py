@@ -65,6 +65,7 @@ from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     X743Event,
     ZLEEvent730,
     ZLEEvent751,
+    ZLEParams751,
     ZLEWaveforms730,
     ZLEWaveforms751,
     ZSMode,
@@ -1255,11 +1256,17 @@ class Device:
         """
         lib.disable_drs4_correction(self.handle)
 
-    def decode_zle_waveforms(self) -> None:
+    def decode_zle_waveforms(self, ch: int, evt_id: int) -> Union[ZLEWaveforms730, ZLEWaveforms751]:
         """
         Binding of CAEN_DGTZ_DecodeZLEWaveforms()
         """
-        raise NotImplementedError()
+        _, raw_type = self.__get_dpp_event_type()
+        evt_type_array = ct.POINTER(raw_type) * self.__info.channels
+        evt_ptr = ct.cast(self.__dpp_events, evt_type_array)
+        lib.decode_zle_waveforms(self.handle, evt_ptr[ch][evt_id], self.__dpp_waveforms)
+        wave_type, raw_type = self.__get_dpp_waveforms_type()
+        wave_ptr = ct.cast(self.__dpp_waveforms, ct.POINTER(raw_type))
+        return wave_type(wave_ptr.contents)
 
     def free_zle_waveforms(self) -> None:
         """
@@ -1267,7 +1274,7 @@ class Device:
         """
         lib.free_zle_waveforms(self.handle, self.__dpp_waveforms)
 
-    def malloc_zle_waveforms(self) -> None:
+    def malloc_zle_waveforms(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocZLEWaveforms()
         """
@@ -1281,7 +1288,7 @@ class Device:
         """
         lib.free_zle_events(self.handle, self.__dpp_events)
 
-    def malloc_zle_events(self) -> None:
+    def malloc_zle_events(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocZLEEvents()
         """
@@ -1289,7 +1296,7 @@ class Device:
         lib.malloc_zle_events(self.handle, self.__dpp_events, l_size)
         return l_size.value
 
-    def get_zle_events(self) -> None:
+    def get_zle_events(self) -> Union[list[list[ZLEEvent730]], list[list[ZLEEvent751]]]:
         """
         Binding of CAEN_DGTZ_GetZLEEvents()
         """
@@ -1299,11 +1306,12 @@ class Device:
         evt_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(raw_type)))
         return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
-    def set_zle_parameters(self) -> None:
+    def set_zle_parameters(self, channel_mask: int, params: Union[ZLEParams751]) -> None:
         """
         Binding of CAEN_DGTZ_SetZLEParameters()
         """
-        raise NotImplementedError()
+        l_params = params.to_raw()
+        lib.set_zle_parameters(self.handle, channel_mask, ct.byref(l_params))
 
     def get_sam_correction_level(self) -> SAMCorrectionLevel:
         """
