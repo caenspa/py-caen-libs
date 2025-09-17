@@ -41,6 +41,7 @@ from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     DPPTriggerMode,
     DPPX743Event,
     DPPX743Params,
+    DRS4Correction,
     DRS4Frequency,
     EnaDis,
     EventInfo,
@@ -62,6 +63,10 @@ from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     Uint8Event,
     X742Event,
     X743Event,
+    ZLEEvent730,
+    ZLEEvent751,
+    ZLEWaveforms730,
+    ZLEWaveforms751,
     ZSMode,
 )
 
@@ -927,6 +932,12 @@ class Device:
                 return DPPQDCEvent, _types.DPPQDCEventRaw
             case FirmwareCode.V1730_DPP_DAW:
                 return DPPDAWEvent, _types.DPPDAWEventRaw
+            case FirmwareCode.V1730_DPP_ZLE:
+                return ZLEEvent730, _types.ZLEEvent730Raw
+            case FirmwareCode.V1751_DPP_ZLE:
+                return ZLEEvent751, _types.ZLEEvent751Raw
+            case _:
+                raise RuntimeError('Not a DPP firmware')
 
     def __get_dpp_waveforms_type(self):
         match self.__info.firmware_code:
@@ -941,14 +952,17 @@ class Device:
             case FirmwareCode.V1730_DPP_DAW:
                 return DPPDAWWaveforms, _types.DPPDAWWaveformsRaw
 
-    def decode_event(self, event_ptr: _Buffer) -> Union[Uint16Event, Uint8Event, X742Event, X743Event]:
+    def decode_event(self, event_ptr: _Buffer, evt: Optional[Union[Uint16Event, Uint8Event, X742Event, X743Event]] = None) -> Union[Uint16Event, Uint8Event, X742Event, X743Event]:
         """
         Binding of CAEN_DGTZ_DecodeEvent()
         """
-        l_evt = _c_void_p_p()
-        lib.decode_event(self.handle, event_ptr.data, l_evt)
+        if evt is None:
+            l_evt = ct.c_void_p()
+        else:
+            l_evt = ct.pointer(evt.raw)
+        lib.decode_event(self.handle, event_ptr.data, ct.byref(l_evt))
         evt_type, raw_type = self.__get_event_type()
-        evt_ptr = ct.cast(l_evt.contents, ct.POINTER(raw_type))
+        evt_ptr = ct.cast(l_evt.content, ct.POINTER(raw_type))
         return evt_type(evt_ptr.contents)
 
     def free_event(self, event: Union[Uint16Event, Uint8Event, X742Event, X743Event]) -> None:
@@ -1088,11 +1102,14 @@ class Device:
         lib.get_dpp_supported_virtual_probes(self.handle, trace, l_value, l_num_probes)
         return tuple(l_value[:l_num_probes.value])
 
-    def allocate_event(self, *args) -> None:
+    def allocate_event(self) -> Union[Uint16Event, Uint8Event, X742Event, X743Event]:
         """
         Binding of CAEN_DGTZ_AllocateEvent()
         """
-        raise NotImplementedError()
+        evt_type, raw_type = self.__get_event_type()
+        l_evt = raw_type()
+        lib.allocate_event(self.handle, ct.byref(l_evt))
+        return evt_type(l_evt)
 
     def set_io_level(self, level: IOLevel) -> None:
         """
@@ -1218,11 +1235,13 @@ class Device:
         """
         lib.load_drs4_correction_data(self.handle)
 
-    def get_correction_tables(self) -> None:
+    def get_correction_tables(self, frequency: DRS4Frequency) -> DRS4Correction:
         """
         Binding of CAEN_DGTZ_GetCorrectionTables()
         """
-        raise NotImplementedError()
+        l_ctable = _types.DRS4CorrectionRaw()
+        lib.get_correction_tables(self.handle, frequency, ct.byref(l_ctable))
+        return DRS4Correction.from_raw(l_ctable)
 
     def enable_drs4_correction(self) -> None:
         """
@@ -1246,31 +1265,39 @@ class Device:
         """
         Binding of CAEN_DGTZ_FreeZLEWaveforms()
         """
-        raise NotImplementedError()
+        lib.free_zle_waveforms(self.handle, self.__dpp_waveforms)
 
     def malloc_zle_waveforms(self) -> None:
         """
         Binding of CAEN_DGTZ_MallocZLEWaveforms()
         """
-        raise NotImplementedError()
+        l_size = ct.c_uint32()
+        lib.malloc_zle_waveforms(self.handle, self.__dpp_waveforms, l_size)
+        return l_size.value
 
     def free_zle_events(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeZLEEvents()
         """
-        raise NotImplementedError()
+        lib.free_zle_events(self.handle, self.__dpp_events)
 
     def malloc_zle_events(self) -> None:
         """
         Binding of CAEN_DGTZ_MallocZLEEvents()
         """
-        raise NotImplementedError()
+        l_size = ct.c_uint32()
+        lib.malloc_zle_events(self.handle, self.__dpp_events, l_size)
+        return l_size.value
 
     def get_zle_events(self) -> None:
         """
         Binding of CAEN_DGTZ_GetZLEEvents()
         """
-        raise NotImplementedError()
+        l_num_events = (ct.c_uint32 * self.__info.channels)()
+        lib.get_zle_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__dpp_events, l_num_events)
+        evt_type, raw_type = self.__get_dpp_event_type()
+        evt_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(raw_type)))
+        return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
     def set_zle_parameters(self) -> None:
         """

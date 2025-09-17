@@ -1844,6 +1844,25 @@ class DRS4CorrectionRaw(ct.Structure):
     ]
 
 
+@dataclass(**_utils.dataclass_slots)
+class DRS4Correction:
+    """
+    Binding of ::CAEN_DGTZ_DRS4Correction_t
+    """
+    cell: list[list[int]] = field(default_factory=list, repr=False)
+    nsample: list[list[int]] = field(default_factory=list, repr=False)
+    time: list[float] = field(default_factory=list, repr=False)
+
+    @classmethod
+    def from_raw(cls, raw: DRS4CorrectionRaw):
+        """Instantiate from raw data"""
+        return cls(
+            list(map(list, raw.cell)),
+            list(map(list, raw.nsample)),
+            list(raw.time),
+        )
+
+
 @unique
 class DPPSaveParam(IntEnum):
     """
