@@ -56,7 +56,7 @@ from caen_libs._caendigitizertypes import (
     DRS4Frequency,
     DPPFirmware,
 )
-import caen_libs._caendigitizertypes as _cdt
+import caen_libs._caendigitizertypes as _types
 
 
 class Error(error.Error):
@@ -125,8 +125,8 @@ _c_uint16_p = ct.POINTER(ct.c_uint16)
 _c_int32_p = ct.POINTER(ct.c_int32)
 _c_uint32_p = ct.POINTER(ct.c_uint32)
 _c_void_p_p = ct.POINTER(ct.c_void_p)
-_board_info_p = ct.POINTER(_cdt.BoardInfoRaw)
-_event_info_p = ct.POINTER(_cdt.EventInfoRaw)
+_board_info_p = ct.POINTER(_types.BoardInfoRaw)
+_event_info_p = ct.POINTER(_types.EventInfoRaw)
 
 
 @dataclass
@@ -440,7 +440,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_GetInfo()
         """
-        l_data = _cdt.BoardInfoRaw()
+        l_data = _types.BoardInfoRaw()
         lib.get_info(self.handle, l_data)
         return BoardInfo.from_raw(l_data)
 
@@ -889,7 +889,7 @@ class Device:
         Binding of CAEN_DGTZ_GetEventInfo()
         """
         l_event_ptr = _c_char_p()
-        l_event_info = _cdt.EventInfoRaw()
+        l_event_info = _types.EventInfoRaw()
         lib.get_event_info(self.handle, self.__ro_buff, self.__ro_buff_occupancy, num_event, l_event_info, l_event_ptr)
         event_info = EventInfo.from_raw(l_event_info)
         return event_info, _Buffer(l_event_ptr)
@@ -897,41 +897,41 @@ class Device:
     def __get_event_type(self):
         match self.__info.family_code:
             case BoardFamilyCode.XX742:
-                return X742Event, _cdt.X742EventRaw
+                return X742Event, _types.X742EventRaw
             case BoardFamilyCode.XX743:
-                return X743Event, _cdt.X743EventRaw
+                return X743Event, _types.X743EventRaw
             case BoardFamilyCode.XX721 | BoardFamilyCode.XX731:
-                return Uint8Event, _cdt.Uint8EventRaw
+                return Uint8Event, _types.Uint8EventRaw
             case _:
-                return Uint16Event, _cdt.Uint16EventRaw
+                return Uint16Event, _types.Uint16EventRaw
 
     def __get_dpp_event_type(self):
         match self.__info.firmware_code:
             case FirmwareCode.V1724_DPP_PHA | FirmwareCode.V1730_DPP_PHA:
-                return DPPPHAEvent, _cdt.DPPPHAEventRaw
+                return DPPPHAEvent, _types.DPPPHAEventRaw
             case FirmwareCode.V1720_DPP_PSD | FirmwareCode.V1730_DPP_PSD | FirmwareCode.V1751_DPP_PSD:
-                return DPPPSDEvent, _cdt.DPPPSDEventRaw
+                return DPPPSDEvent, _types.DPPPSDEventRaw
             case FirmwareCode.V1720_DPP_CI:
-                return DPPCIEvent, _cdt.DPPCIEventRaw
+                return DPPCIEvent, _types.DPPCIEventRaw
             case FirmwareCode.V1743_DPP_CI:
-                return DPPX743Event, _cdt.DPPX743EventRaw
+                return DPPX743Event, _types.DPPX743EventRaw
             case FirmwareCode.V1740_DPP_QDC:
-                return DPPQDCEvent, _cdt.DPPQDCEventRaw
+                return DPPQDCEvent, _types.DPPQDCEventRaw
             case FirmwareCode.V1730_DPP_DAW:
-                return DPPDAWEvent, _cdt.DPPDAWEventRaw
+                return DPPDAWEvent, _types.DPPDAWEventRaw
 
     def __get_dpp_waveforms_type(self):
         match self.__info.firmware_code:
             case FirmwareCode.V1724_DPP_PHA | FirmwareCode.V1730_DPP_PHA:
-                return DPPPHAWaveforms, _cdt.DPPPHAWaveformsRaw
+                return DPPPHAWaveforms, _types.DPPPHAWaveformsRaw
             case FirmwareCode.V1720_DPP_PSD | FirmwareCode.V1730_DPP_PSD | FirmwareCode.V1751_DPP_PSD:
-                return DPPPSDWaveforms, _cdt.DPPPSDWaveformsRaw
+                return DPPPSDWaveforms, _types.DPPPSDWaveformsRaw
             case FirmwareCode.V1720_DPP_CI:
-                return DPPCIWaveforms, _cdt.DPPCIWaveformsRaw
+                return DPPCIWaveforms, _types.DPPCIWaveformsRaw
             case FirmwareCode.V1740_DPP_QDC:
-                return DPPQDCWaveforms, _cdt.DPPQDCWaveformsRaw
+                return DPPQDCWaveforms, _types.DPPQDCWaveformsRaw
             case FirmwareCode.V1730_DPP_DAW:
-                return DPPDAWWaveforms, _cdt.DPPDAWWaveformsRaw
+                return DPPDAWWaveforms, _types.DPPDAWWaveformsRaw
 
     def decode_event(self, event_ptr: _Buffer) -> Union[Uint16Event, Uint8Event, X742Event, X743Event]:
         """
