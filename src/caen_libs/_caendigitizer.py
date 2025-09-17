@@ -1017,9 +1017,8 @@ class Device:
         Binding of CAEN_DGTZ_DecodeDPPWaveforms()
         """
         _, raw_type = self.__get_dpp_event_type()
-        evt_type_array = ct.POINTER(raw_type) * self.__info.channels
-        evt_ptr = ct.cast(self.__dpp_events, evt_type_array)
-        lib.decode_dpp_waveforms(self.handle, evt_ptr[ch][evt_id], self.__dpp_waveforms)
+        evt_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(raw_type)))
+        lib.decode_dpp_waveforms(self.handle, ct.byref(evt_ptr[ch][evt_id]), self.__dpp_waveforms)
         wave_type, raw_type = self.__get_dpp_waveforms_type()
         wave_ptr = ct.cast(self.__dpp_waveforms, ct.POINTER(raw_type))
         return wave_type(wave_ptr.contents)

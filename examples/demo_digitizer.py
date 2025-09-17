@@ -69,15 +69,24 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
 
     device.set_dpp_parameters(0xff, dpp_params)
 
+    for i in range(info.channels):
+        if i % 2 == 0:
+            device.set_record_length(1024, i)
+        device.set_channel_dc_offset(i, 0x8000)
+        device.set_dpp_pre_trigger_size(i, 80)
+        device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
+
     device.malloc_readout_buffer()
     device.malloc_dpp_events()
     device.malloc_dpp_waveforms()
 
     device.sw_start_acquisition()
     device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-    for ch, ch_evt in enumerate(device.get_dpp_events()):
-        for evt in ch_evt:
-            print(f'Ch: {ch}\tEvent: {evt.time_tag}')
+    for ch_idx, ch in enumerate(device.get_dpp_events()):
+        for evt_idx, evt in enumerate(ch):
+            print(f'Ch: {ch_idx}\tEvent: {evt.time_tag}')
+            w = device.decode_dpp_waveforms(ch_idx, evt_idx)
+            print(w.ns, w.trace1)
     device.sw_stop_acquisition()
 
     device.free_dpp_waveforms()
