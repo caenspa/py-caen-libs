@@ -268,7 +268,7 @@ class Uint16EventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class Uint16Event:
     """
     Binding of ::CAEN_DGTZ_UINT16_EVENT_t
@@ -287,7 +287,7 @@ class Uint8EventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class Uint8Event:
     """
     Binding of ::CAEN_DGTZ_UINT8_EVENT_t
@@ -308,7 +308,7 @@ class X742GroupRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class X742Group:
     """
     Binding of ::CAEN_DGTZ_X742_GROUP_t
@@ -335,7 +335,7 @@ class X742EventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class X742Event:
     """
     Binding of ::CAEN_DGTZ_X742_EVENT_t
@@ -365,7 +365,7 @@ class X743GroupRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class X743Group:
     """
     Binding of ::CAEN_DGTZ_X743_GROUP_t
@@ -428,7 +428,7 @@ class X743EventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class X743Event:
     """
     Binding of ::CAEN_DGTZ_X743_EVENT_t
@@ -451,7 +451,7 @@ class DPPPHAEventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPPHAEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Event_t
@@ -493,7 +493,7 @@ class DPPPSDEventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPPSDEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Event_t
@@ -543,7 +543,7 @@ class DPPCIEventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPCIEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_CI_Event_t
@@ -582,7 +582,7 @@ class DPPQDCEventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPQDCEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Event_t
@@ -634,7 +634,7 @@ class ZLEEvent751Raw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class ZLEEvent751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Event_t
@@ -658,7 +658,7 @@ class ZLEWaveforms730Raw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class ZLEWaveforms730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Waveforms_t
@@ -684,7 +684,7 @@ class ZLEChannel730Raw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class ZLEChannel730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Channel_t
@@ -714,7 +714,7 @@ class ZLEEvent730Raw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class ZLEEvent730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Event_t
@@ -744,7 +744,7 @@ class DPPDAWWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPDAWWaveforms:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Waveforms_t
@@ -769,7 +769,7 @@ class DPPDAWChannelRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPDAWChannel:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Channel_t
@@ -811,7 +811,7 @@ class DPPDAWEventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPDAWEvent:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Event_t
@@ -842,7 +842,7 @@ class DPPX743EventRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPX743Event:
     """
     Binding of ::CAEN_DGTZ_DPP_X743_Event_t
@@ -872,7 +872,7 @@ class DPPPHAWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPPHAWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Waveforms_t
@@ -932,7 +932,7 @@ class DPPPSDWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPPSDWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Waveforms_t
@@ -992,7 +992,7 @@ class ZLEWaveforms751Raw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class ZLEWaveforms751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Waveforms_t
@@ -1032,7 +1032,7 @@ class DPPQDCWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class DPPQDCWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Waveforms_t
@@ -1281,7 +1281,127 @@ class DPPPHAParamsRaw(ct.Structure):
     ]
 
 
-class _DPPPSDParamsRaw(ct.Structure):
+@dataclass(**_utils.dataclass_slots)(**_utils.dataclass_slots)
+class DPPPHAParams:
+    """
+    Binding of ::CAEN_DGTZ_DPP_PHA_Params_t
+    """
+    m_: list[int] = field(default_factory=list)
+    m: list[int] = field(default_factory=list)
+    k: list[int] = field(default_factory=list)
+    ftd: list[int] = field(default_factory=list)
+    a: list[int] = field(default_factory=list)
+    b: list[int] = field(default_factory=list)
+    thr: list[int] = field(default_factory=list)
+    nsbl: list[int] = field(default_factory=list)
+    nspk: list[int] = field(default_factory=list)
+    pkho: list[int] = field(default_factory=list)
+    blho: list[int] = field(default_factory=list)
+    otrej: list[int] = field(default_factory=list)
+    trgho: list[int] = field(default_factory=list)
+    twwdt: list[int] = field(default_factory=list)
+    dgain: list[int] = field(default_factory=list)
+    enf: list[float] = field(default_factory=list)
+    decimation: list[int] = field(default_factory=list)
+    enskim: list[int] = field(default_factory=list)
+    eskimlld: list[int] = field(default_factory=list)
+    eskimuld: list[int] = field(default_factory=list)
+    blrclip: list[int] = field(default_factory=list)
+    dcomp: list[int] = field(default_factory=list)
+    trapbsl: list[int] = field(default_factory=list)
+
+    def resize(self, n_channels: int):
+        """
+        Resize to n_channels.
+
+        This method is required because this class is a class of lists,
+        rather than a class used as member of a list in the parent class
+        DgtzParams. In other words, the other members of DgtzParams are
+        indexed like `params.x[ch].y`, while this like `params.x.y[ch]`.
+        """
+        self.m_ = [0] * n_channels
+        self.m = [0] * n_channels
+        self.k = [0] * n_channels
+        self.ftd = [0] * n_channels
+        self.a = [0] * n_channels
+        self.b = [0] * n_channels
+        self.thr = [0] * n_channels
+        self.nsbl = [0] * n_channels
+        self.nspk = [0] * n_channels
+        self.pkho = [0] * n_channels
+        self.blho = [0] * n_channels
+        self.otrej = [0] * n_channels
+        self.trgho = [0] * n_channels
+        self.twwdt = [0] * n_channels
+        self.dgain = [0] * n_channels
+        self.enf = [0.] * n_channels
+        self.decimation = [0] * n_channels
+        self.enskim = [0] * n_channels
+        self.eskimlld = [0] * n_channels
+        self.eskimuld = [0] * n_channels
+        self.blrclip = [0] * n_channels
+        self.dcomp = [0] * n_channels
+        self.trapbsl = [0] * n_channels
+
+    @classmethod
+    def from_raw(cls, raw: DPPPHAParamsRaw):
+        """Instantiate from raw data"""
+        return cls(
+            m_ = list(raw.M),
+            m = list(raw.m),
+            k = list(raw.k),
+            ftd = list(raw.ftd),
+            a = list(raw.a),
+            b = list(raw.b),
+            thr = list(raw.thr),
+            nsbl = list(raw.nsbl),
+            nspk = list(raw.nspk),
+            pkho = list(raw.pkho),
+            blho = list(raw.blho),
+            otrej = list(raw.otrej),
+            trgho = list(raw.trgho),
+            twwdt = list(raw.twwdt),
+            dgain = list(raw.dgain),
+            enf = list(raw.enf),
+            decimation = list(raw.decimation),
+            enskim = list(raw.enskim),
+            eskimlld = list(raw.eskimlld),
+            eskimuld = list(raw.eskimuld),
+            blrclip = list(raw.blrclip),
+            dcomp = list(raw.dcomp),
+            trapbsl = list(raw.trapbsl),
+        )
+
+    def to_raw(self) -> DPPPHAParamsRaw:
+        """Convert to raw data"""
+        return DPPPHAParamsRaw(
+            tuple(self.m_),
+            tuple(self.m),
+            tuple(self.k),
+            tuple(self.ftd),
+            tuple(self.a),
+            tuple(self.b),
+            tuple(self.thr),
+            tuple(self.nsbl),
+            tuple(self.nspk),
+            tuple(self.pkho),
+            tuple(self.blho),
+            tuple(self.otrej),
+            tuple(self.trgho),
+            tuple(self.twwdt),
+            tuple(self.dgain),
+            tuple(self.enf),
+            tuple(self.decimation),
+            tuple(self.enskim),
+            tuple(self.eskimlld),
+            tuple(self.eskimuld),
+            tuple(self.blrclip),
+            tuple(self.dcomp),
+            tuple(self.trapbsl),
+        )
+
+
+class DPPPSDParamsRaw(ct.Structure):
     _fields_ = [
         ('blthr', ct.c_int),
         ('bltmo', ct.c_int),
@@ -1297,13 +1417,117 @@ class _DPPPSDParamsRaw(ct.Structure):
         ('discr', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
         ('cfdf', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
         ('cfdd', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('trgc', ct.POINTER(ct.c_int) * MAX_DPP_PSD_CHANNEL_SIZE),
+        ('trgc', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
         ('purh', ct.c_int),
         ('purgap', ct.c_int),
     ]
 
 
-class _DPPCIParamsRaw(ct.Structure):
+@unique
+class DPPTriggerConfig(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_DPP_TriggerConfig_t
+    """
+    PEAK       = 0
+    THRESHOLD  = 1
+
+
+@unique
+class DPPPUR(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_DPP_PUR_t
+    """
+    DETECT_ONLY = 0
+    ENABLED = 1
+
+
+@dataclass(**_utils.dataclass_slots)
+class DPPPSDParams:
+    """
+    Binding of ::CAEN_DGTZ_DPP_PSD_Params_t
+    """
+    blthr: int = field(default=0)
+    bltmo: int = field(default=0)
+    trgho: int = field(default=0)
+    thr: list[int] = field(default_factory=list)
+    selft: list[int] = field(default_factory=list)
+    csens: list[int] = field(default_factory=list)
+    sgate: list[int] = field(default_factory=list)
+    lgate: list[int] = field(default_factory=list)
+    pgate: list[int] = field(default_factory=list)
+    tvaw: list[int] = field(default_factory=list)
+    nsbl: list[int] = field(default_factory=list)
+    discr: list[int] = field(default_factory=list)
+    cfdf: list[int] = field(default_factory=list)
+    cfdd: list[int] = field(default_factory=list)
+    trgc: list[DPPTriggerConfig] = field(default_factory=list)
+    purh: DPPPUR = field(default=DPPPUR.DETECT_ONLY)
+    purgap: int = field(default=0)
+
+    def resize(self, n_channels: int):
+        """
+        Resize to n_channels.
+        """
+        self.thr = [0] * n_channels
+        self.selft = [0] * n_channels
+        self.csens = [0] * n_channels
+        self.sgate = [0] * n_channels
+        self.lgate = [0] * n_channels
+        self.pgate = [0] * n_channels
+        self.tvaw = [0] * n_channels
+        self.nsbl = [0] * n_channels
+        self.discr = [0] * n_channels
+        self.cfdf = [0] * n_channels
+        self.cfdd = [0] * n_channels
+        self.trgc = [DPPTriggerConfig.PEAK] * n_channels
+
+    @classmethod
+    def from_raw(cls, raw: DPPPSDParamsRaw):
+        """Instantiate from raw data"""
+        return cls(
+            blthr = raw.blthr,
+            bltmo = raw.bltmo,
+            trgho = raw.trgho,
+            thr = list(raw.thr),
+            selft = list(raw.selft),
+            csens = list(raw.csens),
+            sgate = list(raw.sgate),
+            lgate = list(raw.lgate),
+            pgate = list(raw.pgate),
+            tvaw = list(raw.tvaw),
+            nsbl = list(raw.nsbl),
+            discr = list(raw.discr),
+            cfdf = list(raw.cfdf),
+            cfdd = list(raw.cfdd),
+            trgc = list(map(DPPTriggerConfig, raw.trgc)),
+            purh = DPPPUR(raw.purh),
+            purgap = raw.purgap,
+        )
+
+    def to_raw(self) -> DPPPSDParamsRaw:
+        """Convert to raw data"""
+        return DPPPSDParamsRaw(
+            self.blthr,
+            self.bltmo,
+            self.trgho,
+            tuple(self.thr),
+            tuple(self.selft),
+            tuple(self.csens),
+            tuple(self.sgate),
+            tuple(self.lgate),
+            tuple(self.pgate),
+            tuple(self.tvaw),
+            tuple(self.nsbl),
+            tuple(self.discr),
+            tuple(self.cfdf),
+            tuple(self.cfdd),
+            tuple(self.trgc),
+            int(self.purh),
+            self.purgap,
+        )
+
+
+class DPPCIParamsRaw(ct.Structure):
     _fields_ = [
         ('purgap', ct.c_int),
         ('purh', ct.c_int),
@@ -1321,6 +1545,76 @@ class _DPPCIParamsRaw(ct.Structure):
     ]
 
 
+@dataclass(**_utils.dataclass_slots)
+class DPPCIParams:
+    """
+    Binding of ::CAEN_DGTZ_DPP_CI_Params_t
+    """
+    purgap: int = field(default=0)
+    purh: int = field(default=0)
+    blthr: int = field(default=0)
+    bltmo: int = field(default=0)
+    trgho: int = field(default=0)
+    thr: list[int] = field(default_factory=list)
+    selft: list[int] = field(default_factory=list)
+    csens: list[int] = field(default_factory=list)
+    gate: list[int] = field(default_factory=list)
+    pgate: list[int] = field(default_factory=list)
+    tvaw: list[int] = field(default_factory=list)
+    nsbl: list[int] = field(default_factory=list)
+    trgc: list[DPPTriggerConfig] = field(default_factory=list)
+
+    def resize(self, n_channels: int):
+        """
+        Resize to n_channels.
+        """
+        self.thr = [0] * n_channels
+        self.selft = [0] * n_channels
+        self.csens = [0] * n_channels
+        self.gate = [0] * n_channels
+        self.pgate = [0] * n_channels
+        self.tvaw = [0] * n_channels
+        self.nsbl = [0] * n_channels
+        self.trgc = [DPPTriggerConfig.PEAK] * n_channels
+
+    @classmethod
+    def from_raw(cls, raw: DPPCIParamsRaw):
+        """Instantiate from raw data"""
+        return cls(
+            purgap = raw.purgap,
+            purh = raw.purh,
+            blthr = raw.blthr,
+            bltmo = raw.bltmo,
+            trgho = raw.trgho,
+            thr = list(raw.thr),
+            selft = list(raw.selft),
+            csens = list(raw.csens),
+            gate = list(raw.gate),
+            pgate = list(raw.pgate),
+            tvaw = list(raw.tvaw),
+            nsbl = list(raw.nsbl),
+            trgc = list(map(DPPTriggerConfig, raw.trgc)),
+        )
+
+    def to_raw(self) -> DPPCIParamsRaw:
+        """Convert to raw data"""
+        return DPPCIParamsRaw(
+            self.purgap,
+            self.purh,
+            self.blthr,
+            self.bltmo,
+            self.trgho,
+            tuple(self.thr),
+            tuple(self.selft),
+            tuple(self.csens),
+            tuple(self.gate),
+            tuple(self.pgate),
+            tuple(self.tvaw),
+            tuple(self.nsbl),
+            tuple(self.trgc),
+        )
+
+
 class ZLEParams751Raw(ct.Structure):
     _fields_ = [
         ('NSampBck', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
@@ -1332,6 +1626,112 @@ class ZLEParams751Raw(ct.Structure):
         ('bslTimeOut', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
         ('preTrgg', ct.c_int),
     ]
+
+
+@dataclass(**_utils.dataclass_slots)
+class ZLEParams751:
+    """
+    Binding of ::CAEN_DGTZ_751_ZLE_Params_t
+    """
+    nsamp_bck: list[int] = field(default_factory=list)
+    nsamp_ahe: list[int] = field(default_factory=list)
+    zle_upp_thr: list[int] = field(default_factory=list)
+    zle_und_thr: list[int] = field(default_factory=list)
+    sel_num_samp_bsl: list[int] = field(default_factory=list)
+    bsl_thrshld: list[int] = field(default_factory=list)
+    bsl_time_out: list[int] = field(default_factory=list)
+    pre_trgg: int = field(default=0)
+
+    def resize(self, n_channels: int):
+        """
+        Resize to n_channels.
+        """
+        self.nsamp_bck = [0] * n_channels
+        self.nsamp_ahe = [0] * n_channels
+        self.zle_upp_thr = [0] * n_channels
+        self.zle_und_thr = [0] * n_channels
+        self.sel_num_samp_bsl = [0] * n_channels
+        self.bsl_thrshld = [0] * n_channels
+        self.bsl_time_out = [0] * n_channels
+
+    @classmethod
+    def from_raw(cls, raw: ZLEParams751Raw):
+        """Instantiate from raw data"""
+        return cls(
+            nsamp_bck = list(raw.NSampBck),
+            nsamp_ahe = list(raw.NSampAhe),
+            zle_upp_thr = list(raw.ZleUppThr),
+            zle_und_thr = list(raw.ZleUndThr),
+            sel_num_samp_bsl = list(raw.selNumSampBsl),
+            bsl_thrshld = list(raw.bslThrshld),
+            bsl_time_out = list(raw.bslTimeOut),
+            pre_trgg = raw.preTrgg,
+        )
+
+    def to_raw(self) -> ZLEParams751Raw:
+        """Convert to raw data"""
+        return ZLEParams751Raw(
+            tuple(self.nsamp_bck),
+            tuple(self.nsamp_ahe),
+            tuple(self.zle_upp_thr),
+            tuple(self.zle_und_thr),
+            tuple(self.sel_num_samp_bsl),
+            tuple(self.bsl_thrshld),
+            tuple(self.bsl_time_out),
+            self.pre_trgg,
+        )
+
+
+class DPPX743ParamsRaw(ct.Structure):
+    _fields_ = [
+        ('disableSuppressBaseline', ct.c_int),
+        ('startCell', ct.c_uint * (MAX_X743_CHANNELS_X_GROUP * MAX_V1743_GROUP_SIZE)),
+        ('chargeLength', ct.c_ushort * (MAX_X743_CHANNELS_X_GROUP * MAX_V1743_GROUP_SIZE)),
+        ('enableChargeThreshold', ct.c_int * (MAX_X743_CHANNELS_X_GROUP * MAX_V1743_GROUP_SIZE)),
+        ('chargeThreshold', ct.c_float * (MAX_X743_CHANNELS_X_GROUP * MAX_V1743_GROUP_SIZE)),
+    ]
+
+
+@dataclass(**_utils.dataclass_slots)
+class DPPX743Params:
+    """
+    Binding of ::CAEN_DGTZ_DPP_X743_Params_t
+    """
+    disable_suppress_baseline: EnaDis = field(default=EnaDis.DISABLE)
+    start_cell: list[int] = field(default_factory=list)
+    charge_length: list[int] = field(default_factory=list)
+    enable_charge_threshold: list[EnaDis] = field(default_factory=list)
+    charge_threshold: list[float] = field(default_factory=list)
+
+    def resize(self, n_channels: int):
+        """
+        Resize to n_channels.
+        """
+        self.start_cell = [0] * n_channels
+        self.charge_length = [0] * n_channels
+        self.enable_charge_threshold = [EnaDis.DISABLE] * n_channels
+        self.charge_threshold = [0.] * n_channels
+
+    @classmethod
+    def from_raw(cls, raw: DPPX743ParamsRaw):
+        """Instantiate from raw data"""
+        return cls(
+            disable_suppress_baseline = EnaDis(raw.disableSuppressBaseline),
+            start_cell = list(raw.startCell),
+            charge_length = list(raw.chargeLength),
+            enable_charge_threshold = list(map(EnaDis, raw.enableChargeThreshold)),
+            charge_threshold = list(raw.chargeThreshold),
+        )
+
+    def to_raw(self) -> DPPX743ParamsRaw:
+        """Convert to raw data"""
+        return DPPX743ParamsRaw(
+            self.disable_suppress_baseline,
+            tuple(self.start_cell),
+            tuple(self.charge_length),
+            tuple(self.enable_charge_threshold),
+            tuple(self.charge_threshold),
+        )
 
 
 class DPPQDCParamsRaw(ct.Structure):
@@ -1352,6 +1752,68 @@ class DPPQDCParamsRaw(ct.Structure):
         ('InputSmoothing', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
         ('EnableExtendedTimeStamp', ct.c_int),
     ]
+
+
+@dataclass(**_utils.dataclass_slots)
+class DPPQDCParams:
+    """
+    Binding of ::CAEN_DGTZ_DPP_QDC_Params_t
+    """
+    trgho: list[int] = field(default_factory=list)
+    gate_width: list[int] = field(default_factory=list)
+    pre_gate: list[int] = field(default_factory=list)
+    fixed_baseline: list[int] = field(default_factory=list)
+    dis_trig_hist: list[bool] = field(default_factory=list)
+    dis_self_trigger: list[bool] = field(default_factory=list)
+    baseline_mode: list[int] = field(default_factory=list)
+    trg_mode: list[int] = field(default_factory=list)
+    charge_sensitivity: list[int] = field(default_factory=list)
+    pulse_pol: list[PulsePolarity] = field(default_factory=list)
+    en_charge_ped: list[bool] = field(default_factory=list)
+    test_pulses_rate: list[int] = field(default_factory=list)
+    en_test_pulses: list[bool] = field(default_factory=list)
+    input_smoothing: list[int] = field(default_factory=list)
+    enable_extended_time_stamp: bool = field(default=False)
+
+    def resize(self, n_channels: int):
+        """
+        Resize to n_channels.
+        """
+        self.trgho = [0] * n_channels
+        self.gate_width = [0] * n_channels
+        self.pre_gate = [0] * n_channels
+        self.fixed_baseline = [0] * n_channels
+        self.dis_trig_hist = [False] * n_channels
+        self.dis_self_trigger = [False] * n_channels
+        self.baseline_mode = [0] * n_channels
+        self.trg_mode = [0] * n_channels
+        self.charge_sensitivity = [0] * n_channels
+        self.pulse_pol = [PulsePolarity.POSITIVE] * n_channels
+        self.en_charge_ped = [False] * n_channels
+        self.test_pulses_rate = [0] * n_channels
+        self.en_test_pulses = [False] * n_channels
+        self.input_smoothing = [0] * n_channels
+
+    @classmethod
+    def from_raw(cls, raw: DPPQDCParamsRaw):
+        """Instantiate from raw data"""
+        return cls(
+            trgho = list(raw.trgho),
+            gate_width = list(raw.GateWidth),
+            pre_gate = list(raw.PreGate),
+            fixed_baseline = list(raw.FixedBaseline),
+            dis_trig_hist = list(map(bool, raw.DisTrigHist)),
+            dis_self_trigger = list(map(bool, raw.DisSelfTrigger)),
+            baseline_mode = list(raw.BaselineMode),
+            trg_mode = list(raw.TrgMode),
+            charge_sensitivity = list(raw.ChargeSensitivity),
+            pulse_pol = list(map(PulsePolarity, raw.PulsePol)),
+            en_charge_ped = list(map(bool, raw.EnChargePed)),
+            test_pulses_rate = list(raw.TestPulsesRate),
+            en_test_pulses = list(map(bool, raw.EnTestPulses)),
+            input_smoothing = list(raw.InputSmoothing),
+            enable_extended_time_stamp = bool(raw.EnableExtendedTimeStamp),
+        )
 
 
 class DRS4CorrectionRaw(ct.Structure):

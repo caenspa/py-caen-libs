@@ -11,6 +11,7 @@ from enum import IntEnum, unique
 from typing import Any, Optional, TypeVar, Union
 
 from caen_libs import error, _utils
+import caen_libs._caendigitizertypes as _types
 from caen_libs._caendigitizertypes import (
     AcqMode,
     AnalogMonitorInspectorInverter,
@@ -56,8 +57,12 @@ from caen_libs._caendigitizertypes import (
     X742Event,
     X743Event,
     ZSMode,
+    DPPPHAParams,
+    DPPPSDParams,
+    DPPQDCParams,
+    DPPCIParams,
+    DPPX743Params,
 )
-import caen_libs._caendigitizertypes as _types
 
 
 class Error(error.Error):
@@ -130,7 +135,7 @@ _board_info_p = ct.POINTER(_types.BoardInfoRaw)
 _event_info_p = ct.POINTER(_types.EventInfoRaw)
 
 
-@dataclass
+@dataclass(**_utils.dataclass_slots)
 class _Buffer:
     data: 'ct._Pointer[ct.c_char]'
 
@@ -1023,11 +1028,11 @@ class Device:
         """
         lib.set_dpp_event_aggregation(self.handle, threshold, max_size)
 
-    def set_dpp_parameters(self, *args) -> None:
+    def set_dpp_parameters(self, channel_mask: int, params: Union[DPPPHAParams, DPPPSDParams, DPPCIParams, DPPQDCParams, DPPX743Params]) -> None:
         """
         Binding of CAEN_DGTZ_SetDPPParameters()
         """
-        raise NotImplementedError()
+        lib.set_dpp_parameters(self.handle, channel_mask, params.to_raw())
 
     def set_dpp_acquisition_mode(self, mode: DPPAcqMode, param: DPPSaveParam) -> None:
         """
