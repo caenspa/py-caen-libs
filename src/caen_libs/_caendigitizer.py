@@ -11,687 +11,52 @@ from enum import IntEnum, unique
 from typing import Any, Optional, TypeVar, Union
 
 from caen_libs import error, _utils
-
-
-# Constants from CAENDigitizerType.h
-MAX_UINT16_CHANNEL_SIZE = 64
-MAX_UINT8_CHANNEL_SIZE = 8
-MAX_V1724DPP_CHANNEL_SIZE = 8
-MAX_V1720DPP_CHANNEL_SIZE = 8
-MAX_V1751DPP_CHANNEL_SIZE = 8
-MAX_V1730DPP_CHANNEL_SIZE = 16
-MAX_V1740DPP_CHANNEL_SIZE = 64
-MAX_X740_GROUP_SIZE = 8
-MAX_V1730_CHANNEL_SIZE = 16
-MAX_ZLE_CHANNEL_SIZE = MAX_V1751DPP_CHANNEL_SIZE
-MAX_X742_CHANNEL_SIZE = 9
-MAX_X742_GROUP_SIZE = 4
-MAX_X743_CHANNELS_X_GROUP = 2
-MAX_V1743_GROUP_SIZE = 8
-MAX_DT5743_GROUP_SIZE = 4
-MAX_DPP_CI_CHANNEL_SIZE = MAX_V1720DPP_CHANNEL_SIZE
-MAX_DPP_PSD_CHANNEL_SIZE = MAX_V1730DPP_CHANNEL_SIZE
-MAX_DPP_PHA_CHANNEL_SIZE = MAX_V1730DPP_CHANNEL_SIZE
-MAX_DPP_QDC_CHANNEL_SIZE = MAX_V1740DPP_CHANNEL_SIZE
-MAX_DPP_CHANNEL_SIZE = MAX_DPP_PSD_CHANNEL_SIZE
-MAX_LICENSE_DIGITS = 8
-MAX_LICENSE_LENGTH = MAX_LICENSE_DIGITS * 2 + 1
-
-
-@unique
-class ConnectionType(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_ConnectionType
-    """
-    USB = 0
-    OPTICAL_LINK = 1
-    USB_A4818 = 5
-    ETH_V4718 = 6
-    USB_V4718 = 7
-
-
-class _BoardInfoRaw(ct.Structure):
-    _fields_ = [
-        ('ModelName', ct.c_char * 12),
-        ('Model', ct.c_uint32),
-        ('Channels', ct.c_uint32),
-        ('FormFactor', ct.c_uint32),
-        ('FamilyCode', ct.c_uint32),
-        ('ROC_FirmwareRel', ct.c_char * 20),
-        ('AMC_FirmwareRel', ct.c_char * 40),
-        ('SerialNumber', ct.c_uint32),
-        ('MezzanineSerNum', (ct.c_char * 8) * 4),
-        ('PCB_Revision', ct.c_uint32),
-        ('ADC_NBits', ct.c_uint32),
-        ('SAMCorrectionDataLoaded', ct.c_uint32),
-        ('CommHandle', ct.c_int),
-        ('VMEHandle', ct.c_int),
-        ('License', ct.c_char * MAX_LICENSE_LENGTH),
-    ]
-
-
-class _EventInfoRaw(ct.Structure):
-    _fields_ = [
-        ('EventSize', ct.c_uint32),
-        ('BoardId', ct.c_uint32),
-        ('Pattern', ct.c_uint32),
-        ('ChannelMask', ct.c_uint32),
-        ('EventCounter', ct.c_uint32),
-        ('TriggerTimeTag', ct.c_uint32),
-    ]
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class EventInfo:
-    """
-    Binding of ::CAEN_DGTZ_EventInfo_t
-    """
-    event_size: int
-    board_id: int
-    pattern: int
-    channel_mask: int
-    event_counter: int
-    trigger_time_tag: int
-
-    @classmethod
-    def from_raw(cls, raw: _EventInfoRaw):
-        """Instantiate from raw data"""
-        return cls(
-            raw.EventSize,
-            raw.BoardId,
-            raw.Pattern,
-            raw.ChannelMask,
-            raw.EventCounter,
-            raw.TriggerTimeTag,
-        )
-
-
-class _Uint16EventRaw(ct.Structure):
-    _fields_ = [
-        ('ChSize', ct.c_uint32 * MAX_UINT16_CHANNEL_SIZE),
-        ('DataChannel', ct.POINTER(ct.c_uint16) * MAX_UINT16_CHANNEL_SIZE),
-    ]
-
-
-class _Uint8EventRaw(ct.Structure):
-    _fields_ = [
-        ('ChSize', ct.c_uint32 * MAX_UINT8_CHANNEL_SIZE),
-        ('DataChannel', ct.POINTER(ct.c_uint8) * MAX_UINT8_CHANNEL_SIZE),
-    ]
-
-
-class _X742GroupRaw(ct.Structure):
-    _fields_ = [
-        ('ChSize', ct.c_uint32 * MAX_X742_CHANNEL_SIZE),
-        ('DataChannel', ct.POINTER(ct.c_float) * MAX_X742_CHANNEL_SIZE),
-        ('TriggerTimeTag', ct.c_uint32),
-        ('StartIndexCell', ct.c_uint16),
-    ]
-
-
-class _X742EventRaw(ct.Structure):
-    _fields_ = [
-        ('GrPresent', ct.c_uint8 * MAX_X742_GROUP_SIZE),
-        ('DataGroup', ct.POINTER(_X742GroupRaw) * MAX_X742_GROUP_SIZE),
-    ]
-
-
-class _X743GroupRaw(ct.Structure):
-    _fields_ = [
-        ('ChSize', ct.c_uint32),
-        ('DataChannel', ct.POINTER(ct.c_float) * MAX_X743_CHANNELS_X_GROUP),
-        ('TriggerCount', ct.c_uint16 * MAX_X743_CHANNELS_X_GROUP),
-        ('TimeCount', ct.c_uint16 * MAX_X743_CHANNELS_X_GROUP),
-        ('EventId', ct.c_uint8),
-        ('StartIndexCell', ct.c_uint16),
-        ('TDC', ct.c_uint64),
-        ('PosEdgeTimeStamp', ct.c_float),
-        ('NegEdgeTimeStamp', ct.c_float),
-        ('PeakIndex', ct.c_uint16),
-        ('Peak', ct.c_float),
-        ('Baseline', ct.c_float),
-        ('Charge', ct.c_float),
-    ]
-
-
-class _X743EventRaw(ct.Structure):
-    _fields_ = [
-        ('GrPresent', ct.c_uint8 * MAX_V1743_GROUP_SIZE),
-        ('DataGroup', ct.POINTER(_X743GroupRaw) * MAX_V1743_GROUP_SIZE),
-    ]
-
-
-class _DPPPHAEventRaw(ct.Structure):
-    _fields_ = [
-        ('Format', ct.c_uint32),
-        ('TimeTag', ct.c_uint64),
-        ('Energy', ct.c_uint16),
-        ('Extras', ct.c_int16),
-        ('Waveforms', ct.POINTER(ct.c_uint32)),
-        ('Extras2', ct.c_uint32),
-    ]
-
-
-class _DPPPSDEventRaw(ct.Structure):
-    _fields_ = [
-        ('Format', ct.c_uint32),
-        ('Format2', ct.c_uint32),
-        ('TimeTag', ct.c_uint32),
-        ('ChargeShort', ct.c_int16),
-        ('ChargeLong', ct.c_int16),
-        ('Baseline', ct.c_int16),
-        ('Pur', ct.c_int16),
-        ('Waveforms', ct.POINTER(ct.c_uint32)),
-        ('Extras', ct.c_uint32),
-    ]
-
-
-class _DPPCIEventRaw(ct.Structure):
-    _fields_ = [
-        ('Format', ct.c_uint32),
-        ('TimeTag', ct.c_uint32),
-        ('Charge', ct.c_int16),
-        ('Baseline', ct.c_int16),
-        ('Waveforms', ct.POINTER(ct.c_uint32)),
-    ]
-
-
-class _DPPQDCEventRaw(ct.Structure):
-    _fields_ = [
-        ('isExtendedTimeStamp', ct.c_uint8),
-        ('Format', ct.c_uint32),
-        ('TimeTag', ct.c_uint64),
-        ('Charge', ct.c_uint16),
-        ('Baseline', ct.c_int16),
-        ('Pur', ct.c_uint16),
-        ('Overrange', ct.c_uint16),
-        ('SubChannel', ct.c_uint16),
-        ('Waveforms', ct.POINTER(ct.c_uint32)),
-        ('Extras', ct.c_uint32),
-    ]
-
-
-class _751ZLEEventRaw(ct.Structure):
-    _fields_ = [
-        ('timeTag', ct.c_uint32),
-        ('Baseline', ct.c_uint32),
-        ('Waveforms', ct.POINTER(ct.c_uint32)),
-    ]
-
-
-class _730ZLEWaveformsRaw(ct.Structure):
-    _fields_ = [
-        ('TraceNumber', ct.c_uint32),
-        ('Trace', ct.POINTER(ct.c_uint16)),
-        ('TraceIndex', ct.POINTER(ct.c_uint32)),
-    ]
-
-
-class _730ZLEChannelRaw(ct.Structure):
-    _fields_ = [
-        ('fifo_full', ct.c_uint32),
-        ('size_wrd', ct.c_uint32),
-        ('Baseline', ct.c_uint32),
-        ('DataPtr', ct.POINTER(ct.c_uint32)),
-        ('Waveforms', ct.POINTER(_730ZLEWaveformsRaw)),
-    ]
-
-
-class _730ZLEEventRaw(ct.Structure):
-    _fields_ = [
-        ('size', ct.c_uint32),
-        ('chmask', ct.c_uint16),
-        ('tcounter', ct.c_uint32),
-        ('timeStamp', ct.c_uint64),
-        ('Channel', ct.POINTER(_730ZLEChannelRaw) * MAX_V1730_CHANNEL_SIZE),
-    ]
-
-
-class _730DAWWaveformsRaw(ct.Structure):
-    _fields_ = [
-        ('Trace', ct.POINTER(ct.c_uint16)),
-    ]
-
-
-class _730DAWChannelRaw(ct.Structure):
-    _fields_ = [
-        ('truncate', ct.c_uint32),
-        ('EvType', ct.c_uint32),
-        ('size', ct.c_uint32),
-        ('timeStamp', ct.c_uint64),
-        ('baseline', ct.c_uint16),
-        ('DataPtr', ct.POINTER(ct.c_uint16)),
-        ('Waveforms', ct.POINTER(_730DAWWaveformsRaw)),
-    ]
-
-
-class _730DAWEventRaw(ct.Structure):
-    _fields_ = [
-        ('size', ct.c_uint32),
-        ('chmask', ct.c_uint16),
-        ('tcounter', ct.c_uint32),
-        ('timeStamp', ct.c_uint64),
-        ('Channel', ct.POINTER(_730DAWChannelRaw) * MAX_V1730_CHANNEL_SIZE),
-    ]
-
-
-class _DPPX743EventRaw(ct.Structure):
-    _fields_ = [
-        ('Charge', ct.c_float),
-        ('StartIndexCell', ct.c_int),
-    ]
-
-
-class _DPPPHAWaveformsRaw(ct.Structure):
-    _fields_ = [
-        ('Ns', ct.c_uint32),
-        ('DualTrace', ct.c_uint8),
-        ('VProbe1', ct.c_uint8),
-        ('VProbe2', ct.c_uint8),
-        ('VDProbe', ct.c_uint8),
-        ('Trace1', ct.POINTER(ct.c_int16)),
-        ('Trace2', ct.POINTER(ct.c_int16)),
-        ('DTrace1', ct.POINTER(ct.c_uint8)),
-        ('DTrace2', ct.POINTER(ct.c_uint8)),
-    ]
-
-
-class _DPPPSDWaveformsRaw(ct.Structure):
-    _fields_ = [
-        ('Ns', ct.c_uint32),
-        ('dualTrace', ct.c_uint8),
-        ('anlgProbe', ct.c_uint8),
-        ('dgtProbe1', ct.c_uint8),
-        ('dgtProbe2', ct.c_uint8),
-        ('Trace1', ct.POINTER(ct.c_int16)),
-        ('Trace2', ct.POINTER(ct.c_int16)),
-        ('DTrace1', ct.POINTER(ct.c_uint8)),
-        ('DTrace2', ct.POINTER(ct.c_uint8)),
-        ('DTrace3', ct.POINTER(ct.c_uint8)),
-        ('DTrace4', ct.POINTER(ct.c_uint8)),
-    ]
-
-
-class _751ZLEWaveformsRaw(ct.Structure):
-    _fields_ = [
-        ('Ns', ct.c_uint32),
-        ('Trace1', ct.POINTER(ct.c_uint16)),
-        ('Discarded', ct.POINTER(ct.c_uint8)),
-    ]
-
-
-_DPPCIWaveformsRaw = _DPPPSDWaveformsRaw
-
-
-class _DPPQDCWaveformsRaw(ct.Structure):
-    _fields_ = [
-        ('Ns', ct.c_uint32),
-        ('dualTrace', ct.c_uint8),
-        ('anlgProbe', ct.c_uint8),
-        ('dgtProbe1', ct.c_uint8),
-        ('dgtProbe2', ct.c_uint8),
-        ('Trace1', ct.POINTER(ct.c_uint16)),
-        ('Trace2', ct.POINTER(ct.c_uint16)),
-        ('DTrace1', ct.POINTER(ct.c_uint8)),
-        ('DTrace2', ct.POINTER(ct.c_uint8)),
-        ('DTrace3', ct.POINTER(ct.c_uint8)),
-        ('DTrace4', ct.POINTER(ct.c_uint8)),
-    ]
-
-
-@unique
-class EnaDis(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_EnaDis_t
-    """
-    ENABLE  = 1
-    DISABLE = 0
-
-
-@unique
-class IRQMode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_IRQMode_t
-    """
-    RORA = 0
-    ROAK = 1
-
-
-@unique
-class TriggerMode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_TriggerMode_t
-    """
-    DISABLED         = 0
-    EXTOUT_ONLY      = 2
-    ACQ_ONLY         = 1
-    ACQ_AND_EXTOUT   = 3
-
-
-@unique
-class TriggerPolarity(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_TriggerPolarity_t
-    """
-    ON_RISING_EDGE  = 0
-    ON_FALLING_EDGE = 1
-
-
-@unique
-class PulsePolarity(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_PulsePolarity_t
-    """
-    POSITIVE = 0
-    NEGATIVE = 1
-
-
-@unique
-class ZSMode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_ZS_Mode_t
-    """
-    NO  = 0
-    INT = 1
-    ZLE = 2
-    AMP = 3
-
-
-@unique
-class ThresholdWeight(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_ThresholdWeight_t
-    """
-    FINE    = 0
-    COARSE  = 1
-
-
-@unique
-class AcqMode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_AcqMode_t
-    """
-    SW_CONTROLLED           = 0
-    S_IN_CONTROLLED         = 1
-    FIRST_TRG_CONTROLLED    = 2
-    LVDS_CONTROLLED         = 3
-
-
-@unique
-class TriggerLogic(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_TriggerLogic_t
-    """
-    OR            = 0
-    AND           = 1
-    MAJORITY      = 2
-
-
-@unique
-class RunSyncMode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_RunSyncMode_t
-    """
-    DISABLED                    = 0
-    TRG_OUT_TRG_IN_DAISY_CHAIN  = 1
-    TRG_OUT_SIN_DAISY_CHAIN     = 2
-    SIN_FANOUT                  = 3
-    GPIO_GPIO_DAISY_CHAIN       = 4
-
-
-@unique
-class AnalogMonitorOutputMode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_AnalogMonitorOutputMode_t
-    """
-    TRIGGER_MAJORITY    = 0
-    TEST                = 1
-    ANALOG_INSPECTION   = 2
-    BUFFER_OCCUPANCY    = 3
-    VOLTAGE_LEVEL       = 4
-
-
-@unique
-class AnalogMonitorMagnify(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_AnalogMonitorMagnify_t
-    """
-    MAGNIFY_1X  = 0
-    MAGNIFY_2X  = 1
-    MAGNIFY_4X  = 2
-    MAGNIFY_8X  = 3
-
-
-@unique
-class AnalogMonitorInspectorInverter(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_AnalogMonitorInspectorInverter_t
-    """
-    P_1X  = 0
-    N_1X  = 1
-
-
-@unique
-class ReadMode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_ReadMode_t
-    """
-    SLAVE_TERMINATED_READOUT_MBLT   = 0
-    SLAVE_TERMINATED_READOUT_2eVME  = 1
-    SLAVE_TERMINATED_READOUT_2eSST  = 2
-    POLLING_MBLT                    = 3
-    POLLING_2eVME                   = 4
-    POLLING_2eSST                   = 5
-
-
-@unique
-class DPPFirmware(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_DPPFirmware_t
-    """
-    PHA = 0
-    PSD = 1
-    CI  = 2
-    ZLE = 3
-    QDC = 4
-    DAW = 5
-    NOT_DPP = -1
-
-
-class _DPPPHAParamsRaw(ct.Structure):
-    _fields_ = [
-        ('M', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('m', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('k', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('ftd', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('a', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('b', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('thr', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('nsbl', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('nspk', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('pkho', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('blho', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('otrej', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('trgho', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('twwdt', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('dgain', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('enf', ct.c_float * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('decimation', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('enskim', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('eskimlld', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('eskimuld', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('blrclip', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('dcomp', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-        ('trapbsl', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
-    ]
-
-
-class _DPPPSDParamsRaw(ct.Structure):
-    _fields_ = [
-        ('blthr', ct.c_int),
-        ('bltmo', ct.c_int),
-        ('trgho', ct.c_int),
-        ('thr', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('selft', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('csens', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('sgate', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('lgate', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('pgate', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('tvaw', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('nsbl', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('discr', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('cfdf', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('cfdd', ct.c_int * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('trgc', ct.POINTER(ct.c_int) * MAX_DPP_PSD_CHANNEL_SIZE),
-        ('purh', ct.c_int),
-        ('purgap', ct.c_int),
-    ]
-
-
-class _DPPCIParamsRaw(ct.Structure):
-    _fields_ = [
-        ('purgap', ct.c_int),
-        ('purh', ct.c_int),
-        ('blthr', ct.c_int),
-        ('bltmo', ct.c_int),
-        ('trgho', ct.c_int),
-        ('thr', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
-        ('selft', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
-        ('csens', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
-        ('gate', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
-        ('pgate', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
-        ('tvaw', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
-        ('nsbl', ct.c_int * MAX_DPP_CI_CHANNEL_SIZE),
-        ('trgc', ct.POINTER(ct.c_int) * MAX_DPP_CI_CHANNEL_SIZE),
-    ]
-
-
-class _751ZLEParamsRaw(ct.Structure):
-    _fields_ = [
-        ('NSampBck', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
-        ('NSampAhe', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
-        ('ZleUppThr', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
-        ('ZleUndThr', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
-        ('selNumSampBsl', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
-        ('bslThrshld', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
-        ('bslTimeOut', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
-        ('preTrgg', ct.c_int),
-    ]
-
-
-class _DPPQDCParamsRaw(ct.Structure):
-    _fields_ = [
-        ('trgho', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('GateWidth', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('PreGate', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('FixedBaseline', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('DisTrigHist', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('DisSelfTrigger', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('BaselineMode', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('TrgMode', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('ChargeSensitivity', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('PulsePol', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('EnChargePed', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('TestPulsesRate', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('EnTestPulses', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('InputSmoothing', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
-        ('EnableExtendedTimeStamp', ct.c_int),
-    ]
-
-
-class _DRS4CorrectionRaw(ct.Structure):
-    _fields_ = [
-        ('cell', (ct.c_int16 * 1024) * MAX_X742_CHANNEL_SIZE),
-        ('nsample', (ct.c_int8 * 1024) * MAX_X742_CHANNEL_SIZE),
-        ('time', ct.c_float * 1024),
-    ]
-
-
-@unique
-class DPPSaveParam(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_DPP_SaveParam_t
-    """
-    ENERGY_ONLY     = 0
-    TIME_ONLY       = 1
-    ENERGY_AND_TIME = 2
-    CHARGE_AND_TIME = 4
-    NONE            = 3
-
-
-@unique
-class DPPTriggerMode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_DPP_TriggerMode_t
-    """
-    NORMAL      = 0
-    COINCIDENCE = 1
-
-
-@unique
-class IOLevel(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_IOLevel_t
-    """
-    NIM = 0
-    TTL = 1
-
-
-@unique
-class DRS4Frequency(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_DRS4Frequency_t
-    """
-    F_5GHz  = 0
-    F_2_5GHz  = 1
-    F_1GHz  = 2
-    F_750MHz  = 3
-
-
-@unique
-class OutputSignalMode(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_OutputSignalMode_t
-    """
-    TRIGGER                  = 0
-    FASTTRG_ALL              = 1
-    FASTTRG_ACCEPTED         = 2
-    BUSY                     = 3
-    CLK_OUT                  = 4
-    RUN                      = 5
-    TRGPULSE                 = 6
-    OVERTHRESHOLD            = 7
-
-
-@unique
-class SAMCorrectionLevel(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_SAM_CORRECTION_LEVEL_t
-    """
-    DISABLED        = 0
-    PEDESTAL_ONLY   = 1
-    INL             = 2
-    ALL             = 3
-
-
-@unique
-class SAMPulseSourceType(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_SAMPulseSourceType_t
-    """
-    SOFTWARE    = 0
-    CONT        = 1
-
-
-@unique
-class SAMFrequency(IntEnum):
-    """
-    Binding of ::CAEN_DGTZ_SAMFrequency_t
-    """
-    F_3_2GHz  = 0
-    F_1_6GHz  = 1
-    F_800MHz  = 2
-    F_400MHz  = 3
+from caen_libs._caendigitizertypes import (
+    BoardInfo,
+    ConnectionType,
+    EnaDis,
+    IRQMode,
+    TriggerMode,
+    PulsePolarity,
+    ZSMode,
+    ThresholdWeight,
+    AcqMode,
+    RunSyncMode,
+    AnalogMonitorInspectorInverter,
+    ReadMode,
+    EventInfo,
+    BoardFamilyCode,
+    X742Event,
+    DPPPHAEvent,
+    DPPPSDEvent,
+    DPPCIEvent,
+    DPPDAWEvent,
+    DPPQDCEvent,
+    DPPX743Event,
+    DPPPSDWaveforms,
+    DPPPHAWaveforms,
+    DPPCIWaveforms,
+    DPPQDCWaveforms,
+    DPPDAWWaveforms,
+    FirmwareCode,
+    Uint16Event,
+    Uint8Event,
+    X743Event,
+    AnalogMonitorOutputMode,
+    AnalogMonitorMagnify,
+    IOLevel,
+    DPPSaveParam,
+    DPPTriggerMode,
+    TriggerLogic,
+    TriggerPolarity,
+    SAMCorrectionLevel,
+    SAMPulseSourceType,
+    SAMFrequency,
+    OutputSignalMode,
+    DRS4Frequency,
+    DPPFirmware,
+)
+import caen_libs._caendigitizertypes as _cdt
 
 
 class Error(error.Error):
@@ -760,8 +125,13 @@ _c_uint16_p = ct.POINTER(ct.c_uint16)
 _c_int32_p = ct.POINTER(ct.c_int32)
 _c_uint32_p = ct.POINTER(ct.c_uint32)
 _c_void_p_p = ct.POINTER(ct.c_void_p)
-_board_info_p = ct.POINTER(_BoardInfoRaw)
-_event_info_p = ct.POINTER(_EventInfoRaw)
+_board_info_p = ct.POINTER(_cdt.BoardInfoRaw)
+_event_info_p = ct.POINTER(_cdt.EventInfoRaw)
+
+
+@dataclass
+class _Buffer:
+    data: 'ct._Pointer[ct.c_char]'
 
 
 class _Lib(_utils.Lib):
@@ -994,12 +364,17 @@ class Device:
 
     # Private members
     __opened: bool = field(default=True, repr=False)
+    __info: BoardInfo = field(init=False, repr=False)
     __ro_buff: Any = field(default_factory=_c_char_p, repr=False)
     __ro_buff_size: int = field(default=0, repr=False)
     __ro_buff_occupancy: int = field(default=0, repr=False)
+    __dpp_events: ct.Array[ct.c_void_p] = field(init=False, repr=False)
+    __dpp_waveforms: ct.c_void_p = field(default_factory=ct.c_void_p, repr=False)
     __registers: _utils.Registers = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        self.__info = self.get_info()
+        self.__dpp_events = (ct.c_void_p * self.__info.channels)()
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
     def __del__(self) -> None:
@@ -1061,13 +436,13 @@ class Device:
         """Utility to simplify register access"""
         return self.__registers
 
-    def get_info(self) -> _BoardInfoRaw:
+    def get_info(self) -> BoardInfo:
         """
         Binding of CAEN_DGTZ_GetInfo()
         """
-        l_data = _BoardInfoRaw()
+        l_data = _cdt.BoardInfoRaw()
         lib.get_info(self.handle, l_data)
-        return l_data
+        return BoardInfo.from_raw(l_data)
 
     def reset(self) -> None:
         """
@@ -1503,66 +878,129 @@ class Device:
 
     def get_num_events(self) -> int:
         """
-        Binding of GetNumEvents()
+        Binding of CAEN_DGTZ_GetNumEvents()
         """
         l_value = ct.c_uint32()
         lib.get_num_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, l_value)
         return l_value.value
 
-    def get_event_info(self, num_event: int) -> tuple[EventInfo, bytes]:
+    def get_event_info(self, num_event: int) -> tuple[EventInfo, _Buffer]:
         """
         Binding of CAEN_DGTZ_GetEventInfo()
         """
-        l_event_ptr = _c_char_p_p()
-        l_event_info = _EventInfoRaw()
+        l_event_ptr = _c_char_p()
+        l_event_info = _cdt.EventInfoRaw()
         lib.get_event_info(self.handle, self.__ro_buff, self.__ro_buff_occupancy, num_event, l_event_info, l_event_ptr)
         event_info = EventInfo.from_raw(l_event_info)
-        data = ct.string_at(l_event_ptr.contents, event_info.event_size)
-        return event_info, data
+        return event_info, _Buffer(l_event_ptr)
 
-    def decode_event(self, *args) -> None:
+    def __get_event_type(self):
+        match self.__info.family_code:
+            case BoardFamilyCode.XX742:
+                return X742Event, _cdt.X742EventRaw
+            case BoardFamilyCode.XX743:
+                return X743Event, _cdt.X743EventRaw
+            case BoardFamilyCode.XX721 | BoardFamilyCode.XX731:
+                return Uint8Event, _cdt.Uint8EventRaw
+            case _:
+                return Uint16Event, _cdt.Uint16EventRaw
+
+    def __get_dpp_event_type(self):
+        match self.__info.firmware_code:
+            case FirmwareCode.V1724_DPP_PHA | FirmwareCode.V1730_DPP_PHA:
+                return DPPPHAEvent, _cdt.DPPPHAEventRaw
+            case FirmwareCode.V1720_DPP_PSD | FirmwareCode.V1730_DPP_PSD | FirmwareCode.V1751_DPP_PSD:
+                return DPPPSDEvent, _cdt.DPPPSDEventRaw
+            case FirmwareCode.V1720_DPP_CI:
+                return DPPCIEvent, _cdt.DPPCIEventRaw
+            case FirmwareCode.V1743_DPP_CI:
+                return DPPX743Event, _cdt.DPPX743EventRaw
+            case FirmwareCode.V1740_DPP_QDC:
+                return DPPQDCEvent, _cdt.DPPQDCEventRaw
+            case FirmwareCode.V1730_DPP_DAW:
+                return DPPDAWEvent, _cdt.DPPDAWEventRaw
+
+    def __get_dpp_waveforms_type(self):
+        match self.__info.firmware_code:
+            case FirmwareCode.V1724_DPP_PHA | FirmwareCode.V1730_DPP_PHA:
+                return DPPPHAWaveforms, _cdt.DPPPHAWaveformsRaw
+            case FirmwareCode.V1720_DPP_PSD | FirmwareCode.V1730_DPP_PSD | FirmwareCode.V1751_DPP_PSD:
+                return DPPPSDWaveforms, _cdt.DPPPSDWaveformsRaw
+            case FirmwareCode.V1720_DPP_CI:
+                return DPPCIWaveforms, _cdt.DPPCIWaveformsRaw
+            case FirmwareCode.V1740_DPP_QDC:
+                return DPPQDCWaveforms, _cdt.DPPQDCWaveformsRaw
+            case FirmwareCode.V1730_DPP_DAW:
+                return DPPDAWWaveforms, _cdt.DPPDAWWaveformsRaw
+
+    def decode_event(self, event_ptr: _Buffer) -> Union[Uint16Event, Uint8Event, X742Event, X743Event]:
         """
         Binding of CAEN_DGTZ_DecodeEvent()
         """
-        raise NotImplementedError()
+        l_evt = _c_void_p_p()
+        lib.decode_event(self.handle, event_ptr.data, l_evt)
+        evt_type, raw_type = self.__get_event_type()
+        evt_ptr = ct.cast(l_evt.contents, ct.POINTER(raw_type))
+        return evt_type(evt_ptr.contents)
 
-    def free_event(self, *args) -> None:
+    def free_event(self, event: Union[Uint16Event, Uint8Event, X742Event, X743Event]) -> None:
         """
         Binding of CAEN_DGTZ_FreeEvent()
         """
-        raise NotImplementedError()
+        ptr = ct.byref(event.raw)
+        void_ptr = ct.cast(ptr, ct.c_void_p)
+        lib.free_event(self.handle, void_ptr)
 
-    def get_dpp_events(self, *args) -> None:
+    def get_dpp_events(self) -> Union[list[list[DPPPHAEvent]], list[list[DPPPSDEvent]], list[list[DPPCIEvent]], list[list[DPPX743Event]], list[list[DPPQDCEvent]], list[list[DPPDAWEvent]]]:
         """
         Binding of CAEN_DGTZ_GetDPPEvents()
         """
-        raise NotImplementedError()
+        l_num_events = (ct.c_uint32 * self.__info.channels)()
+        lib.get_dpp_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__dpp_events, l_num_events)
+        evt_type, raw_type = self.__get_dpp_event_type()
+        evt_type_array = ct.POINTER(raw_type) * self.__info.channels
+        evt_ptr = ct.cast(self.__dpp_events, evt_type_array)
+        return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
-    def malloc_dpp_events(self, *args) -> None:
+    def malloc_dpp_events(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocDPPEvents()
         """
-        raise NotImplementedError()
+        l_size = ct.c_uint32()
+        lib.malloc_dpp_events(self.handle, self.__dpp_events, l_size)
+        return l_size.value
 
-    def free_dpp_events(self, *args) -> None:
+    def free_dpp_events(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeDPPEvents()
         """
-        raise NotImplementedError()
+        lib.free_dpp_events(self.handle, self.__dpp_events)
 
-    def malloc_dpp_waveforms(self, *args) -> None:
+    def malloc_dpp_waveforms(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocDPPWaveforms()
         """
-        raise NotImplementedError()
+        l_size = ct.c_uint32()
+        lib.malloc_dpp_waveforms(self.handle, self.__dpp_waveforms, l_size)
+        return l_size.value
 
-    def free_dpp_waveforms(self, *args) -> None:
+    def free_dpp_waveforms(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeDPPWaveforms()
         """
-        raise NotImplementedError()
+        lib.free_dpp_waveforms(self.handle, self.__dpp_waveforms)
 
-    # Missing decode functions here
+    def decode_dpp_waveforms(self, ch: int, evt_id: int) -> Union[DPPPHAWaveforms, DPPPSDWaveforms, DPPCIWaveforms, DPPQDCWaveforms, DPPDAWWaveforms]:
+        """
+        Binding of CAEN_DGTZ_DecodeDPPWaveforms()
+        """
+        _, raw_type = self.__get_dpp_event_type()
+        evt_type_array = ct.POINTER(raw_type) * self.__info.channels
+        evt_ptr = ct.cast(self.__dpp_events, evt_type_array)
+        lib.decode_dpp_waveforms(self.handle, evt_ptr[ch][evt_id], self.__dpp_waveforms)
+        wave_type, raw_type = self.__get_dpp_waveforms_type()
+        wave_ptr = ct.cast(self.__dpp_waveforms, ct.POINTER(raw_type))
+        return wave_type(wave_ptr.contents)
 
     def set_num_events_per_aggregate(self, num_events: int, channel: int = -1) -> None:
         """
