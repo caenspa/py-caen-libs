@@ -214,7 +214,7 @@ class BoardInfo:
             raw.ROC_FirmwareRel.decode('ascii'),
             amc_version,
             raw.SerialNumber,
-            [i.decode('ascii') for i in raw.MezzanineSerNum],
+            [bytes(i).decode('ascii').rstrip('\x00') for i in raw.MezzanineSerNum],
             raw.PCB_Revision,
             raw.ADC_NBits,
             raw.SAMCorrectionDataLoaded,
@@ -1227,6 +1227,16 @@ class ReadMode(IntEnum):
     POLLING_MBLT                    = 3
     POLLING_2eVME                   = 4
     POLLING_2eSST                   = 5
+
+
+@unique
+class DPPAcqMode(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_DPP_AcqMode_t
+    """
+    OSCILLOSCOPE  = 0
+    LIST          = 1
+    MIXED         = 2
 
 
 @unique

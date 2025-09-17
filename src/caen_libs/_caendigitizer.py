@@ -12,49 +12,50 @@ from typing import Any, Optional, TypeVar, Union
 
 from caen_libs import error, _utils
 from caen_libs._caendigitizertypes import (
+    AcqMode,
+    AnalogMonitorInspectorInverter,
+    AnalogMonitorMagnify,
+    AnalogMonitorOutputMode,
+    BoardFamilyCode,
     BoardInfo,
     ConnectionType,
-    EnaDis,
-    IRQMode,
-    TriggerMode,
-    PulsePolarity,
-    ZSMode,
-    ThresholdWeight,
-    AcqMode,
-    RunSyncMode,
-    AnalogMonitorInspectorInverter,
-    ReadMode,
-    EventInfo,
-    BoardFamilyCode,
-    X742Event,
-    DPPPHAEvent,
-    DPPPSDEvent,
+    DPPAcqMode,
     DPPCIEvent,
-    DPPDAWEvent,
-    DPPQDCEvent,
-    DPPX743Event,
-    DPPPSDWaveforms,
-    DPPPHAWaveforms,
     DPPCIWaveforms,
-    DPPQDCWaveforms,
+    DPPDAWEvent,
     DPPDAWWaveforms,
-    FirmwareCode,
-    Uint16Event,
-    Uint8Event,
-    X743Event,
-    AnalogMonitorOutputMode,
-    AnalogMonitorMagnify,
-    IOLevel,
+    DPPFirmware,
+    DPPPHAEvent,
+    DPPPHAWaveforms,
+    DPPPSDEvent,
+    DPPPSDWaveforms,
+    DPPQDCEvent,
+    DPPQDCWaveforms,
     DPPSaveParam,
     DPPTriggerMode,
-    TriggerLogic,
-    TriggerPolarity,
-    SAMCorrectionLevel,
-    SAMPulseSourceType,
-    SAMFrequency,
-    OutputSignalMode,
+    DPPX743Event,
     DRS4Frequency,
-    DPPFirmware,
+    EnaDis,
+    EventInfo,
+    FirmwareCode,
+    IOLevel,
+    IRQMode,
+    OutputSignalMode,
+    PulsePolarity,
+    ReadMode,
+    RunSyncMode,
+    SAMCorrectionLevel,
+    SAMFrequency,
+    SAMPulseSourceType,
+    ThresholdWeight,
+    TriggerLogic,
+    TriggerMode,
+    TriggerPolarity,
+    Uint16Event,
+    Uint8Event,
+    X742Event,
+    X743Event,
+    ZSMode,
 )
 import caen_libs._caendigitizertypes as _types
 
@@ -234,8 +235,8 @@ class _Lib(_utils.Lib):
         self.get_dpp_virtual_probe = self.__get('GetDPP_VirtualProbe', ct.c_int, ct.c_int, _c_int_p)
         self.get_dpp_supported_virtual_probes = self.__get('GetDPP_SupportedVirtualProbes', ct.c_int, ct.c_int, _c_int_p, _c_int_p)
         self.allocate_event = self.__get('AllocateEvent', ct.c_int, _c_void_p_p)
-        self.set_io_level = self.__get('SetIOLevel', ct.c_int)
-        self.get_io_level = self.__get('GetIOLevel', _c_int_p)
+        self.set_io_level = self.__get('SetIOLevel', ct.c_int, ct.c_int)
+        self.get_io_level = self.__get('GetIOLevel', ct.c_int, _c_int_p)
         self.set_trigger_polarity = self.__get('SetTriggerPolarity', ct.c_int, ct.c_uint32, ct.c_int)
         self.get_trigger_polarity = self.__get('GetTriggerPolarity', ct.c_int, ct.c_uint32, _c_int_p)
         self.rearm_interrupt = self.__get('RearmInterrupt', ct.c_int)
@@ -746,32 +747,32 @@ class Device:
         lib.get_channel_zs_params(self.handle, channel, l_weigth, l_threshold, l_n_samples)
         return ThresholdWeight(l_weigth.value), l_threshold.value, l_n_samples.value
 
-    def set_acquisition_mode(self, channel: int, mode: AcqMode) -> None:
+    def set_acquisition_mode(self, mode: AcqMode) -> None:
         """
         Binding of CAEN_DGTZ_SetAcquisitionMode()
         """
-        lib.set_acquisition_mode(self.handle, channel, mode)
+        lib.set_acquisition_mode(self.handle, mode)
 
-    def get_acquisition_mode(self, channel: int) -> AcqMode:
+    def get_acquisition_mode(self) -> AcqMode:
         """
         Binding of CAEN_DGTZ_GetAcquisitionMode()
         """
         l_value = ct.c_int()
-        lib.get_acquisition_mode(self.handle, channel, l_value)
+        lib.get_acquisition_mode(self.handle, l_value)
         return AcqMode(l_value.value)
 
-    def set_run_synchronization_mode(self, channel: int, mode: RunSyncMode) -> None:
+    def set_run_synchronization_mode(self, mode: RunSyncMode) -> None:
         """
         Binding of CAEN_DGTZ_SetRunSynchronizationMode()
         """
-        lib.set_run_synchronization_mode(self.handle, channel, mode)
+        lib.set_run_synchronization_mode(self.handle, mode)
 
-    def get_run_synchronization_mode(self, channel: int) -> RunSyncMode:
+    def get_run_synchronization_mode(self) -> RunSyncMode:
         """
         Binding of CAEN_DGTZ_GetRunSynchronizationMode()
         """
         l_value = ct.c_int()
-        lib.get_run_synchronization_mode(self.handle, channel, l_value)
+        lib.get_run_synchronization_mode(self.handle, l_value)
         return RunSyncMode(l_value.value)
 
     def set_analog_mon_output(self, channel: int, mode: AnalogMonitorOutputMode) -> None:
@@ -851,7 +852,7 @@ class Device:
         lib.get_max_num_events_blt(self.handle, l_value)
         return l_value.value
 
-    def malloc_readout_buffer(self) -> None:
+    def malloc_readout_buffer(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocReadoutBuffer()
         """
@@ -860,6 +861,7 @@ class Device:
         lib.malloc_readout_buffer(self.handle, l_buffer, l_size)
         self.__ro_buff = l_buffer
         self.__ro_buff_size = l_size.value
+        return self.__ro_buff_size
 
     def free_readout_buffer(self) -> None:
         """
@@ -958,8 +960,7 @@ class Device:
         l_num_events = (ct.c_uint32 * self.__info.channels)()
         lib.get_dpp_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__dpp_events, l_num_events)
         evt_type, raw_type = self.__get_dpp_event_type()
-        evt_type_array = ct.POINTER(raw_type) * self.__info.channels
-        evt_ptr = ct.cast(self.__dpp_events, evt_type_array)
+        evt_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(raw_type)))
         return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
     def malloc_dpp_events(self) -> int:
@@ -1028,13 +1029,13 @@ class Device:
         """
         raise NotImplementedError()
 
-    def set_dpp_acquisition_mode(self, mode: AcqMode, param: DPPSaveParam) -> None:
+    def set_dpp_acquisition_mode(self, mode: DPPAcqMode, param: DPPSaveParam) -> None:
         """
         Binding of CAEN_DGTZ_SetDPPAcquisitionMode()
         """
         lib.set_dpp_acquisition_mode(self.handle, mode, param)
 
-    def get_dpp_acquisition_mode(self) -> tuple[AcqMode, DPPSaveParam]:
+    def get_dpp_acquisition_mode(self) -> tuple[DPPAcqMode, DPPSaveParam]:
         """
         Binding of CAEN_DGTZ_GetDPPAcquisitionMode()
         """
