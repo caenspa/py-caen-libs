@@ -70,10 +70,6 @@ class Error(error.Error):
         super().__init__(message, self.code.name, func)
 
 
-# For backward compatibility. Deprecated.
-ErrorCode = Error.Code
-
-
 # Utility definitions
 _c_ubyte_p = ct.POINTER(ct.c_ubyte)
 _c_short_p = ct.POINTER(ct.c_short)

@@ -108,10 +108,6 @@ class Error(error.Error):
         super().__init__(message, self.code.name, func)
 
 
-# For backward compatibility. Deprecated.
-ErrorCode = Error.Code
-
-
 # Utility definitions
 _c_char_p = ct.POINTER(ct.c_char)  # ct.c_char_p is not fine due to its own memory management
 _c_char_p_p = ct.POINTER(_c_char_p)
