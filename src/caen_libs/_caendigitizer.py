@@ -7,11 +7,11 @@ import ctypes as ct
 from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from enum import IntEnum, unique
+from enum import Enum, IntEnum, auto, unique
 from typing import Any, Optional, TypeVar, Union
 
 from caen_libs import error, _utils
-import caen_libs._caendigitizertypes as _types
+import caen_libs._caendigitizertypes as types
 from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     AcqMode,
     AnalogMonitorInspectorInverter,
@@ -138,8 +138,8 @@ _c_uint16_p = ct.POINTER(ct.c_uint16)
 _c_int32_p = ct.POINTER(ct.c_int32)
 _c_uint32_p = ct.POINTER(ct.c_uint32)
 _c_void_p_p = ct.POINTER(ct.c_void_p)
-_board_info_p = ct.POINTER(_types.BoardInfoRaw)
-_event_info_p = ct.POINTER(_types.EventInfoRaw)
+_board_info_p = ct.POINTER(types.BoardInfoRaw)
+_event_info_p = ct.POINTER(types.EventInfoRaw)
 
 
 @dataclass(**_utils.dataclass_slots)
@@ -375,19 +375,42 @@ class Device:
     conet_node: int
     vme_base_address: int
 
+    @unique
+    class _FirmwareType(Enum):
+        """Internal use only"""
+        STANDARD = auto()
+        DPP = auto()
+        ZLE = auto()
+
+        @classmethod
+        def from_code(cls, code: FirmwareCode):
+            """Internal use only"""
+            F = FirmwareCode
+            match code:
+                case F.STANDARD_FW | F.STANDARD_FW_X742 | F.STANDARD_FW_X743:
+                    return cls.STANDARD
+                case F.V1720_DPP_CI | F.V1720_DPP_PSD | F.V1751_DPP_PSD | F.V1743_DPP_CI | F.V1740_DPP_QDC | F.V1730_DPP_PSD | F.V1724_DPP_PHA | F.V1730_DPP_PHA | F.V1730_DPP_DAW:
+                    return cls.DPP
+                case F.V1751_DPP_ZLE | F.V1730_DPP_ZLE:
+                    return cls.ZLE
+                case _:
+                    raise ValueError(f'Unsupported firmware code: {code}')
+
     # Private members
     __opened: bool = field(default=True, repr=False)
-    __info: BoardInfo = field(init=False, repr=False)
-    __ro_buff: Any = field(default_factory=_c_char_p, repr=False)
+    __ro_buff: ct._Pointer[ct.c_char] = field(default_factory=_c_char_p, repr=False)
     __ro_buff_size: int = field(default=0, repr=False)
     __ro_buff_occupancy: int = field(default=0, repr=False)
-    __dpp_events: ct.Array[ct.c_void_p] = field(init=False, repr=False)
-    __dpp_waveforms: ct.c_void_p = field(default_factory=ct.c_void_p, repr=False)
+    __info: BoardInfo = field(init=False, repr=False)
+    __firmware_type: _FirmwareType = field(init=False, repr=False)
+    __events: ct.Array[ct.c_void_p] = field(init=False, repr=False)
+    __waveforms: ct.c_void_p = field(default_factory=ct.c_void_p, repr=False)
     __registers: _utils.Registers = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.__info = self.get_info()
-        self.__dpp_events = (ct.c_void_p * self.__info.channels)()
+        self.__firmware_type = self._FirmwareType.from_code(self.__info.firmware_code)
+        self.__events = (ct.c_void_p * self.__info.channels)()
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
     def __del__(self) -> None:
@@ -427,6 +450,14 @@ class Device:
         """
         Binding of CAEN_DGTZ_CloseDigitizer()
         """
+        self.free_readout_buffer()
+        match self.__firmware_type:
+            case self._FirmwareType.DPP:
+                self.free_dpp_events()
+                self.free_dpp_waveforms()
+            case self._FirmwareType.ZLE:
+                self.free_zle_events()
+                self.free_zle_waveforms()
         lib.close_digitizer(self.handle)
         self.__opened = False
 
@@ -453,7 +484,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_GetInfo()
         """
-        l_data = _types.BoardInfoRaw()
+        l_data = types.BoardInfoRaw()
         lib.get_info(self.handle, l_data)
         return BoardInfo.from_raw(l_data)
 
@@ -880,6 +911,8 @@ class Device:
         Binding of CAEN_DGTZ_FreeReadoutBuffer()
         """
         lib.free_readout_buffer(self.__ro_buff)
+        self.__ro_buff = _c_char_p()
+        self.__ro_buff_size = 0
 
     def read_data(self, mode: ReadMode) -> None:
         """
@@ -903,55 +936,73 @@ class Device:
         Binding of CAEN_DGTZ_GetEventInfo()
         """
         l_event_ptr = _c_char_p()
-        l_event_info = _types.EventInfoRaw()
+        l_event_info = types.EventInfoRaw()
         lib.get_event_info(self.handle, self.__ro_buff, self.__ro_buff_occupancy, num_event, l_event_info, l_event_ptr)
         event_info = EventInfo.from_raw(l_event_info)
         return event_info, _Buffer(l_event_ptr)
 
     def __get_event_type(self):
-        match self.__info.family_code:
-            case BoardFamilyCode.XX742:
-                return X742Event, _types.X742EventRaw
-            case BoardFamilyCode.XX743:
-                return X743Event, _types.X743EventRaw
-            case BoardFamilyCode.XX721 | BoardFamilyCode.XX731:
-                return Uint8Event, _types.Uint8EventRaw
+        match self.__info.firmware_code, self.__info.family_code:
+            case FirmwareCode.STANDARD_FW, BoardFamilyCode.XX721 | BoardFamilyCode.XX731:
+                return Uint8Event, types.Uint8EventRaw
+            case FirmwareCode.STANDARD_FW, _:
+                return Uint16Event, types.Uint16EventRaw
+            case FirmwareCode.STANDARD_FW_X742, BoardFamilyCode.XX742:
+                return X742Event, types.X742EventRaw
+            case FirmwareCode.STANDARD_FW_X743, BoardFamilyCode.XX743:
+                return X743Event, types.X743EventRaw
             case _:
-                return Uint16Event, _types.Uint16EventRaw
+                raise RuntimeError('Not a standard firmware')
 
     def __get_dpp_event_type(self):
         match self.__info.firmware_code:
             case FirmwareCode.V1724_DPP_PHA | FirmwareCode.V1730_DPP_PHA:
-                return DPPPHAEvent, _types.DPPPHAEventRaw
+                return DPPPHAEvent, types.DPPPHAEventRaw
             case FirmwareCode.V1720_DPP_PSD | FirmwareCode.V1730_DPP_PSD | FirmwareCode.V1751_DPP_PSD:
-                return DPPPSDEvent, _types.DPPPSDEventRaw
+                return DPPPSDEvent, types.DPPPSDEventRaw
             case FirmwareCode.V1720_DPP_CI:
-                return DPPCIEvent, _types.DPPCIEventRaw
+                return DPPCIEvent, types.DPPCIEventRaw
             case FirmwareCode.V1743_DPP_CI:
-                return DPPX743Event, _types.DPPX743EventRaw
+                return DPPX743Event, types.DPPX743EventRaw
             case FirmwareCode.V1740_DPP_QDC:
-                return DPPQDCEvent, _types.DPPQDCEventRaw
+                return DPPQDCEvent, types.DPPQDCEventRaw
             case FirmwareCode.V1730_DPP_DAW:
-                return DPPDAWEvent, _types.DPPDAWEventRaw
-            case FirmwareCode.V1730_DPP_ZLE:
-                return ZLEEvent730, _types.ZLEEvent730Raw
-            case FirmwareCode.V1751_DPP_ZLE:
-                return ZLEEvent751, _types.ZLEEvent751Raw
+                return DPPDAWEvent, types.DPPDAWEventRaw
             case _:
                 raise RuntimeError('Not a DPP firmware')
+
+    def __get_zle_event_type(self):
+        match self.__info.family_code:
+            case FirmwareCode.V1730_DPP_ZLE:
+                return ZLEEvent730, types.ZLEEvent730Raw
+            case FirmwareCode.V1751_DPP_ZLE:
+                return ZLEEvent751, types.ZLEEvent751Raw
+            case _:
+                raise RuntimeError('Not a ZLE firmware')
 
     def __get_dpp_waveforms_type(self):
         match self.__info.firmware_code:
             case FirmwareCode.V1724_DPP_PHA | FirmwareCode.V1730_DPP_PHA:
-                return DPPPHAWaveforms, _types.DPPPHAWaveformsRaw
+                return DPPPHAWaveforms, types.DPPPHAWaveformsRaw
             case FirmwareCode.V1720_DPP_PSD | FirmwareCode.V1730_DPP_PSD | FirmwareCode.V1751_DPP_PSD:
-                return DPPPSDWaveforms, _types.DPPPSDWaveformsRaw
+                return DPPPSDWaveforms, types.DPPPSDWaveformsRaw
             case FirmwareCode.V1720_DPP_CI:
-                return DPPCIWaveforms, _types.DPPCIWaveformsRaw
+                return DPPCIWaveforms, types.DPPCIWaveformsRaw
             case FirmwareCode.V1740_DPP_QDC:
-                return DPPQDCWaveforms, _types.DPPQDCWaveformsRaw
+                return DPPQDCWaveforms, types.DPPQDCWaveformsRaw
             case FirmwareCode.V1730_DPP_DAW:
-                return DPPDAWWaveforms, _types.DPPDAWWaveformsRaw
+                return DPPDAWWaveforms, types.DPPDAWWaveformsRaw
+            case _:
+                raise RuntimeError('Not a DPP firmware')
+
+    def __get_zle_waveforms_type(self):
+        match self.__info.firmware_code:
+            case FirmwareCode.V1730_DPP_ZLE:
+                return ZLEWaveforms730, types.ZLEWaveforms730Raw
+            case FirmwareCode.V1751_DPP_ZLE:
+                return ZLEWaveforms751, types.ZLEWaveforms751Raw
+            case _:
+                raise RuntimeError('Not a ZLE firmware')
 
     def decode_event(self, event_ptr: _Buffer, evt: Optional[Union[Uint16Event, Uint8Event, X742Event, X743Event]] = None) -> Union[Uint16Event, Uint8Event, X742Event, X743Event]:
         """
@@ -976,9 +1027,9 @@ class Device:
         Binding of CAEN_DGTZ_GetDPPEvents()
         """
         l_num_events = (ct.c_uint32 * self.__info.channels)()
-        lib.get_dpp_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__dpp_events, l_num_events)
+        lib.get_dpp_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__events, l_num_events)
         evt_type, raw_type = self.__get_dpp_event_type()
-        evt_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(raw_type)))
+        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(raw_type)))
         return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
     def malloc_dpp_events(self) -> int:
@@ -986,38 +1037,40 @@ class Device:
         Binding of CAEN_DGTZ_MallocDPPEvents()
         """
         l_size = ct.c_uint32()
-        lib.malloc_dpp_events(self.handle, self.__dpp_events, l_size)
+        lib.malloc_dpp_events(self.handle, self.__events, l_size)
         return l_size.value
 
     def free_dpp_events(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeDPPEvents()
         """
-        lib.free_dpp_events(self.handle, self.__dpp_events)
+        lib.free_dpp_events(self.handle, self.__events)
+        self.__events = (ct.c_void_p * self.__info.channels)()
 
     def malloc_dpp_waveforms(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocDPPWaveforms()
         """
         l_size = ct.c_uint32()
-        lib.malloc_dpp_waveforms(self.handle, self.__dpp_waveforms, l_size)
+        lib.malloc_dpp_waveforms(self.handle, self.__waveforms, l_size)
         return l_size.value
 
     def free_dpp_waveforms(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeDPPWaveforms()
         """
-        lib.free_dpp_waveforms(self.handle, self.__dpp_waveforms)
+        lib.free_dpp_waveforms(self.handle, self.__waveforms)
+        self.__waveforms = ct.c_void_p()
 
     def decode_dpp_waveforms(self, ch: int, evt_id: int) -> Union[DPPPHAWaveforms, DPPPSDWaveforms, DPPCIWaveforms, DPPQDCWaveforms, DPPDAWWaveforms]:
         """
         Binding of CAEN_DGTZ_DecodeDPPWaveforms()
         """
         _, raw_type = self.__get_dpp_event_type()
-        evt_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(raw_type)))
-        lib.decode_dpp_waveforms(self.handle, ct.byref(evt_ptr[ch][evt_id]), self.__dpp_waveforms)
+        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(raw_type)))
+        lib.decode_dpp_waveforms(self.handle, ct.byref(evt_ptr[ch][evt_id]), self.__waveforms)
         wave_type, raw_type = self.__get_dpp_waveforms_type()
-        wave_ptr = ct.cast(self.__dpp_waveforms, ct.POINTER(raw_type))
+        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(raw_type))
         return wave_type(wave_ptr.contents)
 
     def set_num_events_per_aggregate(self, num_events: int, channel: int = -1) -> None:
@@ -1236,7 +1289,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_GetCorrectionTables()
         """
-        l_ctable = _types.DRS4CorrectionRaw()
+        l_ctable = types.DRS4CorrectionRaw()
         lib.get_correction_tables(self.handle, frequency, ct.byref(l_ctable))
         return DRS4Correction.from_raw(l_ctable)
 
@@ -1256,40 +1309,42 @@ class Device:
         """
         Binding of CAEN_DGTZ_DecodeZLEWaveforms()
         """
-        _, raw_type = self.__get_dpp_event_type()
+        _, raw_type = self.__get_zle_event_type()
         evt_type_array = ct.POINTER(raw_type) * self.__info.channels
-        evt_ptr = ct.cast(self.__dpp_events, evt_type_array)
-        lib.decode_zle_waveforms(self.handle, evt_ptr[ch][evt_id], self.__dpp_waveforms)
-        wave_type, raw_type = self.__get_dpp_waveforms_type()
-        wave_ptr = ct.cast(self.__dpp_waveforms, ct.POINTER(raw_type))
+        evt_ptr = ct.cast(self.__events, evt_type_array)
+        lib.decode_zle_waveforms(self.handle, evt_ptr[ch][evt_id], self.__waveforms)
+        wave_type, raw_type = self.__get_zle_waveforms_type()
+        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(raw_type))
         return wave_type(wave_ptr.contents)
 
     def free_zle_waveforms(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeZLEWaveforms()
         """
-        lib.free_zle_waveforms(self.handle, self.__dpp_waveforms)
+        lib.free_zle_waveforms(self.handle, self.__waveforms)
+        self.__waveforms = ct.c_void_p()
 
     def malloc_zle_waveforms(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocZLEWaveforms()
         """
         l_size = ct.c_uint32()
-        lib.malloc_zle_waveforms(self.handle, self.__dpp_waveforms, l_size)
+        lib.malloc_zle_waveforms(self.handle, self.__waveforms, l_size)
         return l_size.value
 
     def free_zle_events(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeZLEEvents()
         """
-        lib.free_zle_events(self.handle, self.__dpp_events)
+        lib.free_zle_events(self.handle, self.__events)
+        self.__events = (ct.c_void_p * self.__info.channels)()
 
     def malloc_zle_events(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocZLEEvents()
         """
         l_size = ct.c_uint32()
-        lib.malloc_zle_events(self.handle, self.__dpp_events, l_size)
+        lib.malloc_zle_events(self.handle, self.__events, l_size)
         return l_size.value
 
     def get_zle_events(self) -> Union[list[list[ZLEEvent730]], list[list[ZLEEvent751]]]:
@@ -1297,9 +1352,9 @@ class Device:
         Binding of CAEN_DGTZ_GetZLEEvents()
         """
         l_num_events = (ct.c_uint32 * self.__info.channels)()
-        lib.get_zle_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__dpp_events, l_num_events)
-        evt_type, raw_type = self.__get_dpp_event_type()
-        evt_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(raw_type)))
+        lib.get_zle_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__events, l_num_events)
+        evt_type, raw_type = self.__get_zle_event_type()
+        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(raw_type)))
         return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
     def set_zle_parameters(self, channel_mask: int, params: Union[ZLEParams751]) -> None:
