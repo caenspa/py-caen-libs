@@ -17,7 +17,9 @@ __contact__ = 'https://www.caen.it/'
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from functools import partial
-from time import sleep
+
+import matplotlib.pyplot as plt
+
 from caen_libs import _caendigitizer as dgtz
 
 
@@ -36,7 +38,7 @@ parser.add_argument('-b', '--vmebaseaddress', type=partial(int, base=16), help='
 args = parser.parse_args()
 
 print('------------------------------------------------------------------------------------')
-print(f'CAEN Comm binding loaded (lib version {dgtz.lib.sw_release()})')
+print(f'CAEN Digitizer binding loaded (lib version {dgtz.lib.sw_release()})')
 print('------------------------------------------------------------------------------------')
 
 with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber, args.conetnode, args.vmebaseaddress) as device:
@@ -62,9 +64,8 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
             for i in range(device.get_num_events()):
                 evt_info, buffer = device.get_event_info(i)
-                print(evt_info)
                 evt = device.decode_event(buffer)
-                print(evt.data_channel)
+                plt.plot(evt.data_channel[0])
             device.sw_stop_acquisition()
             device.free_readout_buffer()
 
@@ -80,7 +81,7 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             dpp_params = dgtz.DPPPSDParams()
             dpp_params.resize(info.channels)
             for ch in range(info.channels):
-                dpp_params.thr[ch] = 2
+                dpp_params.thr[ch] = 50
                 dpp_params.nsbl[ch] = 2
                 dpp_params.lgate[ch] = 32
                 dpp_params.sgate[ch] = 24
@@ -104,14 +105,16 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.malloc_dpp_waveforms()
 
             device.sw_start_acquisition()
+            device.send_sw_trigger()
             device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
             for ch_idx, ch in enumerate(device.get_dpp_events()):
                 for evt_idx, evt in enumerate(ch):
-                    print(f'Ch: {ch_idx}\tEvent: {evt.time_tag}')
                     w = device.decode_dpp_waveforms(ch_idx, evt_idx)
-                    print(w.ns, w.trace1)
+                    plt.plot(w.trace1)
             device.sw_stop_acquisition()
 
             device.free_dpp_waveforms()
             device.free_dpp_events()
             device.free_readout_buffer()
+
+plt.show()

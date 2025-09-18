@@ -167,8 +167,6 @@ class FirmwareCode(IntEnum):
         return cls.UNKNOWN
 
 
-
-@unique
 class Registers(IntEnum):
     """
     Binding of Digitizer Registers Address Map
@@ -411,9 +409,14 @@ class Uint16Event:
     """
     raw: Uint16EventRaw = field(repr=False)
 
+    def __get_data_channel(self, index: int) -> npt.NDArray[np.uint16]:
+        if self.raw.ChSize[index] == 0:
+            return np.array([], dtype=np.uint16)
+        return np.ctypeslib.as_array(self.raw.DataChannel[index], shape=(self.raw.ChSize[index],))
+
     @property
     def data_channel(self) -> list[npt.NDArray[np.uint16]]:
-        return [np.ctypeslib.as_array(self.raw.DataChannel[i], shape=(self.raw.ChSize[i],)) for i in range(MAX_UINT16_CHANNEL_SIZE)]
+        return [self.__get_data_channel(i) for i in range(MAX_UINT16_CHANNEL_SIZE)]
 
 
 class Uint8EventRaw(ct.Structure):
@@ -430,9 +433,14 @@ class Uint8Event:
     """
     raw: Uint8EventRaw = field(repr=False)
 
+    def __get_data_channel(self, index: int) -> npt.NDArray[np.uint8]:
+        if self.raw.ChSize[index] == 0:
+            return np.array([], dtype=np.uint8)
+        return np.ctypeslib.as_array(self.raw.DataChannel[index], shape=(self.raw.ChSize[index],))
+
     @property
     def data_channel(self) -> list[npt.NDArray[np.uint8]]:
-        return [np.ctypeslib.as_array(self.raw.DataChannel[i], shape=(self.raw.ChSize[i],)) for i in range(MAX_UINT8_CHANNEL_SIZE)]
+        return [self.__get_data_channel(i) for i in range(MAX_UINT8_CHANNEL_SIZE)]
 
 
 class X742GroupRaw(ct.Structure):
@@ -451,9 +459,14 @@ class X742Group:
     """
     raw: X742GroupRaw = field(repr=False)
 
+    def __get_data_channel(self, index: int) -> npt.NDArray[np.float32]:
+        if self.raw.ChSize[index] == 0:
+            return np.array([], dtype=np.float32)
+        return np.ctypeslib.as_array(self.raw.DataChannel[index], shape=(self.raw.ChSize[index],))
+
     @property
     def data_channel(self) -> list[npt.NDArray[np.float32]]:
-        return [np.ctypeslib.as_array(self.raw.DataChannel[i], shape=(self.raw.ChSize[i],)) for i in range(MAX_X742_CHANNEL_SIZE)]
+        return [self.__get_data_channel(i) for i in range(MAX_X742_CHANNEL_SIZE)]
 
     @property
     def trigger_time_tag(self) -> int:
@@ -508,9 +521,14 @@ class X743Group:
     """
     raw: X743GroupRaw = field(repr=False)
 
+    def __get_data_channel(self, index: int) -> npt.NDArray[np.float32]:
+        if self.raw.ChSize[index] == 0:
+            return np.array([], dtype=np.float32)
+        return np.ctypeslib.as_array(self.raw.DataChannel[index], shape=(self.raw.ChSize[index],))
+
     @property
     def data_channel(self) -> list[npt.NDArray[np.float32]]:
-        return [np.ctypeslib.as_array(self.raw.DataChannel[i], shape=(self.raw.ChSize,)) for i in range(MAX_X743_CHANNELS_X_GROUP)]
+        return [self.__get_data_channel(i) for i in range(MAX_X743_CHANNELS_X_GROUP)]
 
     @property
     def trigger_count(self) -> list[int]:

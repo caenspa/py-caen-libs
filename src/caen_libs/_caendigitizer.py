@@ -398,11 +398,15 @@ class Device:
 
     # Private members
     __opened: bool = field(default=True, repr=False)
-    __ro_buff: ct._Pointer[ct.c_char] = field(default_factory=_c_char_p, repr=False)
+    __ro_buff: 'ct._Pointer[ct.c_char]' = field(default_factory=_c_char_p, repr=False)
     __ro_buff_size: int = field(default=0, repr=False)
     __ro_buff_occupancy: int = field(default=0, repr=False)
     __info: BoardInfo = field(init=False, repr=False)
     __firmware_type: _FirmwareType = field(init=False, repr=False)
+    __event_type: Any = field(init=False, repr=False)
+    __event_raw_type: Any = field(init=False, repr=False)
+    __waveforms_type: Any = field(init=False, repr=False)
+    __waveforms_raw_type: Any = field(init=False, repr=False)
     __events: ct.Array[ct.c_void_p] = field(init=False, repr=False)
     __waveforms: ct.c_void_p = field(default_factory=ct.c_void_p, repr=False)
     __registers: _utils.Registers = field(init=False, repr=False)
@@ -410,6 +414,16 @@ class Device:
     def __post_init__(self) -> None:
         self.__info = self.get_info()
         self.__firmware_type = self._FirmwareType.from_code(self.__info.firmware_code)
+        match self.__firmware_type:
+            case self._FirmwareType.STANDARD:
+                self.__event_type, self.__event_raw_type = self.__get_event_type()
+                self.__waveforms_type, self.__waveforms_raw_type = (None, None)
+            case self._FirmwareType.DPP:
+                self.__event_type, self.__event_raw_type = self.__get_dpp_event_type()
+                self.__waveforms_type, self.__waveforms_raw_type = self.__get_dpp_waveforms_type()
+            case self._FirmwareType.ZLE:
+                self.__event_type, self.__event_raw_type = self.__get_zle_event_type()
+                self.__waveforms_type, self.__waveforms_raw_type = self.__get_zle_waveforms_type()
         self.__events = (ct.c_void_p * self.__info.channels)()
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
@@ -1013,9 +1027,8 @@ class Device:
         """
         l_evt = ct.c_void_p() if evt is None else ct.pointer(evt.raw)
         lib.decode_event(self.handle, event_ptr.data, ct.byref(l_evt))
-        evt_type, raw_type = self.__get_event_type()
-        evt_ptr = ct.cast(l_evt, ct.POINTER(raw_type))
-        return evt_type(evt_ptr.contents)
+        evt_ptr = ct.cast(l_evt, ct.POINTER(self.__event_raw_type))
+        return self.__event_type(evt_ptr.contents)
 
     def free_event(self, event: Union[Uint16Event, Uint8Event, X742Event, X743Event]) -> None:
         """
@@ -1031,9 +1044,8 @@ class Device:
         """
         l_num_events = (ct.c_uint32 * self.__info.channels)()
         lib.get_dpp_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__events, l_num_events)
-        evt_type, raw_type = self.__get_dpp_event_type()
-        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(raw_type)))
-        return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
+        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(self.__event_raw_type)))
+        return [[self.__event_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
     def malloc_dpp_events(self) -> int:
         """
@@ -1069,12 +1081,10 @@ class Device:
         """
         Binding of CAEN_DGTZ_DecodeDPPWaveforms()
         """
-        _, raw_type = self.__get_dpp_event_type()
-        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(raw_type)))
+        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(self.__event_raw_type)))
         lib.decode_dpp_waveforms(self.handle, ct.byref(evt_ptr[ch][evt_id]), self.__waveforms)
-        wave_type, raw_type = self.__get_dpp_waveforms_type()
-        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(raw_type))
-        return wave_type(wave_ptr.contents)
+        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(self.__waveforms_raw_type))
+        return self.__waveforms_type(wave_ptr.contents)
 
     def set_num_events_per_aggregate(self, num_events: int, channel: int = -1) -> None:
         """
@@ -1159,10 +1169,9 @@ class Device:
         """
         Binding of CAEN_DGTZ_AllocateEvent()
         """
-        evt_type, raw_type = self.__get_event_type()
-        l_evt = raw_type()
+        l_evt = self.__event_raw_type()
         lib.allocate_event(self.handle, ct.byref(l_evt))
-        return evt_type(l_evt)
+        return self.__event_type(l_evt)
 
     def set_io_level(self, level: IOLevel) -> None:
         """
@@ -1312,13 +1321,11 @@ class Device:
         """
         Binding of CAEN_DGTZ_DecodeZLEWaveforms()
         """
-        _, raw_type = self.__get_zle_event_type()
-        evt_type_array = ct.POINTER(raw_type) * self.__info.channels
+        evt_type_array = ct.POINTER(self.__event_raw_type) * self.__info.channels
         evt_ptr = ct.cast(self.__events, evt_type_array)
         lib.decode_zle_waveforms(self.handle, evt_ptr[ch][evt_id], self.__waveforms)
-        wave_type, raw_type = self.__get_zle_waveforms_type()
-        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(raw_type))
-        return wave_type(wave_ptr.contents)
+        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(self.__waveforms_raw_type))
+        return self.__waveforms_type(wave_ptr.contents)
 
     def free_zle_waveforms(self) -> None:
         """
@@ -1356,9 +1363,8 @@ class Device:
         """
         l_num_events = (ct.c_uint32 * self.__info.channels)()
         lib.get_zle_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__events, l_num_events)
-        evt_type, raw_type = self.__get_zle_event_type()
-        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(raw_type)))
-        return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
+        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(self.__event_raw_type)))
+        return [[self.__event_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
     def set_zle_parameters(self, channel_mask: int, params: Union[ZLEParams751]) -> None:
         """
