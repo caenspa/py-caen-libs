@@ -9,8 +9,8 @@ Once connected to the device, the acquisition starts, a software trigger is sent
 and the data are read after stopping the acquisition.
 """
 
-__author__ = 'Matteo Bianchini'
-__copyright__ = 'Copyright (C) 2024 CAEN SpA'
+__author__ = 'Giovanni Cerretani'
+__copyright__ = 'Copyright (C) 2025 CAEN SpA'
 __license__ = 'MIT-0'
 # SPDX-License-Identifier: MIT-0
 __contact__ = 'https://www.caen.it/'
@@ -20,7 +20,7 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 
-from caen_libs import _caendigitizer as dgtz
+from caen_libs import caendigitizer as dgtz
 
 
 # Parse arguments

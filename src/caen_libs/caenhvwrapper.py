@@ -20,256 +20,26 @@ from enum import IntEnum, unique
 from typing import Any, ClassVar, Optional, TypeVar, Union
 
 from caen_libs import _cache, _string, _utils, error
+import caen_libs._caenhvwrappertypes as _types
 
-
-@unique
-class SystemType(IntEnum):
-    """
-    Binding of ::CAENHV_SYSTEM_TYPE_t
-    """
-    SY1527      = 0
-    SY2527      = 1
-    SY4527      = 2
-    SY5527      = 3
-    N568        = 4
-    V65XX       = 5
-    N1470       = 6
-    V8100       = 7
-    N568E       = 8
-    DT55XX      = 9
-    FTK         = 10
-    DT55XXE     = 11
-    N1068       = 12
-    SMARTHV     = 13
-    NGPS        = 14
-    N1168       = 15
-    R6060       = 16
-
-
-@unique
-class LinkType(IntEnum):
-    """
-    Binding of Link Types for InitSystem
-    """
-    TCPIP   = 0
-    RS232   = 1
-    CAENET  = 2
-    USB     = 3
-    OPTLINK = 4
-    USB_VCP = 5
-    USB3    = 6
-    A4818   = 7
-
-
-@unique
-class EventStatus(IntEnum):
-    """
-    Binding of ::CAENHV_EVT_STATUS_t
-    """
-    SYNC        = 0
-    ASYNC       = 1
-    UNSYNC      = 2
-    NOTAVAIL    = 3
-
-
-class _SystemStatusRaw(ct.Structure):
-    _fields_ = [
-        ('System', ct.c_int),
-        ('Board', ct.c_int * 16),
-    ]
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class SystemStatus:
-    """
-    Binding of ::CAENHV_SYSTEMSTATUS_t
-    """
-    system: EventStatus
-    board: tuple[EventStatus, ...]
-
-    @classmethod
-    def from_raw(cls, raw: _SystemStatusRaw):
-        """Instantiate from raw data"""
-        return cls(
-            EventStatus(raw.System),
-            tuple(map(EventStatus, raw.Board)),
-        )
-
-
-@unique
-class EventType(IntEnum):
-    """
-    Binding of ::CAENHV_ID_TYPE_t
-    """
-    PARAMETER   = 0
-    ALARM       = 1
-    KEEPALIVE   = 2
-    TRMODE      = 3
-
-
-class _IdValueRaw(ct.Union):
-    _fields_ = [
-        ('StringValue', ct.c_char * 1024),
-        ('FloatValue', ct.c_float),
-        ('IntValue', ct.c_int),
-    ]
-
-
-class _EventDataRaw(ct.Structure):
-    _fields_ = [
-        ('Type', ct.c_int),
-        ('SystemHandle', ct.c_int),
-        ('BoardIndex', ct.c_int),
-        ('ChannelIndex', ct.c_int),
-        ('ItemID', ct.c_char * 20),
-        ('Value', _IdValueRaw),
-    ]
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class EventData:
-    """
-    Binding of ::CAENHVEVENT_TYPE_t
-    """
-    type: EventType
-    item_id: str
-    slot: Optional[int]
-    channel: Optional[int]
-    value: Union[str, float, int]
-
-    @property
-    def board_index(self) -> int:
-        """Kept for backward compatibility"""
-        return -1 if self.slot is None else self.slot
-    
-    @property
-    def channel_index(self) -> int:
-        """Kept for backward compatibility"""
-        return -1 if self.channel is None else self.channel
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class FwVersion:
-    """
-    Firmware version
-    """
-    major: int
-    minor: int
-
-    def __str__(self) -> str:
-        return f'{self.major}.{self.minor}'
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class Board:
-    """
-    Type returned by ::CAENHV_GetCrateMap and ::CAENHV_TestBdPresence
-    """
-    slot: int
-    model: str
-    description: str
-    serial_number: int
-    n_channel: int
-    fw_version: FwVersion
-
-
-@unique
-class SysPropType(IntEnum):
-    """
-    Binding of ::SYSPROP_TYPE_*
-    """
-    STR     = 0
-    REAL    = 1
-    UINT2   = 2
-    UINT4   = 3
-    INT2    = 4
-    INT4    = 5
-    BOOLEAN = 6
-
-
-@unique
-class SysPropMode(IntEnum):
-    """
-    Binding of ::SYSPROP_MODE_*
-    """
-    RDONLY  = 0
-    WRONLY  = 1
-    RDWR    = 2
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class SysProp:
-    """
-    Type returned by ::CAENHV_GetSysPropInfo
-    """
-    name: str
-    mode: SysPropMode
-    type: SysPropType
-
-
-@unique
-class ParamType(IntEnum):
-    """
-    Binding of ::PARAM_TYPE_*
-    """
-    _INVALID    = 0xBAAAAAAD  # Special value for Python binding
-    NUMERIC     = 0
-    ONOFF       = 1
-    CHSTATUS    = 2
-    BDSTATUS    = 3
-    BINARY      = 4
-    STRING      = 5
-    ENUM        = 6
-    CMD         = 7
-
-
-@unique
-class ParamMode(IntEnum):
-    """
-    Binding of ::PARAM_MODE_*
-    """
-    _INVALID    = 0xBAAAAAAD  # Special value for Python binding
-    RDONLY      = 0
-    WRONLY      = 1
-    RDWR        = 2
-
-
-@unique
-class ParamUnit(IntEnum):
-    """
-    Binding of ::PARAM_UN_*
-    """
-    NONE    = 0
-    AMPERE  = 1
-    VOLT    = 2
-    WATT    = 3
-    CELSIUS = 4
-    HERTZ   = 5
-    BAR     = 6
-    VPS     = 7
-    SECOND  = 8
-    RPM     = 9
-    COUNT   = 10
-    BIT     = 11
-    APS     = 12
-
-
-@dataclass(**_utils.dataclass_slots)
-class ParamProp:
-    """
-    Type returned by ::CAENHV_GetBdParamProp
-    """
-    type: ParamType
-    mode: ParamMode
-    minval: Optional[float] = field(default=None)
-    maxval: Optional[float] = field(default=None)
-    unit: Optional[ParamUnit] = field(default=None)
-    exp: Optional[int] = field(default=None)
-    decimal: Optional[int] = field(default=None)
-    resol: Optional[int] = field(default=None)
-    onstate: Optional[str] = field(default=None)
-    offstate: Optional[str] = field(default=None)
-    enum: Optional[tuple[str, ...]] = field(default=None)
+# Add some types to the module namespace
+from caen_libs._caenhvwrappertypes import (  # pylint: disable=W0611
+    Board,
+    EventData,
+    EventStatus,
+    EventType,
+    FwVersion,
+    LinkType,
+    ParamMode,
+    ParamProp,
+    ParamType,
+    ParamUnit,
+    SysProp,
+    SysPropMode,
+    SysPropType,
+    SystemStatus,
+    SystemType,
+)
 
 
 class Error(error.Error):
@@ -352,8 +122,8 @@ _c_ushort_p_p = ct.POINTER(_c_ushort_p)
 _c_int_p = ct.POINTER(ct.c_int)
 _c_uint_p = ct.POINTER(ct.c_uint)
 _c_uint_p_p = ct.POINTER(_c_uint_p)
-_system_status_p = ct.POINTER(_SystemStatusRaw)
-_event_data_p = ct.POINTER(_EventDataRaw)
+_system_status_p = ct.POINTER(_types.SystemStatusRaw)
+_event_data_p = ct.POINTER(_types.EventDataRaw)
 _event_data_p_p = ct.POINTER(_event_data_p)
 if sys.platform == 'win32':
     _socket = ctw.WPARAM  # Actually a SOCKET is UINT_PTR, same as WPARAM
@@ -419,7 +189,7 @@ _PARAM_TYPE_SET_ARG: dict[ParamType, Callable[[Any, int], Any]] = {
 }
 
 
-_SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
+_SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_types.IdValueRaw], Union[str, float, int]]] = {
     SysPropType.STR:        lambda v: v.StringValue.decode('ascii'),
     SysPropType.REAL:       lambda v: v.FloatValue,
     SysPropType.UINT2:      lambda v: v.IntValue,
@@ -430,7 +200,7 @@ _SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_IdValueRaw], Union[str, f
 }
 
 
-_PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
+_PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_types.IdValueRaw], Union[str, float, int]]] = {
     ParamType.NUMERIC:      lambda v: v.FloatValue,
     ParamType.ONOFF:        lambda v: v.IntValue,
     ParamType.CHSTATUS:     lambda v: v.IntValue,
@@ -563,7 +333,7 @@ class _Lib(_utils.Lib):
             self.__free(value)
 
     @contextmanager
-    def evt_data_auto_ptr(self) -> Generator['ct._Pointer[_EventDataRaw]', None, None]:
+    def evt_data_auto_ptr(self) -> Generator['ct._Pointer[_types.EventDataRaw]', None, None]:
         """
         Context manager to auto free event data on scope exit
 
@@ -1037,7 +807,7 @@ class Device:
         """
         self.__init_events_client()
         assert self.__skt_client is not None
-        l_system_status = _SystemStatusRaw()
+        l_system_status = SystemStatusRaw()
         g_event_data = lib.evt_data_auto_ptr()
         l_data_number = ct.c_uint()
         with g_event_data as l_ed:
@@ -1299,7 +1069,7 @@ class Device:
             return ParamType.STRING
         return self.__get_param_type(slot, channel, name)
 
-    def __decode_event_value(self, event_type: EventType, slot: Optional[int], channel: Optional[int], item_id: str, value: _IdValueRaw) -> Union[str, float, int]:
+    def __decode_event_value(self, event_type: EventType, slot: Optional[int], channel: Optional[int], item_id: str, value: IdValueRaw) -> Union[str, float, int]:
         if event_type is not EventType.PARAMETER:
             return -1
         if slot is None:
@@ -1310,7 +1080,7 @@ class Device:
 
     def __decode_event_data(self, event_data: ct._Pointer, n_events: int) -> Iterator[EventData]:
         for i in range(n_events):
-            event: _EventDataRaw = event_data[i]
+            event: _types.EventDataRaw = event_data[i]
             item_id = event.ItemID.decode('ascii')
             if not item_id:
                 # There could be empty events, expecially from library event thread, to be ignored.
