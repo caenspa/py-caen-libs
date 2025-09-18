@@ -910,8 +910,11 @@ class Device:
         """
         Binding of CAEN_DGTZ_FreeReadoutBuffer()
         """
+        # C API fails if __ro_buff is NULL
+        if not self.__ro_buff:
+            return
         lib.free_readout_buffer(self.__ro_buff)
-        self.__ro_buff = _c_char_p()
+        assert not self.__ro_buff  # Set to NULL by the C API
         self.__ro_buff_size = 0
 
     def read_data(self, mode: ReadMode) -> None:
