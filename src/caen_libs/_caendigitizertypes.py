@@ -1423,6 +1423,7 @@ class DPPPHAParamsRaw(ct.Structure):
         ('otrej', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
         ('trgho', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
         ('twwdt', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
+        ('trgwin', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
         ('dgain', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
         ('enf', ct.c_float * MAX_DPP_PHA_CHANNEL_SIZE),
         ('decimation', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
@@ -1454,6 +1455,7 @@ class DPPPHAParams:
     otrej: list[int] = field(default_factory=list)
     trgho: list[int] = field(default_factory=list)
     twwdt: list[int] = field(default_factory=list)
+    trgwin: list[int] = field(default_factory=list)
     dgain: list[int] = field(default_factory=list)
     enf: list[float] = field(default_factory=list)
     decimation: list[int] = field(default_factory=list)
@@ -1487,6 +1489,7 @@ class DPPPHAParams:
         self.otrej = [0] * n_channels
         self.trgho = [0] * n_channels
         self.twwdt = [0] * n_channels
+        self.trgwin = [0] * n_channels
         self.dgain = [0] * n_channels
         self.enf = [0.] * n_channels
         self.decimation = [0] * n_channels
@@ -1515,6 +1518,7 @@ class DPPPHAParams:
             otrej = list(raw.otrej),
             trgho = list(raw.trgho),
             twwdt = list(raw.twwdt),
+            trgwin = list(raw.trgwin),
             dgain = list(raw.dgain),
             enf = list(raw.enf),
             decimation = list(raw.decimation),
@@ -1543,6 +1547,7 @@ class DPPPHAParams:
             tuple(self.otrej),
             tuple(self.trgho),
             tuple(self.twwdt),
+            tuple(self.trgwin),
             tuple(self.dgain),
             tuple(self.enf),
             tuple(self.decimation),
