@@ -7,7 +7,7 @@ import ctypes as ct
 from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from enum import IntEnum, unique
+from enum import Enum, IntEnum, auto, unique
 from typing import Any, Optional, TypeVar, Union
 
 from caen_libs import error, _utils
@@ -375,22 +375,42 @@ class Device:
     conet_node: int
     vme_base_address: int
 
+    @unique
+    class _FirmwareType(Enum):
+        """Internal use only"""
+        STANDARD = auto()
+        DPP = auto()
+        ZLE = auto()
+
+        @classmethod
+        def from_code(cls, code: FirmwareCode):
+            """Internal use only"""
+            F = FirmwareCode
+            match code:
+                case F.STANDARD_FW | F.STANDARD_FW_X742 | F.STANDARD_FW_X743:
+                    return cls.STANDARD
+                case F.V1720_DPP_CI | F.V1720_DPP_PSD | F.V1751_DPP_PSD | F.V1743_DPP_CI | F.V1740_DPP_QDC | F.V1730_DPP_PSD | F.V1724_DPP_PHA | F.V1730_DPP_PHA | F.V1730_DPP_DAW:
+                    return cls.DPP
+                case F.V1751_DPP_ZLE | F.V1730_DPP_ZLE:
+                    return cls.ZLE
+                case _:
+                    raise ValueError(f'Unsupported firmware code: {code}')
+
     # Private members
     __opened: bool = field(default=True, repr=False)
-    __ro_buff: Any = field(default_factory=_c_char_p, repr=False)
+    __ro_buff: ct._Pointer[ct.c_char] = field(default_factory=_c_char_p, repr=False)
     __ro_buff_size: int = field(default=0, repr=False)
     __ro_buff_occupancy: int = field(default=0, repr=False)
     __info: BoardInfo = field(init=False, repr=False)
-    __dpp_events: ct.Array[ct.c_void_p] = field(init=False, repr=False)
-    __zle_events: ct.Array[ct.c_void_p] = field(init=False, repr=False)
-    __dpp_waveforms: ct.c_void_p = field(default_factory=ct.c_void_p, repr=False)
-    __zle_waveforms: ct.c_void_p = field(default_factory=ct.c_void_p, repr=False)
+    __firmware_type: _FirmwareType = field(init=False, repr=False)
+    __events: ct.Array[ct.c_void_p] = field(init=False, repr=False)
+    __waveforms: ct.c_void_p = field(default_factory=ct.c_void_p, repr=False)
     __registers: _utils.Registers = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.__info = self.get_info()
-        self.__dpp_events = (ct.c_void_p * self.__info.channels)()
-        self.__zle_events = (ct.c_void_p * self.__info.channels)()
+        self.__firmware_type = self._FirmwareType.from_code(self.__info.firmware_code)
+        self.__events = (ct.c_void_p * self.__info.channels)()
         self.__registers = _utils.Registers(self.read_register, self.write_register)
 
     def __del__(self) -> None:
@@ -430,6 +450,14 @@ class Device:
         """
         Binding of CAEN_DGTZ_CloseDigitizer()
         """
+        self.free_readout_buffer()
+        match self.__firmware_type:
+            case self._FirmwareType.DPP:
+                self.free_dpp_events()
+                self.free_dpp_waveforms()
+            case self._FirmwareType.ZLE:
+                self.free_zle_events()
+                self.free_zle_waveforms()
         lib.close_digitizer(self.handle)
         self.__opened = False
 
@@ -883,6 +911,8 @@ class Device:
         Binding of CAEN_DGTZ_FreeReadoutBuffer()
         """
         lib.free_readout_buffer(self.__ro_buff)
+        self.__ro_buff = _c_char_p()
+        self.__ro_buff_size = 0
 
     def read_data(self, mode: ReadMode) -> None:
         """
@@ -997,9 +1027,9 @@ class Device:
         Binding of CAEN_DGTZ_GetDPPEvents()
         """
         l_num_events = (ct.c_uint32 * self.__info.channels)()
-        lib.get_dpp_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__dpp_events, l_num_events)
+        lib.get_dpp_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__events, l_num_events)
         evt_type, raw_type = self.__get_dpp_event_type()
-        evt_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(raw_type)))
+        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(raw_type)))
         return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
     def malloc_dpp_events(self) -> int:
@@ -1007,38 +1037,40 @@ class Device:
         Binding of CAEN_DGTZ_MallocDPPEvents()
         """
         l_size = ct.c_uint32()
-        lib.malloc_dpp_events(self.handle, self.__dpp_events, l_size)
+        lib.malloc_dpp_events(self.handle, self.__events, l_size)
         return l_size.value
 
     def free_dpp_events(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeDPPEvents()
         """
-        lib.free_dpp_events(self.handle, self.__dpp_events)
+        lib.free_dpp_events(self.handle, self.__events)
+        self.__events = (ct.c_void_p * self.__info.channels)()
 
     def malloc_dpp_waveforms(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocDPPWaveforms()
         """
         l_size = ct.c_uint32()
-        lib.malloc_dpp_waveforms(self.handle, self.__dpp_waveforms, l_size)
+        lib.malloc_dpp_waveforms(self.handle, self.__waveforms, l_size)
         return l_size.value
 
     def free_dpp_waveforms(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeDPPWaveforms()
         """
-        lib.free_dpp_waveforms(self.handle, self.__dpp_waveforms)
+        lib.free_dpp_waveforms(self.handle, self.__waveforms)
+        self.__waveforms = ct.c_void_p()
 
     def decode_dpp_waveforms(self, ch: int, evt_id: int) -> Union[DPPPHAWaveforms, DPPPSDWaveforms, DPPCIWaveforms, DPPQDCWaveforms, DPPDAWWaveforms]:
         """
         Binding of CAEN_DGTZ_DecodeDPPWaveforms()
         """
         _, raw_type = self.__get_dpp_event_type()
-        evt_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(raw_type)))
-        lib.decode_dpp_waveforms(self.handle, ct.byref(evt_ptr[ch][evt_id]), self.__dpp_waveforms)
+        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(raw_type)))
+        lib.decode_dpp_waveforms(self.handle, ct.byref(evt_ptr[ch][evt_id]), self.__waveforms)
         wave_type, raw_type = self.__get_dpp_waveforms_type()
-        wave_ptr = ct.cast(self.__dpp_waveforms, ct.POINTER(raw_type))
+        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(raw_type))
         return wave_type(wave_ptr.contents)
 
     def set_num_events_per_aggregate(self, num_events: int, channel: int = -1) -> None:
@@ -1279,38 +1311,40 @@ class Device:
         """
         _, raw_type = self.__get_zle_event_type()
         evt_type_array = ct.POINTER(raw_type) * self.__info.channels
-        evt_ptr = ct.cast(self.__zle_events, evt_type_array)
-        lib.decode_zle_waveforms(self.handle, evt_ptr[ch][evt_id], self.__zle_waveforms)
+        evt_ptr = ct.cast(self.__events, evt_type_array)
+        lib.decode_zle_waveforms(self.handle, evt_ptr[ch][evt_id], self.__waveforms)
         wave_type, raw_type = self.__get_zle_waveforms_type()
-        wave_ptr = ct.cast(self.__zle_waveforms, ct.POINTER(raw_type))
+        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(raw_type))
         return wave_type(wave_ptr.contents)
 
     def free_zle_waveforms(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeZLEWaveforms()
         """
-        lib.free_zle_waveforms(self.handle, self.__zle_waveforms)
+        lib.free_zle_waveforms(self.handle, self.__waveforms)
+        self.__waveforms = ct.c_void_p()
 
     def malloc_zle_waveforms(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocZLEWaveforms()
         """
         l_size = ct.c_uint32()
-        lib.malloc_zle_waveforms(self.handle, self.__zle_waveforms, l_size)
+        lib.malloc_zle_waveforms(self.handle, self.__waveforms, l_size)
         return l_size.value
 
     def free_zle_events(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeZLEEvents()
         """
-        lib.free_zle_events(self.handle, self.__zle_events)
+        lib.free_zle_events(self.handle, self.__events)
+        self.__events = (ct.c_void_p * self.__info.channels)()
 
     def malloc_zle_events(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocZLEEvents()
         """
         l_size = ct.c_uint32()
-        lib.malloc_zle_events(self.handle, self.__zle_events, l_size)
+        lib.malloc_zle_events(self.handle, self.__events, l_size)
         return l_size.value
 
     def get_zle_events(self) -> Union[list[list[ZLEEvent730]], list[list[ZLEEvent751]]]:
@@ -1318,9 +1352,9 @@ class Device:
         Binding of CAEN_DGTZ_GetZLEEvents()
         """
         l_num_events = (ct.c_uint32 * self.__info.channels)()
-        lib.get_zle_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__zle_events, l_num_events)
+        lib.get_zle_events(self.handle, self.__ro_buff, self.__ro_buff_occupancy, self.__events, l_num_events)
         evt_type, raw_type = self.__get_zle_event_type()
-        evt_ptr = ct.cast(self.__zle_events, ct.POINTER(ct.POINTER(raw_type)))
+        evt_ptr = ct.cast(self.__events, ct.POINTER(ct.POINTER(raw_type)))
         return [[evt_type(evt_ptr[ch][i]) for i in range(l_num_events[ch])] for ch in range(self.__info.channels)]
 
     def set_zle_parameters(self, channel_mask: int, params: Union[ZLEParams751]) -> None:
