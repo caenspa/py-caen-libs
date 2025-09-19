@@ -823,6 +823,9 @@ class ZLEEvent751Raw(ct.Structure):
 class ZLEEvent751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Event_t
+
+    Also contains a reference to a waveforms to align the behavior to
+    V1730 ZLE event, which has waveform inside the channel structure.
     """
     raw: ZLEEvent751Raw = field(repr=False)
     raw_waveforms: ZLEWaveforms751Raw = field(repr=False)

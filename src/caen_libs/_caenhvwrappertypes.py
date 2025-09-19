@@ -130,7 +130,7 @@ class EventData:
     def board_index(self) -> int:
         """Kept for backward compatibility"""
         return -1 if self.slot is None else self.slot
-    
+
     @property
     def channel_index(self) -> int:
         """Kept for backward compatibility"""
