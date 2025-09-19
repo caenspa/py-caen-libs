@@ -19,6 +19,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from functools import partial
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from caen_libs import caendigitizer as dgtz
 
@@ -47,13 +48,13 @@ plt.ylabel('ADC counts')
 
 with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber, args.conetnode, args.vmebaseaddress) as device:
 
+    device.reset()
+
     info = device.get_info()
     print('Connected with Digitizer')
     print(f'  Model Name:        {info.model_name}')
     print(f'  Serial Number:     {info.serial_number}')
     print(f'  Firmware Code:     {info.firmware_code.name}')
-    
-    device.reset()
 
     match info.firmware_code:
         case dgtz.FirmwareCode.STANDARD_FW:
@@ -172,13 +173,14 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.sw_stop_acquisition()
 
         case dgtz.FirmwareCode.V1730_DPP_ZLE:
+            RECORD_LENGTH = 4096
             # ZLE firmware demo: basic configuration and acquisition
             device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
             device.set_io_level(dgtz.IOLevel.TTL)
             device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
             device.set_channel_enable_mask(0xFF)
             device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
-            device.set_record_length(1024)
+            device.set_record_length(RECORD_LENGTH // 4)
             device.set_max_num_events_blt(1)
             for i in range(info.channels):
                 device.set_channel_dc_offset(i, 0x8000)
@@ -195,11 +197,15 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.sw_start_acquisition()
             device.send_sw_trigger()
             device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+            full_indexes = np.arange(RECORD_LENGTH)
             for idx, evt in enumerate(device.get_zle_events()):
                 device.decode_zle_waveforms(idx)
                 for ch_idx, ch in enumerate(evt.channel):
                     if ch is not None:
-                        plt.plot(ch.waveforms.trace_index, ch.waveforms.trace, label=f'Ch{ch_idx}')
+                        w = ch.waveforms
+                        full_values = np.full_like(full_indexes, ch.baseline, dtype=w.trace.dtype)
+                        np.put(full_values, w.trace_index, w.trace)
+                        plt.plot(full_indexes, full_values, label=f'Ch{ch_idx}')
             device.sw_stop_acquisition()
 
         case _:

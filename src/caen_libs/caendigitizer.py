@@ -1375,18 +1375,19 @@ class Device:
                 for i in range(self.__zle_n_events):
                     evt = evts_ptr[i]
                     for ch in range(self.__info.channels):
-                        l_waveforms = ct.cast(evt.Channel[ch].contents.Waveforms, ct.c_void_p)
-                        lib.free_zle_waveforms(self.handle, l_waveforms)
+                        lib.free_zle_waveforms(self.handle, evt.Channel[ch].contents.Waveforms)
             case FirmwareCode.V1751_DPP_ZLE:
                 assert self.__zle_waveforms is not None
                 for i in range(self.__zle_n_events):
                     lib.free_zle_waveforms(self.handle, ct.byref(self.__zle_waveforms[i]))
                 self.__zle_waveforms = None
+            case _:
+                raise RuntimeError('Not a ZLE firmware')
         # Free events
         lib.free_zle_events(self.handle, self.__zle_events)
         self.__zle_events = None
 
-    def malloc_zle_events_and_waveforms(self) -> None:
+    def malloc_zle_events_and_waveforms(self) -> int:
         """
         Binding of CAEN_DGTZ_MallocZLEEvents() and CAEN_DGTZ_MallocZLEWaveforms()
 
@@ -1401,28 +1402,36 @@ class Device:
         if self.__zle_events is not None:
             raise RuntimeError('ZLE events already allocated')
         self.__zle_n_events = self.get_max_num_events_blt()
+        res = 0
         # Allocate events
         l_zle_events = ct.c_void_p()
         l_size = ct.c_uint32()
         lib.malloc_zle_events(self.handle, l_zle_events, l_size)
+        res += l_size.value
         # Allocate waveforms
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_ZLE:
+                # Waveforms are allocated inside each event/channel structure
                 evts_ptr = ct.cast(l_zle_events, ct.POINTER(self.__event_raw_type))
                 for i in range(self.__zle_n_events):
                     evt = evts_ptr[i]
                     for ch in range(self.__info.channels):
                         l_waveforms = ct.c_void_p()
                         lib.malloc_zle_waveforms(self.handle, l_waveforms, l_size)
+                        res += l_size.value
                         evt.Channel[ch].contents.Waveforms = ct.cast(l_waveforms, ct.POINTER(self.__waveforms_raw_type))
             case FirmwareCode.V1751_DPP_ZLE:
+                # We use an external array of waveforms, one per event,
+                # to make the interface similar to the V1730 case.
+                assert self.__zle_waveforms is None
                 self.__zle_waveforms = (self.__waveforms_raw_type * self.__zle_n_events)()
-                assert self.__zle_waveforms is not None
                 for i in range(self.__zle_n_events):
                     lib.malloc_zle_waveforms(self.handle, ct.byref(self.__zle_waveforms[i]), l_size)
+                    res += l_size.value
             case _:
                 raise RuntimeError('Not a ZLE firmware')
         self.__zle_events = l_zle_events
+        return res
 
     def get_zle_events(self) -> Union[list[ZLEEvent730], list[ZLEEvent751]]:
         """
@@ -1442,14 +1451,14 @@ class Device:
             case FirmwareCode.V1730_DPP_ZLE:
                 return [self.__event_type(evts_ptr[i]) for i in range(l_num_events.value)]
             case FirmwareCode.V1751_DPP_ZLE:
-                # Also adds the waveforms pointer to the event structure,
-                # where the user will find the waveforms after calling
+                # Also adds the waveforms to the event structure, where
+                # the user will find the waveforms after calling
                 # decode_zle_waveforms().
                 assert self.__zle_waveforms is not None
                 return [self.__event_type(evts_ptr[i], self.__zle_waveforms[i]) for i in range(l_num_events.value)]
             case _:
                 raise RuntimeError('Not a ZLE firmware')
-    
+
     def set_zle_parameters(self, channel_mask: int, params: Union[ZLEParams751]) -> None:
         """
         Binding of CAEN_DGTZ_SetZLEParameters()
