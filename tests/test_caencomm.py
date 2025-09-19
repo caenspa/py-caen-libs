@@ -26,8 +26,8 @@ class TestDevice(unittest.TestCase):
         with self.assertRaises(comm.Error):
             comm.Device.open(comm.ConnectionType.USB, 0, 0, 0)
 
-    def test_device_close(self):
-        """Test close_device"""
+    def test_close(self):
+        """Test close"""
         self.device.close()
         self.mock_lib.close_device.assert_called_once_with(self.device.handle)
 

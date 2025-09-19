@@ -1,3 +1,7 @@
+"""
+Binding of CAEN Digitizer
+"""
+
 __author__ = 'Giovanni Cerretani'
 __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
@@ -379,6 +383,7 @@ class Device:
         STANDARD = auto()
         DPP = auto()
         ZLE = auto()
+        UNKNOWN = auto()
 
         @classmethod
         def from_code(cls, code: FirmwareCode):
@@ -392,7 +397,7 @@ class Device:
                 case F.V1751_DPP_ZLE | F.V1730_DPP_ZLE:
                     return cls.ZLE
                 case _:
-                    raise ValueError(f'Unsupported firmware code: {code}')
+                    return cls.UNKNOWN
 
     # Private members
     __opened: bool = field(default=True, repr=False)
@@ -867,7 +872,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_DisableEventAlignedReadout()
         """
-        lib.get_analog_inspection_mon_params(self.handle)
+        lib.disable_event_aligned_readout(self.handle)
 
     def set_event_packaging(self, mode: EnaDis) -> None:
         """

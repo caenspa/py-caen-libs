@@ -338,7 +338,10 @@ class BoardInfo:
     def from_raw(cls, raw: BoardInfoRaw):
         """Instantiate from raw data"""
         amc_version = raw.AMC_FirmwareRel.decode('ascii')
-        maj_amc_version = int(amc_version.split('.')[0])
+        try:
+            maj_amc_version = int(amc_version.split('.')[0])
+        except (ValueError, IndexError):
+            maj_amc_version = -1
         return cls(
             raw.ModelName.decode('ascii'),
             BoardModel(raw.Model),
