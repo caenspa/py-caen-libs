@@ -1508,36 +1508,6 @@ class DPPPHAParams:
         self.dcomp = [0] * n_channels
         self.trapbsl = [0] * n_channels
 
-    @classmethod
-    def from_raw(cls, raw: DPPPHAParamsRaw):
-        """Instantiate from raw data"""
-        return cls(
-            m_ = list(raw.M),
-            m = list(raw.m),
-            k = list(raw.k),
-            ftd = list(raw.ftd),
-            a = list(raw.a),
-            b = list(raw.b),
-            thr = list(raw.thr),
-            nsbl = list(raw.nsbl),
-            nspk = list(raw.nspk),
-            pkho = list(raw.pkho),
-            blho = list(raw.blho),
-            otrej = list(raw.otrej),
-            trgho = list(raw.trgho),
-            twwdt = list(raw.twwdt),
-            trgwin = list(raw.trgwin),
-            dgain = list(raw.dgain),
-            enf = list(raw.enf),
-            decimation = list(raw.decimation),
-            enskim = list(raw.enskim),
-            eskimlld = list(raw.eskimlld),
-            eskimuld = list(raw.eskimuld),
-            blrclip = list(raw.blrclip),
-            dcomp = list(raw.dcomp),
-            trapbsl = list(raw.trapbsl),
-        )
-
     def to_raw(self) -> DPPPHAParamsRaw:
         """Convert to raw data"""
         return DPPPHAParamsRaw(
@@ -1648,29 +1618,6 @@ class DPPPSDParams:
         self.cfdd = [0] * n_channels
         self.trgc = [DPPTriggerConfig.PEAK] * n_channels
 
-    @classmethod
-    def from_raw(cls, raw: DPPPSDParamsRaw):
-        """Instantiate from raw data"""
-        return cls(
-            raw.blthr,
-            raw.bltmo,
-            raw.trgho,
-            list(raw.thr),
-            list(raw.selft),
-            list(raw.csens),
-            list(raw.sgate),
-            list(raw.lgate),
-            list(raw.pgate),
-            list(raw.tvaw),
-            list(raw.nsbl),
-            list(raw.discr),
-            list(raw.cfdf),
-            list(raw.cfdd),
-            list(map(DPPTriggerConfig, raw.trgc)),
-            DPPPUR(raw.purh),
-            raw.purgap,
-        )
-
     def to_raw(self) -> DPPPSDParamsRaw:
         """Convert to raw data"""
         return DPPPSDParamsRaw(
@@ -1743,26 +1690,6 @@ class DPPCIParams:
         self.tvaw = [0] * n_channels
         self.nsbl = [0] * n_channels
         self.trgc = [DPPTriggerConfig.PEAK] * n_channels
-
-    @classmethod
-    def from_raw(cls, raw: DPPCIParamsRaw):
-        """Instantiate from raw data"""
-        return cls(
-            raw.purgap,
-            raw.purh,
-            raw.blthr,
-            raw.bltmo,
-            raw.trgho,
-            list(raw.thr),
-            list(raw.selft),
-            list(raw.csens),
-            list(raw.gate),
-            list(raw.pgate),
-            list(raw.tvaw),
-            list(raw.nsbl),
-            list(map(DPPTriggerConfig, raw.trgc)),
-        )
-
     def to_raw(self) -> DPPCIParamsRaw:
         """Convert to raw data"""
         return DPPCIParamsRaw(
@@ -1821,20 +1748,6 @@ class ZLEParams751:
         self.bsl_thrshld = [0] * n_channels
         self.bsl_time_out = [0] * n_channels
 
-    @classmethod
-    def from_raw(cls, raw: ZLEParams751Raw):
-        """Instantiate from raw data"""
-        return cls(
-            list(raw.NSampBck),
-            list(raw.NSampAhe),
-            list(raw.ZleUppThr),
-            list(raw.ZleUndThr),
-            list(raw.selNumSampBsl),
-            list(raw.bslThrshld),
-            list(raw.bslTimeOut),
-            raw.preTrgg,
-        )
-
     def to_raw(self) -> ZLEParams751Raw:
         """Convert to raw data"""
         return ZLEParams751Raw(
@@ -1878,17 +1791,6 @@ class DPPX743Params:
         self.charge_length = [0] * n_channels
         self.enable_charge_threshold = [EnaDis.DISABLE] * n_channels
         self.charge_threshold = [0.] * n_channels
-
-    @classmethod
-    def from_raw(cls, raw: DPPX743ParamsRaw):
-        """Instantiate from raw data"""
-        return cls(
-            EnaDis(raw.disableSuppressBaseline),
-            list(raw.startCell),
-            list(raw.chargeLength),
-            list(map(EnaDis, raw.enableChargeThreshold)),
-            list(raw.chargeThreshold),
-        )
 
     def to_raw(self) -> DPPX743ParamsRaw:
         """Convert to raw data"""
@@ -1960,27 +1862,6 @@ class DPPQDCParams:
         self.test_pulses_rate = [0] * n_channels
         self.en_test_pulses = [False] * n_channels
         self.input_smoothing = [0] * n_channels
-
-    @classmethod
-    def from_raw(cls, raw: DPPQDCParamsRaw):
-        """Instantiate from raw data"""
-        return cls(
-            list(raw.trgho),
-            list(raw.GateWidth),
-            list(raw.PreGate),
-            list(raw.FixedBaseline),
-            list(map(bool, raw.DisTrigHist)),
-            list(map(bool, raw.DisSelfTrigger)),
-            list(raw.BaselineMode),
-            list(raw.TrgMode),
-            list(raw.ChargeSensitivity),
-            list(map(PulsePolarity, raw.PulsePol)),
-            list(map(bool, raw.EnChargePed)),
-            list(raw.TestPulsesRate),
-            list(map(bool, raw.EnTestPulses)),
-            list(raw.InputSmoothing),
-            bool(raw.EnableExtendedTimeStamp),
-        )
 
     def to_raw(self) -> DPPQDCParamsRaw:
         """Convert to raw data"""

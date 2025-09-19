@@ -63,7 +63,7 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.set_channel_trigger_threshold(0, 32768)
             device.set_channel_self_trigger(0, dgtz.TriggerMode.ACQ_ONLY)
             device.set_sw_trigger_mode(dgtz.TriggerMode.ACQ_ONLY)
-            device.set_max_num_events_blt(3)
+            device.set_max_num_events_blt(1)
             device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
 
             device.malloc_readout_buffer()
@@ -74,9 +74,9 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
             for i in range(device.get_num_events()):
                 evt_info, buffer = device.get_event_info(i)
-                evt = device.decode_event(buffer)  # Ignore result, same of evt
+                evt = device.decode_event(buffer)
                 for ch in range(info.channels):
-                    plt.plot(evt.data_channel[ch].copy(), label=f'Ch{ch}')
+                    plt.plot(evt.data_channel[ch], label=f'Ch{ch}')
             device.sw_stop_acquisition()
 
         case dgtz.FirmwareCode.V1730_DPP_PSD:
