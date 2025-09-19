@@ -176,24 +176,28 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
             device.set_io_level(dgtz.IOLevel.TTL)
             device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
-            device.set_channel_enable_mask(0x01)
+            device.set_channel_enable_mask(0xFF)
             device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
             device.set_record_length(1024)
+            device.set_max_num_events_blt(2)
             for i in range(info.channels):
                 device.set_channel_dc_offset(i, 0x8000)
                 device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
+                # Low thresholds, just to see some waveforms
+                device.registers[0x105C | (i << 8)] = 5  # Data Threshold
+                device.registers[0x1060 | (i << 8)] = 5  # Trigger Threshold
 
             device.malloc_readout_buffer()
-            device.malloc_zle_events()
-            device.malloc_zle_waveforms()
+            device.malloc_zle_events_and_waveforms()
 
             device.sw_start_acquisition()
             device.send_sw_trigger()
             device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
             for idx, evt in enumerate(device.get_zle_events()):
                 device.decode_zle_waveforms(idx)
-                for ch in range(info.channels):
-                    plt.plot(evt.channel[ch].waveforms.trace, label=f'Ch{ch}')
+                for ch_idx, ch in enumerate(evt.channel):
+                    if ch is not None:
+                        plt.plot(ch.waveforms.trace_index, ch.waveforms.trace, label=f'Ch{ch_idx}')
             device.sw_stop_acquisition()
 
         case _:

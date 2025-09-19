@@ -407,8 +407,10 @@ class Device:
     __waveforms_raw_type: Any = field(init=False, repr=False)
     __event: Optional[ct.c_void_p] = field(default=None, repr=False)  # For standard firmware and ZLE
     __dpp_events: Optional[ct.Array[ct.c_void_p]] = field(default=None, repr=False)  # For DPP
+    __dpp_waveforms: Optional[ct.c_void_p] = field(default=None, repr=False)  # For DPP
     __zle_events: Optional[ct.c_void_p] = field(default=None, repr=False)  # For ZLE firmware
-    __waveforms: Optional[ct.c_void_p] = field(default=None, repr=False)  # For DPP and 751 ZLE firmware
+    __zle_n_events: int = field(default=0, repr=False)  # For ZLE firmware
+    __zle_waveforms: Optional[ct.Array] = field(default=None, repr=False)  # For 751 ZLE firmware
     __registers: _utils.Registers = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -471,8 +473,7 @@ class Device:
                 self.free_dpp_events()
                 self.free_dpp_waveforms()
             case self._FirmwareType.ZLE:
-                self.free_zle_events()
-                self.free_zle_waveforms()
+                self.free_zle_events_and_waveforms()
         lib.close_digitizer(self.handle)
         self.__opened = False
 
@@ -1076,21 +1077,22 @@ class Device:
         """
         Binding of CAEN_DGTZ_MallocDPPWaveforms()
         """
-        if self.__waveforms is not None:
+        if self.__dpp_waveforms is not None:
             raise RuntimeError('DPP waveforms already allocated')
-        self.__waveforms = ct.c_void_p()
+        l_waveforms = ct.c_void_p()
         l_size = ct.c_uint32()
-        lib.malloc_dpp_waveforms(self.handle, self.__waveforms, l_size)
+        lib.malloc_dpp_waveforms(self.handle, l_waveforms, l_size)
+        self.__dpp_waveforms = l_waveforms
         return l_size.value
 
     def free_dpp_waveforms(self) -> None:
         """
         Binding of CAEN_DGTZ_FreeDPPWaveforms()
         """
-        if self.__waveforms is None:
+        if self.__dpp_waveforms is None:
             return
-        lib.free_dpp_waveforms(self.handle, self.__waveforms)
-        self.__waveforms = None
+        lib.free_dpp_waveforms(self.handle, self.__dpp_waveforms)
+        self.__dpp_waveforms = None
 
     def decode_dpp_waveforms(self, ch: int, evt_id: int) -> Union[DPPPHAWaveforms, DPPPSDWaveforms, DPPCIWaveforms, DPPQDCWaveforms, DPPDAWWaveforms]:
         """
@@ -1098,11 +1100,11 @@ class Device:
         """
         if self.__dpp_events is None:
             raise RuntimeError('DPP events not allocated')
-        if self.__waveforms is None:
+        if self.__dpp_waveforms is None:
             raise RuntimeError('DPP waveforms not allocated')
         evts_ptr = ct.cast(self.__dpp_events, ct.POINTER(ct.POINTER(self.__event_raw_type)))
-        lib.decode_dpp_waveforms(self.handle, ct.byref(evts_ptr[ch][evt_id]), self.__waveforms)
-        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(self.__waveforms_raw_type))
+        lib.decode_dpp_waveforms(self.handle, ct.byref(evts_ptr[ch][evt_id]), self.__dpp_waveforms)
+        wave_ptr = ct.cast(self.__dpp_waveforms, ct.POINTER(self.__waveforms_raw_type))
         return self.__waveforms_type(wave_ptr.contents)
 
     def set_num_events_per_aggregate(self, num_events: int, channel: int = -1) -> None:
@@ -1337,85 +1339,90 @@ class Device:
         """
         lib.disable_drs4_correction(self.handle)
 
-    def decode_zle_waveforms(self, evt_id: int) -> Optional[ZLEWaveforms751]:
+    def decode_zle_waveforms(self, evt_id: int) -> None:
         """
         Binding of CAEN_DGTZ_DecodeZLEWaveforms()
+
+        Returns None, the waveforms are placed directly into the event structure,
+        at the same index used to decode the event with get_zle_events().
         """
         if self.__zle_events is None:
             raise RuntimeError('ZLE events not allocated')
-        if self.__waveforms is None:
-            raise RuntimeError('ZLE waveforms not allocated')
         evts_ptr = ct.cast(self.__zle_events, ct.POINTER(self.__event_raw_type))
-        # Last argument is ignored for V1730
-        lib.decode_zle_waveforms(self.handle, ct.byref(evts_ptr[evt_id]), self.__waveforms)
-        if self.__info.firmware_code == FirmwareCode.V1730_DPP_ZLE:
-            return None  # Not used, placed directly into the event structure
-        wave_ptr = ct.cast(self.__waveforms, ct.POINTER(self.__waveforms_raw_type))
-        return self.__waveforms_type(wave_ptr.contents)
-
-    def free_zle_waveforms(self) -> None:
-        """
-        Binding of CAEN_DGTZ_FreeZLEWaveforms()
-        """
-        if self.__waveforms is None:
-            return
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_ZLE:
-                raise NotImplementedError('TODO')
+                # Last argument is ignored, placed directly into the event structure
+                lib.decode_zle_waveforms(self.handle, ct.byref(evts_ptr[evt_id]), None)
             case FirmwareCode.V1751_DPP_ZLE:
-                lib.free_zle_waveforms(self.handle, self.__waveforms)
-        self.__waveforms = None
-
-    def malloc_zle_waveforms(self) -> int:
-        """
-        Binding of CAEN_DGTZ_MallocZLEWaveforms()
-
-        It contains a special handling for V1730, where the waveforms
-        are allocated inside each event/channel structure.
-        """
-        if self.__waveforms is not None:
-            raise RuntimeError('ZLE waveforms already allocated')
-        l_size = ct.c_uint32()
-        match self.__info.firmware_code:
-            case FirmwareCode.V1730_DPP_ZLE:
-                if self.__zle_events is None:
-                    raise RuntimeError('ZLE events not allocated')
-                evts_ptr = ct.cast(self.__zle_events, ct.POINTER(self.__event_raw_type))
-                max_n_events = self.get_max_num_events_blt()
-                for i in range(max_n_events):
-                    evt = evts_ptr[i]
-                    for ch in range(self.__info.channels):
-                        l_waveforms = ct.c_void_p()
-                        lib.malloc_zle_events(self.handle, l_waveforms, l_size)
-                        evt.Channel[ch].contents.Waveforms = ct.cast(l_waveforms, ct.POINTER(self.__waveforms_raw_type))
-                self.__waveforms = ct.c_void_p()  # Dummy, not used
-                return l_size.value
-            case FirmwareCode.V1751_DPP_ZLE:
-                self.__waveforms = ct.c_void_p()
-                lib.malloc_zle_waveforms(self.handle, self.__waveforms, l_size)
-                return l_size.value
+                assert self.__zle_waveforms is not None
+                lib.decode_zle_waveforms(self.handle, ct.byref(evts_ptr[evt_id]), ct.byref(self.__zle_waveforms[evt_id]))
             case _:
                 raise RuntimeError('Not a ZLE firmware')
 
-    def free_zle_events(self) -> None:
+    def free_zle_events_and_waveforms(self) -> None:
         """
-        Binding of CAEN_DGTZ_FreeZLEEvents()
+        Binding of CAEN_DGTZ_FreeZLEEvents() and CAEN_DGTZ_FreeZLEWaveforms()
+
+        See malloc_zle_events_and_waveforms() for the rationale of this
+        combined method.
         """
         if self.__zle_events is None:
             return
+        # Free waveforms
+        match self.__info.firmware_code:
+            case FirmwareCode.V1730_DPP_ZLE:
+                evts_ptr = ct.cast(self.__zle_events, ct.POINTER(self.__event_raw_type))
+                for i in range(self.__zle_n_events):
+                    evt = evts_ptr[i]
+                    for ch in range(self.__info.channels):
+                        l_waveforms = ct.cast(evt.Channel[ch].contents.Waveforms, ct.c_void_p)
+                        lib.free_zle_waveforms(self.handle, l_waveforms)
+            case FirmwareCode.V1751_DPP_ZLE:
+                assert self.__zle_waveforms is not None
+                for i in range(self.__zle_n_events):
+                    lib.free_zle_waveforms(self.handle, ct.byref(self.__zle_waveforms[i]))
+                self.__zle_waveforms = None
+        # Free events
         lib.free_zle_events(self.handle, self.__zle_events)
         self.__zle_events = None
 
-    def malloc_zle_events(self) -> int:
+    def malloc_zle_events_and_waveforms(self) -> None:
         """
-        Binding of CAEN_DGTZ_MallocZLEEvents()
+        Binding of CAEN_DGTZ_MallocZLEEvents() and CAEN_DGTZ_MallocZLEWaveforms()
+
+        The rationale for this combined method is that, for V1730, the waveforms
+        are allocated inside each event/channel structure. We need to allocate
+        the events first, then the waveforms inside each event/channel.
+
+        Even if in V1751 the waveforms are allocated separately, we provide
+        this combined method for symmetry and convenience, embedding the
+        waveforms pointers inside the event class.
         """
         if self.__zle_events is not None:
             raise RuntimeError('ZLE events already allocated')
-        self.__zle_events = ct.c_void_p()
+        self.__zle_n_events = self.get_max_num_events_blt()
+        # Allocate events
+        l_zle_events = ct.c_void_p()
         l_size = ct.c_uint32()
-        lib.malloc_zle_events(self.handle, self.__zle_events, l_size)
-        return l_size.value
+        lib.malloc_zle_events(self.handle, l_zle_events, l_size)
+        # Allocate waveforms
+        match self.__info.firmware_code:
+            case FirmwareCode.V1730_DPP_ZLE:
+                evts_ptr = ct.cast(l_zle_events, ct.POINTER(self.__event_raw_type))
+                for i in range(self.__zle_n_events):
+                    evt = evts_ptr[i]
+                    for ch in range(self.__info.channels):
+                        l_waveforms = ct.c_void_p()
+                        lib.malloc_zle_waveforms(self.handle, l_waveforms, l_size)
+                        evt.Channel[ch].contents.Waveforms = ct.cast(l_waveforms, ct.POINTER(self.__waveforms_raw_type))
+            case FirmwareCode.V1751_DPP_ZLE:
+                self.__zle_waveforms = (self.__waveforms_raw_type * self.__zle_n_events)()
+                assert self.__zle_waveforms is not None
+                for i in range(self.__zle_n_events):
+                    lib.malloc_zle_waveforms(self.handle, ct.byref(self.__zle_waveforms[i]), l_size)
+            case _:
+                raise RuntimeError('Not a ZLE firmware')
+        self.__zle_events = l_zle_events
 
     def get_zle_events(self) -> Union[list[ZLEEvent730], list[ZLEEvent751]]:
         """
@@ -1429,8 +1436,18 @@ class Device:
         n_words = self.__ro_buff_occupancy // 4
         lib.get_zle_events(self.handle, self.__ro_buff, n_words, self.__zle_events, l_num_events)
         evts_ptr = ct.cast(self.__zle_events, ct.POINTER(self.__event_raw_type))
-        return [self.__event_type(evts_ptr[i]) for i in range(l_num_events.value)]
-
+        match self.__info.firmware_code:
+            case FirmwareCode.V1730_DPP_ZLE:
+                return [self.__event_type(evts_ptr[i]) for i in range(l_num_events.value)]
+            case FirmwareCode.V1751_DPP_ZLE:
+                # Also adds the waveforms pointer to the event structure,
+                # where the user will find the waveforms after calling
+                # decode_zle_waveforms().
+                assert self.__zle_waveforms is not None
+                return [self.__event_type(evts_ptr[i], self.__zle_waveforms[i]) for i in range(l_num_events.value)]
+            case _:
+                raise RuntimeError('Not a ZLE firmware')
+    
     def set_zle_parameters(self, channel_mask: int, params: Union[ZLEParams751]) -> None:
         """
         Binding of CAEN_DGTZ_SetZLEParameters()

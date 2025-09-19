@@ -780,6 +780,34 @@ class DPPQDCEvent:
         return self.raw.Extras
 
 
+class ZLEWaveforms751Raw(ct.Structure):
+    _fields_ = [
+        ('Ns', ct.c_uint32),
+        ('Trace1', ct.POINTER(ct.c_uint16)),
+        ('Discarded', ct.POINTER(ct.c_uint8)),
+    ]
+
+
+@dataclass(**_utils.dataclass_slots)
+class ZLEWaveforms751:
+    """
+    Binding of ::CAEN_DGTZ_751_ZLE_Waveforms_t
+    """
+    raw: ZLEWaveforms751Raw = field(repr=False)
+
+    @property
+    def ns(self) -> int:
+        return self.raw.Ns
+
+    @property
+    def trace1(self) -> npt.NDArray[np.uint16]:
+        return np.ctypeslib.as_array(self.raw.Trace1, shape=(self.ns,))
+
+    @property
+    def discarded(self) -> npt.NDArray[np.uint8]:
+        return np.ctypeslib.as_array(self.raw.Discarded, shape=(self.ns,))
+
+
 class ZLEEvent751Raw(ct.Structure):
     _fields_ = [
         ('timeTag', ct.c_uint32),
@@ -794,6 +822,7 @@ class ZLEEvent751:
     Binding of ::CAEN_DGTZ_751_ZLE_Event_t
     """
     raw: ZLEEvent751Raw = field(repr=False)
+    raw_waveforms: ZLEWaveforms751Raw = field(repr=False)
 
     @property
     def time_tag(self) -> int:
@@ -802,6 +831,10 @@ class ZLEEvent751:
     @property
     def baseline(self) -> int:
         return self.raw.Baseline
+
+    @property
+    def waveforms(self) -> ZLEWaveforms751:
+        return ZLEWaveforms751(self.raw_waveforms)
 
 
 class ZLEWaveforms730Raw(ct.Structure):
@@ -1136,34 +1169,6 @@ class DPPPSDWaveforms:
     @property
     def d_trace4(self) -> npt.NDArray[np.uint8]:
         return np.ctypeslib.as_array(self.raw.DTrace4, shape=(self.ns,))
-
-
-class ZLEWaveforms751Raw(ct.Structure):
-    _fields_ = [
-        ('Ns', ct.c_uint32),
-        ('Trace1', ct.POINTER(ct.c_uint16)),
-        ('Discarded', ct.POINTER(ct.c_uint8)),
-    ]
-
-
-@dataclass(**_utils.dataclass_slots)
-class ZLEWaveforms751:
-    """
-    Binding of ::CAEN_DGTZ_751_ZLE_Waveforms_t
-    """
-    raw: ZLEWaveforms751Raw = field(repr=False)
-
-    @property
-    def ns(self) -> int:
-        return self.raw.Ns
-
-    @property
-    def trace1(self) -> npt.NDArray[np.uint16]:
-        return np.ctypeslib.as_array(self.raw.Trace1, shape=(self.ns,))
-
-    @property
-    def discarded(self) -> npt.NDArray[np.uint8]:
-        return np.ctypeslib.as_array(self.raw.Discarded, shape=(self.ns,))
 
 
 DPPCIWaveformsRaw = DPPPSDWaveformsRaw
