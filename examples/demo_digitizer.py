@@ -179,7 +179,7 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.set_channel_enable_mask(0xFF)
             device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
             device.set_record_length(1024)
-            device.set_max_num_events_blt(2)
+            device.set_max_num_events_blt(1)
             for i in range(info.channels):
                 device.set_channel_dc_offset(i, 0x8000)
                 device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)

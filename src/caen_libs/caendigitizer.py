@@ -1432,8 +1432,10 @@ class Device:
             raise RuntimeError('ZLE events not allocated')
         if self.__ro_buff is None:
             raise RuntimeError('Readout buffer not allocated')
-        l_num_events = ct.c_uint32()
         n_words = self.__ro_buff_occupancy // 4
+        if n_words == 0:
+            return []  # Workaround for empty buffer, causes a segfault in the C API
+        l_num_events = ct.c_uint32()
         lib.get_zle_events(self.handle, self.__ro_buff, n_words, self.__zle_events, l_num_events)
         evts_ptr = ct.cast(self.__zle_events, ct.POINTER(self.__event_raw_type))
         match self.__info.firmware_code:
