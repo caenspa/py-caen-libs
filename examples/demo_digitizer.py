@@ -183,7 +183,9 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             for i in range(info.channels):
                 device.set_channel_dc_offset(i, 0x8000)
                 device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
-                # Low thresholds, just to see some waveforms
+                # Dummy configuration, just to see some waveforms
+                device.registers[0x1054 | (i << 8)] = 4  # Pre-Samples
+                device.registers[0x1058 | (i << 8)] = 4  # Post-Samples
                 device.registers[0x105C | (i << 8)] = 5  # Data Threshold
                 device.registers[0x1060 | (i << 8)] = 5  # Trigger Threshold
 
