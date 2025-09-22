@@ -1471,11 +1471,11 @@ class DPPPHAParams:
     dgain: list[int] = field(default_factory=list)
     enf: list[float] = field(default_factory=list)
     decimation: list[int] = field(default_factory=list)
-    enskim: list[int] = field(default_factory=list)
+    enskim: list[bool] = field(default_factory=list)
     eskimlld: list[int] = field(default_factory=list)
     eskimuld: list[int] = field(default_factory=list)
-    blrclip: list[int] = field(default_factory=list)
-    dcomp: list[int] = field(default_factory=list)
+    blrclip: list[bool] = field(default_factory=list)
+    dcomp: list[bool] = field(default_factory=list)
     trapbsl: list[int] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -1505,11 +1505,11 @@ class DPPPHAParams:
         self.dgain = [0] * n_channels
         self.enf = [0.] * n_channels
         self.decimation = [0] * n_channels
-        self.enskim = [0] * n_channels
+        self.enskim = [False] * n_channels
         self.eskimlld = [0] * n_channels
         self.eskimuld = [0] * n_channels
-        self.blrclip = [0] * n_channels
-        self.dcomp = [0] * n_channels
+        self.blrclip = [False] * n_channels
+        self.dcomp = [False] * n_channels
         self.trapbsl = [0] * n_channels
 
     def to_raw(self) -> DPPPHAParamsRaw:
@@ -1577,6 +1577,8 @@ class DPPTriggerConfig(IntEnum):
 class DPPPUR(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DPP_PUR_t
+
+    Values valid for both DPP-PSD and DPP-CI.
     """
     DETECT_ONLY = 0
     ENABLED = 1
@@ -1591,14 +1593,14 @@ class DPPPSDParams:
     bltmo: int = field(default=0)
     trgho: int = field(default=0)
     thr: list[int] = field(default_factory=list)
-    selft: list[int] = field(default_factory=list)
+    selft: list[bool] = field(default_factory=list)
     csens: list[int] = field(default_factory=list)
     sgate: list[int] = field(default_factory=list)
     lgate: list[int] = field(default_factory=list)
     pgate: list[int] = field(default_factory=list)
     tvaw: list[int] = field(default_factory=list)
     nsbl: list[int] = field(default_factory=list)
-    discr: list[int] = field(default_factory=list)
+    discr: list[bool] = field(default_factory=list)
     cfdf: list[int] = field(default_factory=list)
     cfdd: list[int] = field(default_factory=list)
     trgc: list[DPPTriggerConfig] = field(default_factory=list)
@@ -1610,14 +1612,14 @@ class DPPPSDParams:
         Resize to n_channels.
         """
         self.thr = [0] * n_channels
-        self.selft = [0] * n_channels
+        self.selft = [False] * n_channels
         self.csens = [0] * n_channels
         self.sgate = [0] * n_channels
         self.lgate = [0] * n_channels
         self.pgate = [0] * n_channels
         self.tvaw = [0] * n_channels
         self.nsbl = [0] * n_channels
-        self.discr = [0] * n_channels
+        self.discr = [False] * n_channels
         self.cfdf = [0] * n_channels
         self.cfdd = [0] * n_channels
         self.trgc = [DPPTriggerConfig.PEAK] * n_channels
@@ -1640,7 +1642,7 @@ class DPPPSDParams:
             tuple(self.cfdf),
             tuple(self.cfdd),
             tuple(self.trgc),
-            int(self.purh),
+            self.purh,
             self.purgap,
         )
 
@@ -1669,12 +1671,12 @@ class DPPCIParams:
     Binding of ::CAEN_DGTZ_DPP_CI_Params_t
     """
     purgap: int = field(default=0)
-    purh: int = field(default=0)
+    purh: DPPPUR = field(default=DPPPUR.DETECT_ONLY)
     blthr: int = field(default=0)
     bltmo: int = field(default=0)
     trgho: int = field(default=0)
     thr: list[int] = field(default_factory=list)
-    selft: list[int] = field(default_factory=list)
+    selft: list[bool] = field(default_factory=list)
     csens: list[int] = field(default_factory=list)
     gate: list[int] = field(default_factory=list)
     pgate: list[int] = field(default_factory=list)
@@ -1687,13 +1689,14 @@ class DPPCIParams:
         Resize to n_channels.
         """
         self.thr = [0] * n_channels
-        self.selft = [0] * n_channels
+        self.selft = [False] * n_channels
         self.csens = [0] * n_channels
         self.gate = [0] * n_channels
         self.pgate = [0] * n_channels
         self.tvaw = [0] * n_channels
         self.nsbl = [0] * n_channels
         self.trgc = [DPPTriggerConfig.PEAK] * n_channels
+
     def to_raw(self) -> DPPCIParamsRaw:
         """Convert to raw data"""
         return DPPCIParamsRaw(
@@ -2087,14 +2090,31 @@ class FirmwareType(Enum):
 
 
 @dataclass(**_utils.dataclass_slots)
+class Buffer:
+    """
+    Type returned by get_event_info, to be passed to decode_event
+
+    Nothing more than a thin wrapper around a ctypes pointer.
+    """
+    data: 'ct._Pointer[ct.c_char]'
+
+
+@dataclass(**_utils.dataclass_slots)
 class ReadoutBuffer:
     """
-    Internal representation of readout buffer.
+    Internal representation of readout buffer
     """
     data: 'ct._Pointer[ct.c_char]' = field(default_factory=ct.POINTER(ct.c_char), repr=False)
     size: ct.c_uint32 = field(default_factory=ct.c_uint32, repr=False)
     occupancy: ct.c_uint32 = field(default_factory=ct.c_uint32, repr=False)
 
-    def as_buffer(self) -> npt.NDArray[np.byte]:
-        """Return the buffer as a numpy array of bytes."""
-        return np.ctypeslib.as_array(self.data, shape=(self.occupancy.value,))
+    def as_memoryview(self) -> memoryview:
+        """
+        Return the buffer as a memoryview. Ownership of the memoryview
+        is not transferred.
+        """
+        if not self.data:
+            raise ValueError("Buffer is not allocated")
+        array_type = ct.c_ubyte * self.occupancy.value
+        array = array_type.from_address(ct.addressof(self.data.contents))
+        return memoryview(array)

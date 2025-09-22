@@ -59,7 +59,7 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
     match info.firmware_code:
         case dgtz.FirmwareCode.STANDARD_FW:
             device.set_record_length(4096)
-            device.set_channel_enable_mask(0xFF)
+            device.set_channel_enable_mask((1 << info.channels) - 1)
             device.set_channel_trigger_threshold(0, 32768)
             device.set_channel_self_trigger(0, dgtz.TriggerMode.ACQ_ONLY)
             device.set_sw_trigger_mode(dgtz.TriggerMode.ACQ_ONLY)
@@ -80,11 +80,12 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.sw_stop_acquisition()
 
         case dgtz.FirmwareCode.V1730_DPP_PSD:
+            ch_mask = (1 << info.channels) - 1
             device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
             device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
             device.set_io_level(dgtz.IOLevel.TTL)
             device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
-            device.set_channel_enable_mask(0xFF)
+            device.set_channel_enable_mask(ch_mask)
             device.set_dpp_event_aggregation(0, 0)
             device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
             for i in range(info.channels):
@@ -102,11 +103,11 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
                 dpp_params.lgate[ch] = 32
                 dpp_params.sgate[ch] = 24
                 dpp_params.pgate[ch] = 8
-                dpp_params.selft[ch] = 1
+                dpp_params.selft[ch] = True
                 dpp_params.trgc[ch] = dgtz.DPPTriggerConfig.THRESHOLD
                 dpp_params.tvaw[ch] = 50
                 dpp_params.csens[ch] = 0
-            device.set_dpp_parameters(0xff, dpp_params)
+            device.set_dpp_parameters(ch_mask, dpp_params)
 
             device.malloc_readout_buffer()
             device.malloc_dpp_events()
@@ -124,11 +125,12 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.sw_stop_acquisition()
 
         case dgtz.FirmwareCode.V1730_DPP_PHA:
+            ch_mask = (1 << info.channels) - 1
             device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
             device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
             device.set_io_level(dgtz.IOLevel.TTL)
             device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
-            device.set_channel_enable_mask(0xFF)
+            device.set_channel_enable_mask(ch_mask)
             device.set_dpp_event_aggregation(0, 0)
             device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
             for i in range(info.channels):
@@ -159,7 +161,7 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
                 dpp_params.otrej[ch] = 0
                 dpp_params.trgwin[ch] = 0
                 dpp_params.twwdt[ch] = 100
-            device.set_dpp_parameters(0xff, dpp_params)
+            device.set_dpp_parameters(ch_mask, dpp_params)
 
             device.malloc_readout_buffer()
             device.malloc_dpp_events()
@@ -180,7 +182,7 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
             device.set_io_level(dgtz.IOLevel.TTL)
             device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
-            device.set_channel_enable_mask(0xFF)
+            device.set_channel_enable_mask((1 << info.channels) - 1)
             device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
             device.set_record_length(1024)  # 1 LSB == 5 samples (minimum record length)
             device.set_max_num_events_blt(1)
@@ -214,7 +216,7 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
             device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
             device.set_io_level(dgtz.IOLevel.TTL)
             device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
-            device.set_channel_enable_mask(0xFF)
+            device.set_channel_enable_mask((1 << info.channels) - 1)
             device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
             device.set_record_length(RECORD_LENGTH // 4)  # 1 LSB == 4 samples
             device.set_max_num_events_blt(1)
