@@ -37,6 +37,7 @@ MAX_DPP_QDC_CHANNEL_SIZE = MAX_V1740DPP_CHANNEL_SIZE
 MAX_DPP_CHANNEL_SIZE = MAX_DPP_PSD_CHANNEL_SIZE
 MAX_LICENSE_DIGITS = 8
 MAX_LICENSE_LENGTH = MAX_LICENSE_DIGITS * 2 + 1
+MAX_PROBENAMES_LEN = 50
 
 
 @unique
@@ -151,7 +152,7 @@ class FirmwareCode(IntEnum):
     V1743_DPP_CI      = 0x86
     V1740_DPP_QDC     = 0x87
     V1730_DPP_PSD     = 0x88
-    V1724_DPP_DAW     = 0x89
+    V1724_DPP_DAW     = 0x89  # Not really supported by CAEN Digitizer
     V1730_DPP_PHA     = 0x8B
     V1730_DPP_ZLE     = 0x8C
     V1730_DPP_DAW     = 0x8D
@@ -1915,6 +1916,59 @@ class DRS4Correction:
 
 
 @unique
+class DPPTrace(IntEnum):
+    """
+    Binding of trace types
+    """
+    ANALOG_1 = 0
+    ANALOG_2 = 1
+    DIGITAL_1 = 2
+    DIGITAL_2 = 3
+    DIGITAL_3 = 4
+    DIGITAL_4 = 5
+
+
+@unique
+class DPPProbe(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_DPP_*PROBE_*
+    """
+    VIRTUAL_INVALID = -1
+    VIRTUAL_INPUT = 0
+    VIRTUAL_DELTA = 1
+    VIRTUAL_DELTA2 = 2
+    VIRTUAL_TRAPEZOID = 3
+    VIRTUAL_TRAPEZOID_REDUCED = 4
+    VIRTUAL_BASELINE = 5
+    VIRTUAL_THRESHOLD = 6
+    VIRTUAL_CFD = 7
+    VIRTUAL_SMOOTHED_INPUT = 8
+    VIRTUAL_NONE = 9
+    DIGITAL_TRG_WIN = 10
+    DIGITAL_ARMED = 11
+    DIGITAL_PK_RUN = 12
+    DIGITAL_PEAKING = 13
+    DIGITAL_COINC_WIN = 14
+    DIGITAL_BL_HOLDOFF = 15
+    DIGITAL_TRG_HOLDOFF = 16
+    DIGITAL_TRG_VAL = 17
+    DIGITAL_ACQ_VETO = 18
+    DIGITAL_BFM_VETO = 19
+    DIGITAL_EXT_TRG = 20
+    DIGITAL_OVER_THR = 21
+    DIGITAL_TRG_OUT = 22
+    DIGITAL_COINCIDENCE = 23
+    DIGITAL_PILE_UP = 24
+    DIGITAL_GATE = 25
+    DIGITAL_GATE_SHORT = 26
+    DIGITAL_TRIGGER = 27
+    DIGITAL_NONE = 28
+    DIGITAL_BL_FREEZE = 29
+    DIGITAL_BUSY = 30
+    DIGITAL_PRG_VETO = 31
+
+
+@unique
 class DPPSaveParam(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DPP_SaveParam_t
@@ -1999,3 +2053,17 @@ class SAMFrequency(IntEnum):
     F_1_6GHz  = 1
     F_800MHz  = 2
     F_400MHz  = 3
+
+
+@dataclass(**_utils.dataclass_slots)
+class ReadoutBuffer:
+    """
+    Internal representation of readout buffer.
+    """
+    data: 'ct._Pointer[ct.c_char]' = field(default_factory=ct.POINTER(ct.c_char), repr=False)
+    size: ct.c_uint32 = field(default_factory=ct.c_uint32, repr=False)
+    occupancy: ct.c_uint32 = field(default_factory=ct.c_uint32, repr=False)
+
+    def as_buffer(self) -> npt.NDArray[np.byte]:
+        """Return the buffer as a numpy array of bytes."""
+        return np.ctypeslib.as_array(self.data, shape=(self.occupancy.value,))

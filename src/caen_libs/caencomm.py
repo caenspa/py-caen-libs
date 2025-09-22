@@ -154,7 +154,7 @@ class _Lib(_utils.Lib):
         Binding of CAENComm_VMEIACKCycle16()
         """
         l_value = ct.c_int()
-        self.__vme_iack_cycle16(vme_handle, levels)
+        self.__vme_iack_cycle16(vme_handle, levels, l_value)
         return l_value.value
 
     def vme_iack_cycle32(self, vme_handle: int, levels: IRQLevels) -> int:
@@ -162,7 +162,7 @@ class _Lib(_utils.Lib):
         Binding of CAENComm_VMEIACKCycle32()
         """
         l_value = ct.c_int()
-        self.__vme_iack_cycle32(vme_handle, levels)
+        self.__vme_iack_cycle32(vme_handle, levels, l_value)
         return l_value.value
 
     def vme_irq_wait(self, connection_type: ConnectionType, link_num: int, conet_node: int, irq_mask: IRQLevels, timeout: int) -> int:

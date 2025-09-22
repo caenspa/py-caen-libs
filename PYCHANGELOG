@@ -23,6 +23,7 @@ New features:
 Fixes:
 - Fix error check in functions using `caenhvwrapper.lib.init_system`, i.e.
     `caenhvwrapper.Device.open` and `caenhvwrapper.Device.connect`.
+- Fix `caencomm.vme_iack_cycle16` and `caencomm.vme_iack_cycle32`.
 
 Changes:
 - On `caenhvwrapper.EventData`, `board_index` and `channel_index` fields has
