@@ -5,7 +5,7 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 from dataclasses import dataclass, field
-from enum import IntEnum, unique
+from enum import Enum, IntEnum, auto, unique
 from typing import Optional
 
 import numpy as np
@@ -2053,6 +2053,37 @@ class SAMFrequency(IntEnum):
     F_1_6GHz  = 1
     F_800MHz  = 2
     F_400MHz  = 3
+
+
+@unique
+class FirmwareType(Enum):
+    """
+    Alternative to ::CAEN_DGTZ_GetDPPFirmwareType() and ::CAEN_DGTZ_DPPFirmware_t,
+    not used since pretty bugged at least before v2.19.0
+
+    Internal use only.
+    """
+    STANDARD = auto()
+    DPP = auto()
+    ZLE = auto()
+    DAW = auto()  # DAW firmware uses DPP functions with ZLE calling convention
+    UNKNOWN = auto()
+
+    @classmethod
+    def from_code(cls, code: FirmwareCode):
+        """Internal use only."""
+        F = FirmwareCode
+        match code:
+            case F.STANDARD_FW | F.STANDARD_FW_X742 | F.STANDARD_FW_X743:
+                return cls.STANDARD
+            case F.V1720_DPP_CI | F.V1720_DPP_PSD | F.V1751_DPP_PSD | F.V1743_DPP_CI | F.V1740_DPP_QDC | F.V1730_DPP_PSD | F.V1724_DPP_PHA | F.V1730_DPP_PHA:
+                return cls.DPP
+            case F.V1751_DPP_ZLE | F.V1730_DPP_ZLE:
+                return cls.ZLE
+            case F.V1724_DPP_DAW | F.V1730_DPP_DAW:
+                return cls.DAW
+            case _:
+                return cls.UNKNOWN
 
 
 @dataclass(**_utils.dataclass_slots)

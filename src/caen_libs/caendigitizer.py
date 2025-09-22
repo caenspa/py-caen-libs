@@ -405,41 +405,11 @@ class Device:
     conet_node: int
     vme_base_address: int
 
-    @unique
-    class _FirmwareType(Enum):
-        """
-        Alternative to ::CAEN_DGTZ_GetDPPFirmwareType() and ::CAEN_DGTZ_DPPFirmware_t,
-        not used since pretty bugged.
-
-        Internal use only.
-        """
-        STANDARD = auto()
-        DPP = auto()
-        ZLE = auto()
-        DAW = auto()  # DAW firmware uses DPP functions with ZLE calling convention
-        UNKNOWN = auto()
-
-        @classmethod
-        def from_code(cls, code: FirmwareCode):
-            """Internal use only."""
-            F = FirmwareCode
-            match code:
-                case F.STANDARD_FW | F.STANDARD_FW_X742 | F.STANDARD_FW_X743:
-                    return cls.STANDARD
-                case F.V1720_DPP_CI | F.V1720_DPP_PSD | F.V1751_DPP_PSD | F.V1743_DPP_CI | F.V1740_DPP_QDC | F.V1730_DPP_PSD | F.V1724_DPP_PHA | F.V1730_DPP_PHA:
-                    return cls.DPP
-                case F.V1751_DPP_ZLE | F.V1730_DPP_ZLE:
-                    return cls.ZLE
-                case F.V1724_DPP_DAW | F.V1730_DPP_DAW:
-                    return cls.DAW
-                case _:
-                    return cls.UNKNOWN
-
     # Private members
     __opened: bool = field(default=True, repr=False)
     __ro_buff: Optional[_types.ReadoutBuffer] = field(default=None, repr=False)
     __info: BoardInfo = field(init=False, repr=False)
-    __firmware_type: _FirmwareType = field(init=False, repr=False)
+    __firmware_type: _types.FirmwareType = field(init=False, repr=False)
     __event_type: Any = field(init=False, repr=False)
     __event_raw_ptr_type: Any = field(init=False, repr=False)
     __waveforms_type: Any = field(init=False, repr=False)
@@ -456,7 +426,7 @@ class Device:
 
     def __post_init__(self) -> None:
         self.__info = self.get_info()
-        self.__firmware_type = self._FirmwareType.from_code(self.__info.firmware_code)
+        self.__firmware_type = _types.FirmwareType.from_code(self.__info.firmware_code)
         self.__event_type, event_raw_type = self.__get_event_type()
         self.__event_raw_ptr_type = ct.POINTER(event_raw_type)
         self.__waveforms_type, self.__waveforms_raw_type = self.__get_waveforms_type()
@@ -551,14 +521,14 @@ class Device:
         """
         self.free_readout_buffer()
         match self.__firmware_type:
-            case self._FirmwareType.STANDARD:
+            case _types.FirmwareType.STANDARD:
                 self.free_event()
-            case self._FirmwareType.DPP:
+            case _types.FirmwareType.DPP:
                 self.free_dpp_events()
                 self.free_dpp_waveforms()
-            case self._FirmwareType.ZLE:
+            case _types.FirmwareType.ZLE:
                 self.free_zle_events_and_waveforms()
-            case self._FirmwareType.DAW:
+            case _types.FirmwareType.DAW:
                 self.free_daw_events_and_waveforms()
         lib.close_digitizer(self.handle)
         self.__opened = False
@@ -1049,7 +1019,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_GetEventInfo()
         """
-        if self.__firmware_type is not self._FirmwareType.STANDARD:
+        if self.__firmware_type is not _types.FirmwareType.STANDARD:
             raise RuntimeError('Not a Standard firmware')
         if self.__ro_buff is None:
             raise RuntimeError('Readout buffer not allocated')
@@ -1073,7 +1043,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_FreeEvent()
         """
-        if self.__firmware_type is not self._FirmwareType.STANDARD:
+        if self.__firmware_type is not _types.FirmwareType.STANDARD:
             raise RuntimeError('Not a Standard firmware')
         if self.__scope_event is None:
             return
@@ -1086,7 +1056,7 @@ class Device:
 
         Note: for DAW firmware use get_daw_events()
         """
-        if self.__firmware_type is not self._FirmwareType.DPP:
+        if self.__firmware_type is not _types.FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__ro_buff is None:
             raise RuntimeError('Readout buffer not allocated')
@@ -1101,7 +1071,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_GetDPPEvents() for DAW only
         """
-        if self.__firmware_type is not self._FirmwareType.DAW:
+        if self.__firmware_type is not _types.FirmwareType.DAW:
             raise RuntimeError('Not a DAW firmware')
         if self.__ro_buff is None:
             raise RuntimeError('Readout buffer not allocated')
@@ -1121,7 +1091,7 @@ class Device:
 
         Note: for DAW firmware use malloc_daw_events()
         """
-        if self.__firmware_type is not self._FirmwareType.DPP:
+        if self.__firmware_type is not _types.FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_events is not None:
             raise RuntimeError('DPP events already allocated')
@@ -1171,7 +1141,7 @@ class Device:
 
         Note: for DAW firmware use free_daw_events()
         """
-        if self.__firmware_type is not self._FirmwareType.DPP:
+        if self.__firmware_type is not _types.FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_events is None:
             return
@@ -1185,7 +1155,7 @@ class Device:
         See malloc_zle_events_and_waveforms() for the rationale of this
         combined method.
         """
-        if self.__firmware_type is not self._FirmwareType.DAW:
+        if self.__firmware_type is not _types.FirmwareType.DAW:
             raise RuntimeError('Not a DAW firmware')
         if self.__daw_events is None:
             return
@@ -1217,7 +1187,7 @@ class Device:
         defined by ::CAEN_DGTZ_730_DAW_Waveforms_t, are allocated
         together with DAW events in malloc_daw_events().
         """
-        if self.__firmware_type is not self._FirmwareType.DPP:
+        if self.__firmware_type is not _types.FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_waveforms is not None:
             raise RuntimeError('DPP waveforms already allocated')
@@ -1235,7 +1205,7 @@ class Device:
         defined by ::CAEN_DGTZ_730_DAW_Waveforms_t, are allocated
         together with DAW events in malloc_daw_events().
         """
-        if self.__firmware_type is not self._FirmwareType.DPP:
+        if self.__firmware_type is not _types.FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_waveforms is None:
             return
@@ -1246,7 +1216,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_DecodeDPPWaveforms()
         """
-        if self.__firmware_type is not self._FirmwareType.DPP:
+        if self.__firmware_type is not _types.FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_events is None:
             raise RuntimeError('DPP events not allocated')
@@ -1261,7 +1231,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_DecodeDPPWaveforms() for DAW only
         """
-        if self.__firmware_type is not self._FirmwareType.DAW:
+        if self.__firmware_type is not _types.FirmwareType.DAW:
             raise RuntimeError('Not a DAW firmware')
         if self.__daw_events is None:
             raise RuntimeError('DAW events not allocated')
@@ -1352,7 +1322,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_AllocateEvent()
         """
-        if self.__firmware_type is not self._FirmwareType.STANDARD:
+        if self.__firmware_type is not _types.FirmwareType.STANDARD:
             raise RuntimeError('Not a standard firmware')
         if self.__scope_event is not None:
             raise RuntimeError('Event already allocated')
@@ -1530,7 +1500,7 @@ class Device:
         See malloc_zle_events_and_waveforms() for the rationale of this
         combined method.
         """
-        if self.__firmware_type is not self._FirmwareType.ZLE:
+        if self.__firmware_type is not _types.FirmwareType.ZLE:
             raise RuntimeError('Not a ZLE firmware')
         if self.__zle_events is None:
             return
@@ -1565,7 +1535,7 @@ class Device:
         this combined method for symmetry and convenience, embedding the
         waveforms pointers inside the event class.
         """
-        if self.__firmware_type is not self._FirmwareType.ZLE:
+        if self.__firmware_type is not _types.FirmwareType.ZLE:
             raise RuntimeError('Not a ZLE firmware')
         if self.__zle_events is not None:
             raise RuntimeError('ZLE events already allocated')
@@ -1605,7 +1575,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_GetZLEEvents()
         """
-        if self.__firmware_type is not self._FirmwareType.ZLE:
+        if self.__firmware_type is not _types.FirmwareType.ZLE:
             raise RuntimeError('Not a ZLE firmware')
         if self.__ro_buff is None:
             raise RuntimeError('Readout buffer not allocated')
