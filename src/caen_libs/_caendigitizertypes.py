@@ -1479,14 +1479,7 @@ class DPPPHAParams:
     trapbsl: list[int] = field(default_factory=list)
 
     def resize(self, n_channels: int):
-        """
-        Resize to n_channels.
-
-        This method is required because this class is a class of lists,
-        rather than a class used as member of a list in the parent class
-        DgtzParams. In other words, the other members of DgtzParams are
-        indexed like `params.x[ch].y`, while this like `params.x.y[ch]`.
-        """
+        """Resize to n_channels."""
         self.m_ = [0] * n_channels
         self.m = [0] * n_channels
         self.k = [0] * n_channels
@@ -1608,9 +1601,7 @@ class DPPPSDParams:
     purgap: int = field(default=0)
 
     def resize(self, n_channels: int):
-        """
-        Resize to n_channels.
-        """
+        """Resize to n_channels"""
         self.thr = [0] * n_channels
         self.selft = [False] * n_channels
         self.csens = [0] * n_channels
@@ -1685,9 +1676,7 @@ class DPPCIParams:
     trgc: list[DPPTriggerConfig] = field(default_factory=list)
 
     def resize(self, n_channels: int):
-        """
-        Resize to n_channels.
-        """
+        """Resize to n_channels"""
         self.thr = [0] * n_channels
         self.selft = [False] * n_channels
         self.csens = [0] * n_channels
@@ -1744,9 +1733,7 @@ class ZLEParams751:
     pre_trgg: int = field(default=0)
 
     def resize(self, n_channels: int):
-        """
-        Resize to n_channels.
-        """
+        """Resize to n_channels"""
         self.nsamp_bck = [0] * n_channels
         self.nsamp_ahe = [0] * n_channels
         self.zle_upp_thr = [0] * n_channels
@@ -1791,9 +1778,7 @@ class DPPX743Params:
     charge_threshold: list[float] = field(default_factory=list)
 
     def resize(self, n_channels: int):
-        """
-        Resize to n_channels.
-        """
+        """Resize to n_channels"""
         self.start_cell = [0] * n_channels
         self.charge_length = [0] * n_channels
         self.enable_charge_threshold = [EnaDis.DISABLE] * n_channels
@@ -1852,9 +1837,7 @@ class DPPQDCParams:
     enable_extended_time_stamp: bool = field(default=False)
 
     def resize(self, n_channels: int):
-        """
-        Resize to n_channels.
-        """
+        """Resize to n_channels"""
         self.trgho = [0] * n_channels
         self.gate_width = [0] * n_channels
         self.pre_gate = [0] * n_channels
@@ -2058,7 +2041,6 @@ class SAMFrequency(IntEnum):
     F_400MHz  = 3
 
 
-@unique
 class FirmwareType(Enum):
     """
     Alternative to ::CAEN_DGTZ_GetDPPFirmwareType() and ::CAEN_DGTZ_DPPFirmware_t,
