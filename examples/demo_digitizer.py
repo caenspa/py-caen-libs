@@ -178,6 +178,61 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
                     plt.plot(w.trace1, label=f'Ch{ch_idx}')
             device.sw_stop_acquisition()
 
+        case dgtz.FirmwareCode.V1724_DPP_PHA:
+            ch_mask = (1 << info.channels) - 1
+            device.registers[0x8000] |= 0x01000100  # Force bit 8 and 24 to 1 (see manual)
+            device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
+            device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
+            device.set_record_length(4096)
+            device.set_io_level(dgtz.IOLevel.TTL)
+            device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
+            device.set_channel_enable_mask(ch_mask)
+            device.set_dpp_event_aggregation(0, 0)
+            device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
+            for i in range(info.channels):
+                device.set_channel_dc_offset(i, 0x8000)
+                device.set_dpp_pre_trigger_size(i, 512)
+                device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
+
+            dpp_params = dgtz.DPPPHAParams()
+            dpp_params.resize(info.channels)
+            for ch in range(info.channels):
+                dpp_params.thr[ch] = 100
+                dpp_params.k[ch] = 2000
+                dpp_params.m[ch] = 1000
+                dpp_params.m_[ch] = 50000
+                dpp_params.ftd[ch] = 800
+                dpp_params.a[ch] = 4
+                dpp_params.b[ch] = 200
+                dpp_params.trgho[ch] = 1200
+                dpp_params.nsbl[ch] = 4
+                dpp_params.nspk[ch] = 0
+                dpp_params.pkho[ch] = 2000
+                dpp_params.blho[ch] = 500
+                dpp_params.enf[ch] = 1.0
+                dpp_params.decimation[ch] = 0
+                dpp_params.dgain[ch] = 0
+                dpp_params.otrej[ch] = 0
+                dpp_params.trgwin[ch] = 0
+                dpp_params.twwdt[ch] = 0
+            device.set_dpp_parameters(ch_mask, dpp_params)
+
+            device.malloc_readout_buffer()
+            device.malloc_dpp_events()
+            device.malloc_dpp_waveforms()
+
+            device.sw_start_acquisition()
+            device.send_sw_trigger()
+
+            device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+            for ch_idx, ch in enumerate(device.get_dpp_events()):
+                for evt_idx, evt in enumerate(ch):
+                    assert isinstance(evt, dgtz.DPPPHAEvent)
+                    w = device.decode_dpp_waveforms(ch_idx, evt_idx)
+                    assert isinstance(w, dgtz.DPPPHAWaveforms)
+                    plt.plot(w.trace1, label=f'Ch{ch_idx}')
+            device.sw_stop_acquisition()
+
         case dgtz.FirmwareCode.V1730_DPP_DAW:
             device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
             device.set_io_level(dgtz.IOLevel.TTL)
