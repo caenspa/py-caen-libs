@@ -11,10 +11,11 @@
 -----------------------------------------------------------------------------
 
 
-v2.3.0 (XX/XX/2025)
+v3.0.0 (XX/XX/2025)
 -------------------
 
 New features:
+- Preliminary support for `caendigitizer`.
 - Add `slot` field to `caenhvwrapper.Board` to get the slot directly from
     the object returned by `caenhvwrapper.Device.get_crate_map` and
     `caenhvwrapper.Device.test_bd_presence`.
@@ -22,12 +23,14 @@ New features:
 Fixes:
 - Fix error check in functions using `caenhvwrapper.lib.init_system`, i.e.
     `caenhvwrapper.Device.open` and `caenhvwrapper.Device.connect`.
+- Fix `caencomm.vme_iack_cycle16` and `caencomm.vme_iack_cycle32`.
 
 Changes:
 - On `caenhvwrapper.EventData`, `board_index` and `channel_index` fields has
     been renamed respectively `slot` and `channel`, and now their value is an
     `Optional[int]`, and is set to None if the value of the underlying library
     is -1. Old fields are kept as class property for backward compatibility.
+- Remove deprecated `ErrorCode` alias to `Error.Code` from all modules.
 
 
 v2.2.0 (03/07/2025)
