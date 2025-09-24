@@ -97,16 +97,16 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
 
             dpp_params = dgtz.DPPPSDParams()
             dpp_params.resize(info.channels)
-            for ch in range(info.channels):
-                dpp_params.thr[ch] = 50
-                dpp_params.nsbl[ch] = 2
-                dpp_params.lgate[ch] = 32
-                dpp_params.sgate[ch] = 24
-                dpp_params.pgate[ch] = 8
-                dpp_params.selft[ch] = True
-                dpp_params.trgc[ch] = dgtz.DPPTriggerConfig.THRESHOLD
-                dpp_params.tvaw[ch] = 50
-                dpp_params.csens[ch] = 0
+            for par_ch in dpp_params.ch:
+                par_ch.thr = 50
+                par_ch.nsbl = 2
+                par_ch.lgate = 32
+                par_ch.sgate = 24
+                par_ch.pgate = 8
+                par_ch.selft = True
+                par_ch.trgc = dgtz.DPPTriggerConfig.THRESHOLD
+                par_ch.tvaw = 50
+                par_ch.csens = 0
             device.set_dpp_parameters(ch_mask, dpp_params)
 
             device.malloc_readout_buffer()
@@ -142,25 +142,25 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
 
             dpp_params = dgtz.DPPPHAParams()
             dpp_params.resize(info.channels)
-            for ch in range(info.channels):
-                dpp_params.thr[ch] = 100
-                dpp_params.k[ch] = 3000
-                dpp_params.m[ch] = 900
-                dpp_params.m_[ch] = 50000
-                dpp_params.ftd[ch] = 500
-                dpp_params.a[ch] = 4
-                dpp_params.b[ch] = 200
-                dpp_params.trgho[ch] = 1200
-                dpp_params.nsbl[ch] = 4
-                dpp_params.nspk[ch] = 0
-                dpp_params.pkho[ch] = 2000
-                dpp_params.blho[ch] = 500
-                dpp_params.enf[ch] = 1.0
-                dpp_params.decimation[ch] = 0
-                dpp_params.dgain[ch] = 0
-                dpp_params.otrej[ch] = 0
-                dpp_params.trgwin[ch] = 0
-                dpp_params.twwdt[ch] = 100
+            for ch in dpp_params.ch:
+                ch.thr = 100
+                ch.k = 3000
+                ch.m = 900
+                ch.m_ = 50000
+                ch.ftd = 500
+                ch.a = 4
+                ch.b = 200
+                ch.trgho = 1200
+                ch.nsbl = 4
+                ch.nspk = 0
+                ch.pkho = 2000
+                ch.blho = 500
+                ch.enf = 1.0
+                ch.decimation = 0
+                ch.dgain = 0
+                ch.otrej = 0
+                ch.trgwin = 0
+                ch.twwdt = 100
             device.set_dpp_parameters(ch_mask, dpp_params)
 
             device.malloc_readout_buffer()
@@ -196,25 +196,25 @@ with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber,
 
             dpp_params = dgtz.DPPPHAParams()
             dpp_params.resize(info.channels)
-            for ch in range(info.channels):
-                dpp_params.thr[ch] = 100
-                dpp_params.k[ch] = 2000
-                dpp_params.m[ch] = 1000
-                dpp_params.m_[ch] = 50000
-                dpp_params.ftd[ch] = 800
-                dpp_params.a[ch] = 4
-                dpp_params.b[ch] = 200
-                dpp_params.trgho[ch] = 1200
-                dpp_params.nsbl[ch] = 4
-                dpp_params.nspk[ch] = 0
-                dpp_params.pkho[ch] = 2000
-                dpp_params.blho[ch] = 500
-                dpp_params.enf[ch] = 1.0
-                dpp_params.decimation[ch] = 0
-                dpp_params.dgain[ch] = 0
-                dpp_params.otrej[ch] = 0
-                dpp_params.trgwin[ch] = 0
-                dpp_params.twwdt[ch] = 0
+            for ch in dpp_params.ch:
+                ch.thr = 100
+                ch.k = 2000
+                ch.m = 1000
+                ch.m_ = 50000
+                ch.ftd = 800
+                ch.a = 4
+                ch.b = 200
+                ch.trgho = 1200
+                ch.nsbl = 4
+                ch.nspk = 0
+                ch.pkho = 2000
+                ch.blho = 500
+                ch.enf = 1.0
+                ch.decimation = 0
+                ch.dgain = 0
+                ch.otrej = 0
+                ch.trgwin = 0
+                ch.twwdt = 0
             device.set_dpp_parameters(ch_mask, dpp_params)
 
             device.malloc_readout_buffer()

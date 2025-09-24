@@ -59,6 +59,7 @@ class ConnectionType(IntEnum):
 
 
 class ConnectionParamsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_ConnectionParams_t"""
     _fields_ = [
         ('LinkType', ct.c_int),
         ('LinkNum', ct.c_int32),
@@ -91,6 +92,7 @@ class ConnectionParams:
 
 
 class ParamInfoRaw(ct.Structure):
+    """Raw view of ::CAENDPP_ParamInfo_t"""
     _fields_ = [
         ('type', ct.c_int),
         ('minimum', ct.c_double),
@@ -151,6 +153,7 @@ class ParamInfo:
 
 
 class HVRangeInfoRaw(ct.Structure):
+    """Raw view of ::CAENDPP_HVRangeInfo_t"""
     _fields_ = [
         ('VSetInfo', ParamInfoRaw),
         ('ISetInfo', ParamInfoRaw),
@@ -209,6 +212,7 @@ class HVRangeInfo:
 
 
 class HVChannelInfoRaw(ct.Structure):
+    """Raw view of ::CAENDPP_HVChannelInfo_t"""
     _fields_ = [
         ('HVFamilyCode', ct.c_int),
         ('NumRanges', ct.c_int32),
@@ -246,6 +250,7 @@ class HVChannelInfo:
 
 
 class InfoRaw(ct.Structure):
+    """Raw view of ::CAENDPP_Info_t"""
     _fields_ = [
         ('ModelName', ct.c_char * MAX_BRDNAME_LEN),
         ('Model', ct.c_int32),
@@ -577,6 +582,7 @@ class Info:
 
 
 class TempCorrParamsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_TempCorrParams_t"""
     _fields_ = [
         ('enabled', ct.c_int32),
         ('LLD', ct.c_int32),
@@ -604,6 +610,7 @@ class TempCorrParams:
 
 
 class GPIORaw(ct.Structure):
+    """Raw view of ::CAENDPP_GPIO_t"""
     _fields_ = [
         ('Mode', ct.c_int),
         ('SigOut', ct.c_int),
@@ -683,6 +690,7 @@ class GPIO:
 
 
 class GPIOConfigRaw(ct.Structure):
+    """Raw view of ::CAENDPP_GPIOConfig_t"""
     _fields_ = [
         ('GPIOs', GPIORaw * MAX_GPIO_NUM),
         ('TRGControl', ct.c_int),
@@ -754,6 +762,7 @@ class GPIOConfig:
 
 
 class ExtraParametersRaw(ct.Structure):
+    """Raw view of ::CAENDPP_ExtraParameters_t"""
     _fields_ = [
         ('trigK', ct.c_int32),
         ('trigm', ct.c_int32),
@@ -822,6 +831,7 @@ class ExtraParameters:
 
 
 class PHAParamsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_PHA_Params_t"""
     _fields_ = [
         ('M', ct.c_int32 * MAX_NUMCHB),
         ('m', ct.c_int32 * MAX_NUMCHB),
@@ -855,30 +865,35 @@ class PHAParams:
     """
     Binding of ::CAENDPP_PHA_Params_t
     """
-    m_: list[int] = field(default_factory=list)
-    m: list[int] = field(default_factory=list)
-    k: list[int] = field(default_factory=list)
-    ftd: list[int] = field(default_factory=list)
-    a: list[int] = field(default_factory=list)
-    b: list[int] = field(default_factory=list)
-    thr: list[int] = field(default_factory=list)
-    nsbl: list[int] = field(default_factory=list)
-    nspk: list[int] = field(default_factory=list)
-    pkho: list[int] = field(default_factory=list)
-    blho: list[int] = field(default_factory=list)
-    trgho: list[int] = field(default_factory=list)
-    dgain: list[int] = field(default_factory=list)
-    enf: list[float] = field(default_factory=list)
-    decimation: list[int] = field(default_factory=list)
-    enskim: list[int] = field(default_factory=list)
-    eskimlld: list[int] = field(default_factory=list)
-    eskimuld: list[int] = field(default_factory=list)
-    blrclip: list[int] = field(default_factory=list)
-    dcomp: list[int] = field(default_factory=list)
-    trapbsl: list[int] = field(default_factory=list)
-    pz_dac: list[int] = field(default_factory=list)
-    inh_length: list[int] = field(default_factory=list)
-    x770_extraparameters: list[ExtraParameters] = field(default_factory=list)
+
+    @dataclass(**_utils.dataclass_slots)
+    class _ChData:
+        m_: int = 0
+        m: int = 0
+        k: int = 0
+        ftd: int = 0
+        a: int = 0
+        b: int = 0
+        thr: int = 0
+        nsbl: int = 0
+        nspk: int = 0
+        pkho: int = 0
+        blho: int = 0
+        trgho: int = 0
+        dgain: int = 0
+        enf: float = 0.0
+        decimation: int = 0
+        enskim: int = 0
+        eskimlld: int = 0
+        eskimuld: int = 0
+        blrclip: int = 0
+        dcomp: int = 0
+        trapbsl: int = 0
+        pz_dac: int = 0
+        inh_length: int = 0
+        x770_extraparameters: ExtraParameters = field(default_factory=ExtraParameters)
+
+    ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
         """
@@ -889,92 +904,71 @@ class PHAParams:
         DgtzParams. In other words, the other members of DgtzParams are
         indexed like `params.x[ch].y`, while this like `params.x.y[ch]`.
         """
-        self.m_ = [0] * n_channels
-        self.m = [0] * n_channels
-        self.k = [0] * n_channels
-        self.ftd = [0] * n_channels
-        self.a = [0] * n_channels
-        self.b = [0] * n_channels
-        self.thr = [0] * n_channels
-        self.nsbl = [0] * n_channels
-        self.nspk = [0] * n_channels
-        self.pkho = [0] * n_channels
-        self.blho = [0] * n_channels
-        self.trgho = [0] * n_channels
-        self.dgain = [0] * n_channels
-        self.enf = [0.] * n_channels
-        self.decimation = [0] * n_channels
-        self.enskim = [0] * n_channels
-        self.eskimlld = [0] * n_channels
-        self.eskimuld = [0] * n_channels
-        self.blrclip = [0] * n_channels
-        self.dcomp = [0] * n_channels
-        self.trapbsl = [0] * n_channels
-        self.pz_dac = [0] * n_channels
-        self.inh_length = [0] * n_channels
-        self.x770_extraparameters = [ExtraParameters() for _ in range(n_channels)]
+        self.ch = [self._ChData() for _ in range(n_channels)]
 
     @classmethod
     def from_raw(cls, raw: PHAParamsRaw):
         """Instantiate from raw data"""
-        return cls(
-            raw.M,
-            raw.m,
-            raw.k,
-            raw.ftd,
-            raw.a,
-            raw.b,
-            raw.thr,
-            raw.nsbl,
-            raw.nspk,
-            raw.pkho,
-            raw.blho,
-            raw.trgho,
-            raw.dgain,
-            raw.enf,
-            raw.decimation,
-            raw.enskim,
-            raw.eskimlld,
-            raw.eskimuld,
-            raw.blrclip,
-            raw.dcomp,
-            raw.trapbsl,
-            raw.pz_dac,
-            raw.inh_length,
-            list(map(ExtraParameters.from_raw, raw.X770_extraparameters)),
-        )
+        ch = [cls._ChData(
+            raw.M[i],
+            raw.m[i],
+            raw.k[i],
+            raw.ftd[i],
+            raw.a[i],
+            raw.b[i],
+            raw.thr[i],
+            raw.nsbl[i],
+            raw.nspk[i],
+            raw.pkho[i],
+            raw.blho[i],
+            raw.trgho[i],
+            raw.dgain[i],
+            raw.enf[i],
+            raw.decimation[i],
+            raw.enskim[i],
+            raw.eskimlld[i],
+            raw.eskimuld[i],
+            raw.blrclip[i],
+            raw.dcomp[i],
+            raw.trapbsl[i],
+            raw.pz_dac[i],
+            raw.inh_length[i],
+            ExtraParameters.from_raw(raw.X770_extraparameters[i]),
+        ) for i in range(MAX_NUMCHB)]
+        return cls(ch)
 
     def to_raw(self) -> PHAParamsRaw:
         """Convert to raw data"""
         return PHAParamsRaw(
-            tuple(self.m_),
-            tuple(self.m),
-            tuple(self.k),
-            tuple(self.ftd),
-            tuple(self.a),
-            tuple(self.b),
-            tuple(self.thr),
-            tuple(self.nsbl),
-            tuple(self.nspk),
-            tuple(self.pkho),
-            tuple(self.blho),
-            tuple(self.trgho),
-            tuple(self.dgain),
-            tuple(self.enf),
-            tuple(self.decimation),
-            tuple(self.enskim),
-            tuple(self.eskimlld),
-            tuple(self.eskimuld),
-            tuple(self.blrclip),
-            tuple(self.dcomp),
-            tuple(self.trapbsl),
-            tuple(self.pz_dac),
-            tuple(self.inh_length),
-            tuple(i.to_raw() for i in self.x770_extraparameters),
+            tuple(ch.m_ for ch in self.ch),
+            tuple(ch.m for ch in self.ch),
+            tuple(ch.k for ch in self.ch),
+            tuple(ch.ftd for ch in self.ch),
+            tuple(ch.a for ch in self.ch),
+            tuple(ch.b for ch in self.ch),
+            tuple(ch.thr for ch in self.ch),
+            tuple(ch.nsbl for ch in self.ch),
+            tuple(ch.nspk for ch in self.ch),
+            tuple(ch.pkho for ch in self.ch),
+            tuple(ch.blho for ch in self.ch),
+            tuple(ch.trgho for ch in self.ch),
+            tuple(ch.dgain for ch in self.ch),
+            tuple(ch.enf for ch in self.ch),
+            tuple(ch.decimation for ch in self.ch),
+            tuple(ch.enskim for ch in self.ch),
+            tuple(ch.eskimlld for ch in self.ch),
+            tuple(ch.eskimuld for ch in self.ch),
+            tuple(ch.blrclip for ch in self.ch),
+            tuple(ch.dcomp for ch in self.ch),
+            tuple(ch.trapbsl for ch in self.ch),
+            tuple(ch.pz_dac for ch in self.ch),
+            tuple(ch.inh_length for ch in self.ch),
+            tuple(ch.x770_extraparameters.to_raw() for ch in self.ch),
         )
 
 
 class WaveformParamsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_WaveformParams_t"""
     _fields_ = [
         ('dualTraceMode', ct.c_int32),
         ('vp1', ct.c_int),
@@ -1049,6 +1043,7 @@ class WaveformParams:
 
 
 class ListParamsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_ListParams_t"""
     _fields_ = [
         ('enabled', ct.c_uint8),
         ('saveMode', ct.c_int),
@@ -1118,6 +1113,7 @@ class ListParams:
 
 
 class RunSpecsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_RunSpecs_t"""
     _fields_ = [
         ('RunName', ct.c_char * MAX_RUNNAME),
         ('RunDurationSec', ct.c_int32),
@@ -1169,6 +1165,7 @@ class RunSpecs:
 
 
 class CoincParamsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_CoincParams_t"""
     _fields_ = [
         ('CoincChMask', ct.c_uint32),
         ('MajLevel', ct.c_uint32),
@@ -1232,6 +1229,7 @@ class CoincParams:
 
 
 class GateParamsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_GateParams_t"""
     _fields_ = [
         ('GateEnable', ct.c_uint32),
         ('ShapeTime', ct.c_uint32),
@@ -1289,6 +1287,7 @@ class GateParams:
 
 
 class SpectrumControlRaw(ct.Structure):
+    """Raw view of ::CAENDPP_SpectrumControl_t"""
     _fields_ = [
         ('SpectrumMode', ct.c_int),
         ('TimeScale', ct.c_uint32),
@@ -1323,6 +1322,7 @@ class SpectrumControl:
 
 
 class TRResetRaw(ct.Structure):
+    """Raw view of ::CAENDPP_TRReset_t"""
     _fields_ = [
         ('Enabled', ct.c_uint32),
         ('ResetDetectionMode', ct.c_int),
@@ -1376,6 +1376,7 @@ class TRReset:
 
 
 class MonOutParamsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_MonOutParams_t"""
     _fields_ = [
         ('channel', ct.c_int32),
         ('enabled', ct.c_int32),
@@ -1411,6 +1412,7 @@ class MonOutParams:
 
 
 class DgtzParamsRaw(ct.Structure):
+    """Raw view of ::CAENDPP_DgtzParams_t"""
     _fields_ = [
         ('GWn', ct.c_int32),
         ('GWaddr', ct.c_uint32 * MAX_GW),
@@ -1427,7 +1429,7 @@ class DgtzParamsRaw(ct.Structure):
         ('WFParams', WaveformParamsRaw),
         ('ListParams', ListParamsRaw),
         ('RunSpecifications', RunSpecsRaw),
-        ('CoincParams', CoincParamsRaw * MAX_NUMCHB_COINCIDENCE),
+        ('CoincParams', CoincParamsRaw * MAX_NUMCHB_COINCIDENCE),  # Note: different size!
         ('GateParams', GateParamsRaw * MAX_NUMCHB),
         ('SpectrumControl', SpectrumControlRaw * MAX_NUMCHB),
         ('ResetDetector', TRResetRaw * MAX_NUMCHB),
@@ -1460,61 +1462,63 @@ class DgtzParams:
     """
     Binding of ::CAENDPP_DgtzParams_t
     """
+
+    @dataclass(frozen=True, **_utils.dataclass_slots)
+    class _ChData:
+        pulse_polarity: PulsePolarity = field(default=PulsePolarity.POSITIVE)
+        dc_offset: int = field(default=0)
+        temp_corr_parameters: TempCorrParams = field(default_factory=TempCorrParams)
+        input_coupling: INCoupling = field(default=INCoupling.DC)
+        gate_params: GateParams = field(default_factory=GateParams)
+        spectrum_control: SpectrumControl = field(default_factory=SpectrumControl)
+        reset_detector: TRReset = field(default_factory=TRReset)
+
     gw_addr: list[int] = field(default_factory=list)
     gw_data: list[int] = field(default_factory=list)
     gw_mask: list[int] = field(default_factory=list)
     channel_mask: int = field(default=0)
-    pulse_polarity: list[PulsePolarity] = field(default_factory=list)
-    dc_offset: list[int] = field(default_factory=list)
-    temp_corr_parameters: list[TempCorrParams] = field(default_factory=list)
-    input_coupling: list[INCoupling] = field(default_factory=list)
     event_aggr: int = field(default=0)
     dpp_params: PHAParams = field(default_factory=PHAParams)
     iolev: IOLevel = field(default=IOLevel.NIM)
     wf_params: WaveformParams = field(default_factory=WaveformParams)
     list_params: ListParams = field(default_factory=ListParams)
     run_specifications: RunSpecs = field(default_factory=RunSpecs)
-    coinc_params: list[CoincParams] = field(default_factory=list)
-    gate_params: list[GateParams] = field(default_factory=list)
-    spectrum_control: list[SpectrumControl] = field(default_factory=list)
-    reset_detector: list[TRReset] = field(default_factory=list)
     mon_out_params: MonOutParams = field(default_factory=MonOutParams)
+    ch: list[_ChData] = field(default_factory=list)
+    coinc_params: list[CoincParams] = field(default_factory=list)  # Not part of ch because it has a different size to support external channel
 
     def resize(self, n_channels: int):
         """Resize to n_channels"""
-        self.pulse_polarity = [PulsePolarity.POSITIVE] * n_channels
-        self.dc_offset = [0] * n_channels
-        self.temp_corr_parameters = [TempCorrParams() for _ in range(n_channels)]
-        self.input_coupling = [INCoupling.DC] * n_channels
+        self.ch = [self._ChData() for _ in range(n_channels)]
         self.dpp_params.resize(n_channels)  # Weird because it a class of lists rather than a list of classes
-        self.coinc_params = [CoincParams() for _ in range(n_channels)]
-        self.gate_params = [GateParams() for _ in range(n_channels)]
-        self.spectrum_control = [SpectrumControl() for _ in range(n_channels)]
-        self.reset_detector = [TRReset() for _ in range(n_channels)]
+        self.coinc_params = [CoincParams() for _ in range(MAX_NUMCHB_COINCIDENCE)]  # Always this size to support external channel
 
     @classmethod
     def from_raw(cls, raw: DgtzParamsRaw):
         """Instantiate from raw data"""
+        ch = [cls._ChData(
+            PulsePolarity(raw.PulsePolarity[i]),
+            raw.DCoffset[i],
+            TempCorrParams.from_raw(raw.TempCorrParameters[i]),
+            INCoupling(raw.InputCoupling[i]),
+            GateParams.from_raw(raw.GateParams[i]),
+            SpectrumControl.from_raw(raw.SpectrumControl[i]),
+            TRReset.from_raw(raw.ResetDetector[i]),
+        ) for i in range(MAX_NUMCHB)]
         return cls(
             raw.GWaddr[:raw.GWn],
             raw.GWdata[:raw.GWn],
             raw.GWmask[:raw.GWn],
             raw.ChannelMask,
-            list(map(PulsePolarity, raw.PulsePolarity)),
-            raw.DCoffset,
-            list(map(TempCorrParams.from_raw, raw.TempCorrParameters)),
-            list(map(INCoupling, raw.InputCoupling)),
             raw.EventAggr,
             PHAParams.from_raw(raw.DPPParams),
             IOLevel(raw.IOlev),
             WaveformParams.from_raw(raw.WFParams),
             ListParams.from_raw(raw.ListParams),
             RunSpecs.from_raw(raw.RunSpecifications),
-            list(map(CoincParams.from_raw, raw.CoincParams)),
-            list(map(GateParams.from_raw, raw.GateParams)),
-            list(map(SpectrumControl.from_raw, raw.SpectrumControl)),
-            list(map(TRReset.from_raw, raw.ResetDetector)),
             MonOutParams.from_raw(raw.MonOutParams),
+            ch,
+            list(map(CoincParams.from_raw, raw.CoincParams)),
         )
 
     def to_raw(self) -> DgtzParamsRaw:
@@ -1527,25 +1531,26 @@ class DgtzParams:
             tuple(self.gw_data),
             tuple(self.gw_mask),
             self.channel_mask,
-            tuple(self.pulse_polarity),
-            tuple(self.dc_offset),
-            tuple(i.to_raw() for i in self.temp_corr_parameters),
-            tuple(self.input_coupling),
+            tuple(ch.pulse_polarity for ch in self.ch),
+            tuple(ch.dc_offset for ch in self.ch),
+            tuple(ch.temp_corr_parameters.to_raw() for ch in self.ch),
+            tuple(ch.input_coupling for ch in self.ch),
             self.event_aggr,
             self.dpp_params.to_raw(),
             self.iolev,
             self.wf_params.to_raw(),
             self.list_params.to_raw(),
             self.run_specifications.to_raw(),
-            tuple(i.to_raw() for i in self.coinc_params),
-            tuple(i.to_raw() for i in self.gate_params),
-            tuple(i.to_raw() for i in self.spectrum_control),
-            tuple(i.to_raw() for i in self.reset_detector),
+            tuple(par.to_raw() for par in self.coinc_params),
+            tuple(ch.gate_params.to_raw() for ch in self.ch),
+            tuple(ch.spectrum_control.to_raw() for ch in self.ch),
+            tuple(ch.reset_detector.to_raw() for ch in self.ch),
             self.mon_out_params.to_raw(),
         )
 
 
 class ListEventRaw(ct.Structure):
+    """Raw view of ::CAENDPP_ListEvent_t"""
     _fields_ = [
         ('TimeTag', ct.c_uint64),
         ('Energy', ct.c_uint16),
@@ -1569,6 +1574,7 @@ class ListEvent:
 
 
 class StatisticsRaw(ct.Structure):
+    """Raw view of ::statistics_t"""
     _fields_ = [
         ('ThroughputRate', ct.c_double),
         ('SaturationFlag', ct.c_uint32),
@@ -1605,6 +1611,7 @@ class Statistics:
 
 
 class DAQInfoRaw(ct.Structure):
+    """Raw view of ::CAENDPP_DAQInfo_t"""
     _fields_ = [
         ('ACQStatus', ct.c_int),
         ('RunLoop', ct.c_int32),
@@ -1669,6 +1676,7 @@ class DAQInfo:
 
 
 class HVChannelConfigRaw(ct.Structure):
+    """Raw view of ::CAENDPP_HVChannelConfig_t"""
     _fields_ = [
         ('VSet', ct.c_double),
         ('ISet', ct.c_double),
@@ -1743,6 +1751,7 @@ class HVChannelExternals:
 
 
 class EnumerationSingleDeviceRaw(ct.Structure):
+    """Raw view of ::CAENDPP_EnumerationSingleDevice_t"""
     _fields_ = [
         ('id', ct.c_uint32),
         ('ConnectionMode', ct.c_int),
@@ -1796,6 +1805,7 @@ class EnumerationSingleDevice:
 
 
 class EnumeratedDevicesRaw(ct.Structure):
+    """Raw view of ::CAENDPP_EnumeratedDevices_t"""
     _fields_ = [
         ('ddcount', ct.c_int),
         ('Device', EnumerationSingleDeviceRaw * 64),

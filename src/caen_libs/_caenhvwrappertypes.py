@@ -62,6 +62,7 @@ class EventStatus(IntEnum):
 
 
 class SystemStatusRaw(ct.Structure):
+    """Raw view of ::CAENHV_SYSTEMSTATUS_t"""
     _fields_ = [
         ('System', ct.c_int),
         ('Board', ct.c_int * 16),
@@ -97,6 +98,7 @@ class EventType(IntEnum):
 
 
 class IdValueRaw(ct.Union):
+    """Raw view of ::CAENHV_IDValue_t"""
     _fields_ = [
         ('StringValue', ct.c_char * 1024),
         ('FloatValue', ct.c_float),
@@ -105,6 +107,7 @@ class IdValueRaw(ct.Union):
 
 
 class EventDataRaw(ct.Structure):
+    """Raw view of ::CAENHVEVENT_TYPE_t"""
     _fields_ = [
         ('Type', ct.c_int),
         ('SystemHandle', ct.c_int),

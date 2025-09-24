@@ -231,6 +231,7 @@ class IRQLevels(IntFlag):
 
 
 class DisplayRaw(ct.Structure):
+    """Raw view of ::CVDisplay"""
     _fields_ = [
         ('Address', ct.c_long),
         ('Data', ct.c_long),

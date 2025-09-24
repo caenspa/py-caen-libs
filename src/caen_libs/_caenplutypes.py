@@ -35,6 +35,7 @@ class FPGA(IntEnum):
 
 
 class USBDeviceRaw(ct.Structure):
+    """Raw view of ::tUSBDevice"""
     _fields_ = [
         ('id', ct.c_uint32),
         ('SN', ct.c_char * 64),
@@ -62,6 +63,7 @@ class USBDevice:
 
 
 class BoardInfoRaw(ct.Structure):
+    """Raw view of ::tBOARDInfo"""
     _fields_ = [
         ('checksum', ct.c_uint32),
         ('checksum_length2', ct.c_uint32),

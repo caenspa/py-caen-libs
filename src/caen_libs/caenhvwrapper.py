@@ -803,7 +803,7 @@ class Device:
         """
         self.__init_events_client()
         assert self.__skt_client is not None
-        l_system_status = SystemStatusRaw()
+        l_system_status = _types.SystemStatusRaw()
         g_event_data = lib.evt_data_auto_ptr()
         l_data_number = ct.c_uint()
         with g_event_data as l_ed:
@@ -1065,7 +1065,7 @@ class Device:
             return ParamType.STRING
         return self.__get_param_type(slot, channel, name)
 
-    def __decode_event_value(self, event_type: EventType, slot: Optional[int], channel: Optional[int], item_id: str, value: IdValueRaw) -> Union[str, float, int]:
+    def __decode_event_value(self, event_type: EventType, slot: Optional[int], channel: Optional[int], item_id: str, value: _types.IdValueRaw) -> Union[str, float, int]:
         if event_type is not EventType.PARAMETER:
             return -1
         if slot is None:

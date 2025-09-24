@@ -294,6 +294,7 @@ class Registers(IntEnum):
 
 
 class BoardInfoRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_BoardInfo_t"""
     _fields_ = [
         ('ModelName', ct.c_char * 12),
         ('Model', ct.c_uint32),
@@ -364,6 +365,7 @@ class BoardInfo:
 
 
 class EventInfoRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_EventInfo_t"""
     _fields_ = [
         ('EventSize', ct.c_uint32),
         ('BoardId', ct.c_uint32),
@@ -400,6 +402,7 @@ class EventInfo:
 
 
 class Uint16EventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_UINT16_EVENT_t"""
     _fields_ = [
         ('ChSize', ct.c_uint32 * MAX_UINT16_CHANNEL_SIZE),
         ('DataChannel', ct.POINTER(ct.c_uint16) * MAX_UINT16_CHANNEL_SIZE),
@@ -420,10 +423,12 @@ class Uint16Event:
 
     @property
     def data_channel(self) -> list[npt.NDArray[np.uint16]]:
+        """Data channel"""
         return [self.__get_data_channel(i) for i in range(MAX_UINT16_CHANNEL_SIZE)]
 
 
 class Uint8EventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_UINT8_EVENT_t"""
     _fields_ = [
         ('ChSize', ct.c_uint32 * MAX_UINT8_CHANNEL_SIZE),
         ('DataChannel', ct.POINTER(ct.c_uint8) * MAX_UINT8_CHANNEL_SIZE),
@@ -444,10 +449,12 @@ class Uint8Event:
 
     @property
     def data_channel(self) -> list[npt.NDArray[np.uint8]]:
+        """Data channel"""
         return [self.__get_data_channel(i) for i in range(MAX_UINT8_CHANNEL_SIZE)]
 
 
 class X742GroupRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_X742_GROUP_t"""
     _fields_ = [
         ('ChSize', ct.c_uint32 * MAX_X742_CHANNEL_SIZE),
         ('DataChannel', ct.POINTER(ct.c_float) * MAX_X742_CHANNEL_SIZE),
@@ -470,18 +477,22 @@ class X742Group:
 
     @property
     def data_channel(self) -> list[npt.NDArray[np.float32]]:
+        """Data channel"""
         return [self.__get_data_channel(i) for i in range(MAX_X742_CHANNEL_SIZE)]
 
     @property
     def trigger_time_tag(self) -> int:
+        """Trigger time tag"""
         return self.raw.TriggerTimeTag
 
     @property
     def start_index_cell(self) -> int:
+        """Start index cell"""
         return self.raw.StartIndexCell
 
 
 class X742EventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_X742_EVENT_t"""
     _fields_ = [
         ('GrPresent', ct.c_uint8 * MAX_X742_GROUP_SIZE),
         ('DataGroup', ct.POINTER(X742GroupRaw) * MAX_X742_GROUP_SIZE),
@@ -497,10 +508,12 @@ class X742Event:
 
     @property
     def data_group(self) -> list[Optional[X742Group]]:
+        """Data group"""
         return [X742Group(self.raw.DataGroup[i].contents) if self.raw.GrPresent[i] else None for i in range(MAX_X742_GROUP_SIZE)]
 
 
 class X743GroupRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_X743_GROUP_t"""
     _fields_ = [
         ('ChSize', ct.c_uint32),
         ('DataChannel', ct.POINTER(ct.c_float) * MAX_X743_CHANNELS_X_GROUP),
@@ -532,54 +545,67 @@ class X743Group:
 
     @property
     def data_channel(self) -> list[npt.NDArray[np.float32]]:
+        """Data channel"""
         return [self.__get_data_channel(i) for i in range(MAX_X743_CHANNELS_X_GROUP)]
 
     @property
     def trigger_count(self) -> list[int]:
+        """Trigger count"""
         return list(self.raw.TriggerCount)
 
     @property
     def time_count(self) -> list[int]:
+        """Time count"""
         return list(self.raw.TimeCount)
 
     @property
     def event_id(self) -> int:
+        """Event ID"""
         return self.raw.EventId
 
     @property
     def start_index_cell(self) -> int:
+        """Start index cell"""
         return self.raw.StartIndexCell
 
     @property
     def tdc(self) -> int:
+        """TDC"""
         return self.raw.TDC
 
     @property
     def pos_edge_time_stamp(self) -> float:
+        """Positive edge time stamp"""
         return self.raw.PosEdgeTimeStamp
 
     @property
     def neg_edge_time_stamp(self) -> float:
+        """Negative edge time stamp"""
         return self.raw.NegEdgeTimeStamp
 
     @property
     def peak_index(self) -> int:
+        """Peak index"""
         return self.raw.PeakIndex
 
     @property
     def peak(self) -> float:
+        """Peak"""
         return self.raw.Peak
 
     @property
     def baseline(self) -> float:
+        """Baseline"""
         return self.raw.Baseline
 
     @property
     def charge(self) -> float:
+        """Charge"""
         return self.raw.Charge
 
 
 class X743EventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_X743_EVENT_t"""
     _fields_ = [
         ('GrPresent', ct.c_uint8 * MAX_V1743_GROUP_SIZE),
         ('DataGroup', ct.POINTER(X743GroupRaw) * MAX_V1743_GROUP_SIZE),
@@ -595,10 +621,12 @@ class X743Event:
 
     @property
     def data_group(self) -> list[Optional[X743Group]]:
+        """Data group"""
         return [X743Group(self.raw.DataGroup[i].contents) if self.raw.GrPresent[i] else None for i in range(MAX_V1743_GROUP_SIZE)]
 
 
 class DPPPHAEventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_PHA_Event_t"""
     _fields_ = [
         ('Format', ct.c_uint32),
         ('TimeTag', ct.c_uint64),
@@ -618,26 +646,32 @@ class DPPPHAEvent:
 
     @property
     def format(self) -> int:
+        """Format"""
         return self.raw.Format
 
     @property
     def time_tag(self) -> int:
+        """Time tag"""
         return self.raw.TimeTag
 
     @property
     def energy(self) -> int:
+        """Energy"""
         return self.raw.Energy
 
     @property
     def extras(self) -> int:
+        """Extras"""
         return self.raw.Extras
 
     @property
     def extras2(self) -> int:
+        """Extras2"""
         return self.raw.Extras2
 
 
 class DPPPSDEventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_PSD_Event_t"""
     _fields_ = [
         ('Format', ct.c_uint32),
         ('Format2', ct.c_uint32),
@@ -660,38 +694,47 @@ class DPPPSDEvent:
 
     @property
     def format(self) -> int:
+        """Format"""
         return self.raw.Format
 
     @property
     def format2(self) -> int:
+        """Format2"""
         return self.raw.Format2
 
     @property
     def time_tag(self) -> int:
+        """Time tag"""
         return self.raw.TimeTag
 
     @property
     def charge_short(self) -> int:
+        """Charge short"""
         return self.raw.ChargeShort
 
     @property
     def charge_long(self) -> int:
+        """Charge long"""
         return self.raw.ChargeLong
 
     @property
     def baseline(self) -> int:
+        """Baseline"""
         return self.raw.Baseline
 
     @property
-    def pur(self) -> int:
-        return self.raw.Pur
+    def pur(self) -> bool:
+        """PUR"""
+        return bool(self.raw.Pur)
 
     @property
     def extras(self) -> int:
+        """Extras"""
         return self.raw.Extras
 
 
 class DPPCIEventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_CI_Event_t"""
     _fields_ = [
         ('Format', ct.c_uint32),
         ('TimeTag', ct.c_uint32),
@@ -710,22 +753,27 @@ class DPPCIEvent:
 
     @property
     def format(self) -> int:
+        """Format"""
         return self.raw.Format
 
     @property
     def time_tag(self) -> int:
+        """Time tag"""
         return self.raw.TimeTag
 
     @property
     def charge(self) -> int:
+        """Charge"""
         return self.raw.Charge
 
     @property
     def baseline(self) -> int:
+        """Baseline"""
         return self.raw.Baseline
 
 
 class DPPQDCEventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_QDC_Event_t"""
     _fields_ = [
         ('isExtendedTimeStamp', ct.c_uint8),
         ('Format', ct.c_uint32),
@@ -749,42 +797,52 @@ class DPPQDCEvent:
 
     @property
     def is_extended_time_stamp(self) -> bool:
+        """Is extended time stamp"""
         return bool(self.raw.isExtendedTimeStamp)
 
     @property
     def format(self) -> int:
+        """Format"""
         return self.raw.Format
 
     @property
     def time_tag(self) -> int:
+        """Time tag"""
         return self.raw.TimeTag
 
     @property
     def charge(self) -> int:
+        """Charge"""
         return self.raw.Charge
 
     @property
     def baseline(self) -> int:
+        """Baseline"""
         return self.raw.Baseline
 
     @property
-    def pur(self) -> int:
-        return self.raw.Pur
+    def pur(self) -> bool:
+        """PUR"""
+        return bool(self.raw.Pur)
 
     @property
-    def overrange(self) -> int:
+    def overrange(self) -> bool:
+        """Overrange"""
         return self.raw.Overrange
 
     @property
     def sub_channel(self) -> int:
+        """Sub channel"""
         return self.raw.SubChannel
 
     @property
     def extras(self) -> int:
+        """Extras"""
         return self.raw.Extras
 
 
 class ZLEWaveforms751Raw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_751_ZLE_Waveforms_t"""
     _fields_ = [
         ('Ns', ct.c_uint32),
         ('Trace1', ct.POINTER(ct.c_uint16)),
@@ -801,18 +859,22 @@ class ZLEWaveforms751:
 
     @property
     def ns(self) -> int:
+        """Number of samples"""
         return self.raw.Ns
 
     @property
     def trace1(self) -> npt.NDArray[np.uint16]:
+        """Trace 1"""
         return np.ctypeslib.as_array(self.raw.Trace1, shape=(self.ns,))
 
     @property
     def discarded(self) -> npt.NDArray[np.uint8]:
+        """Discarded"""
         return np.ctypeslib.as_array(self.raw.Discarded, shape=(self.ns,))
 
 
 class ZLEEvent751Raw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_751_ZLE_Event_t"""
     _fields_ = [
         ('timeTag', ct.c_uint32),
         ('Baseline', ct.c_uint32),
@@ -833,18 +895,22 @@ class ZLEEvent751:
 
     @property
     def time_tag(self) -> int:
+        """Time tag"""
         return self.raw.timeTag
 
     @property
     def baseline(self) -> int:
+        """Baseline"""
         return self.raw.Baseline
 
     @property
     def waveforms(self) -> ZLEWaveforms751:
+        """Waveforms"""
         return ZLEWaveforms751(self.raw_waveforms)
 
 
 class ZLEWaveforms730Raw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_730_ZLE_Waveforms_t"""
     _fields_ = [
         ('TraceNumber', ct.c_uint32),
         ('Trace', ct.POINTER(ct.c_uint16)),
@@ -861,14 +927,17 @@ class ZLEWaveforms730:
 
     @property
     def trace(self) -> npt.NDArray[np.uint16]:
+        """Trace"""
         return np.ctypeslib.as_array(self.raw.Trace, shape=(self.raw.TraceNumber,))
 
     @property
     def trace_index(self) -> npt.NDArray[np.uint32]:
+        """Trace Index"""
         return np.ctypeslib.as_array(self.raw.TraceIndex, shape=(self.raw.TraceNumber,))
 
 
 class ZLEChannel730Raw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_730_ZLE_Channel_t"""
     _fields_ = [
         ('fifo_full', ct.c_uint32),
         ('size_wrd', ct.c_uint32),
@@ -887,18 +956,22 @@ class ZLEChannel730:
 
     @property
     def fifo_full(self) -> bool:
+        """FIFO full"""
         return bool(self.raw.fifo_full)
 
     @property
     def baseline(self) -> int:
+        """Baseline"""
         return self.raw.Baseline
 
     @property
     def waveforms(self) -> ZLEWaveforms730:
+        """Waveforms"""
         return ZLEWaveforms730(self.raw.Waveforms.contents)
 
 
 class ZLEEvent730Raw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_730_ZLE_Event_t"""
     _fields_ = [
         ('size', ct.c_uint32),
         ('chmask', ct.c_uint16),
@@ -917,22 +990,27 @@ class ZLEEvent730:
 
     @property
     def size(self) -> int:
+        """Size"""
         return self.raw.size
 
     @property
     def tcounter(self) -> int:
+        """Trigger counter"""
         return self.raw.tcounter
 
     @property
     def time_stamp(self) -> int:
+        """Time stamp"""
         return self.raw.timeStamp
 
     @property
     def channel(self) -> list[Optional[ZLEChannel730]]:
+        """Channel"""
         return [ZLEChannel730(self.raw.Channel[i].contents) if (self.raw.chmask & (1 << i)) else None for i in range(MAX_V1730_CHANNEL_SIZE)]
 
 
 class DPPDAWWaveformsRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_730_DAW_Waveforms_t"""
     _fields_ = [
         ('Trace', ct.POINTER(ct.c_uint16)),
     ]
@@ -948,10 +1026,12 @@ class DPPDAWWaveforms:
 
     @property
     def trace(self) -> npt.NDArray[np.uint16]:
+        """Trace"""
         return np.ctypeslib.as_array(self.raw.Trace, shape=(self._size,))
 
 
 class DPPDAWChannelRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_730_DAW_Channel_t"""
     _fields_ = [
         ('truncate', ct.c_uint32),
         ('EvType', ct.c_uint32),
@@ -972,30 +1052,37 @@ class DPPDAWChannel:
 
     @property
     def truncate(self) -> bool:
+        """Truncate"""
         return bool(self.raw.truncate)
 
     @property
     def ev_type(self) -> int:
+        """Event type"""
         return self.raw.EvType
 
     @property
     def size(self) -> int:
+        """Size"""
         return self.raw.size
 
     @property
     def time_stamp(self) -> int:
+        """Time stamp"""
         return self.raw.timeStamp
 
     @property
     def baseline(self) -> int:
+        """Baseline"""
         return self.raw.baseline
 
     @property
     def waveforms(self) -> DPPDAWWaveforms:
+        """Waveforms"""
         return DPPDAWWaveforms(self.raw.Waveforms.contents, self.size)
 
 
 class DPPDAWEventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_730_DAW_Event_t"""
     _fields_ = [
         ('size', ct.c_uint32),
         ('chmask', ct.c_uint16),
@@ -1014,22 +1101,27 @@ class DPPDAWEvent:
 
     @property
     def size(self) -> int:
+        """Size"""
         return self.raw.size
 
     @property
     def tcounter(self) -> int:
+        """Trigger counter"""
         return self.raw.tcounter
 
     @property
     def time_stamp(self) -> int:
+        """Time stamp"""
         return self.raw.timeStamp
 
     @property
     def channel(self) -> list[Optional[DPPDAWChannel]]:
+        """Channel"""
         return [DPPDAWChannel(self.raw.Channel[i].contents) if (self.raw.chmask & (1 << i)) else None for i in range(MAX_V1730_CHANNEL_SIZE)]
 
 
 class DPPX743EventRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_X743_Event_t"""
     _fields_ = [
         ('Charge', ct.c_float),
         ('StartIndexCell', ct.c_int),
@@ -1045,14 +1137,17 @@ class DPPX743Event:
 
     @property
     def charge(self) -> float:
+        """Charge"""
         return self.raw.Charge
 
     @property
     def start_index_cell(self) -> int:
+        """Start index cell"""
         return self.raw.StartIndexCell
 
 
 class DPPPHAWaveformsRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_PHA_Waveforms_t"""
     _fields_ = [
         ('Ns', ct.c_uint32),
         ('DualTrace', ct.c_uint8),
@@ -1075,42 +1170,52 @@ class DPPPHAWaveforms:
 
     @property
     def ns(self) -> int:
+        """Number of samples"""
         return self.raw.Ns
 
     @property
     def dual_trace(self) -> bool:
+        """Dual trace"""
         return bool(self.raw.DualTrace)
 
     @property
     def v_probe1(self) -> int:
+        """Virtual Probe 1 type"""
         return self.raw.VProbe1
 
     @property
     def v_probe2(self) -> int:
+        """Virtual Probe 2 type"""
         return self.raw.VProbe2
 
     @property
     def vd_probe(self) -> int:
+        """Digital Probe type"""
         return self.raw.VDProbe
 
     @property
     def trace1(self) -> npt.NDArray[np.int16]:
+        """Virtual Trace 1"""
         return np.ctypeslib.as_array(self.raw.Trace1, shape=(self.ns,))
 
     @property
     def trace2(self) -> npt.NDArray[np.int16]:
+        """Virtual Trace 2"""
         return np.ctypeslib.as_array(self.raw.Trace2, shape=(self.ns,))
 
     @property
     def d_trace1(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 1"""
         return np.ctypeslib.as_array(self.raw.DTrace1, shape=(self.ns,))
 
     @property
     def d_trace2(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 2"""
         return np.ctypeslib.as_array(self.raw.DTrace2, shape=(self.ns,))
 
 
 class DPPPSDWaveformsRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_PSD_Waveforms_t"""
     _fields_ = [
         ('Ns', ct.c_uint32),
         ('dualTrace', ct.c_uint8),
@@ -1135,46 +1240,57 @@ class DPPPSDWaveforms:
 
     @property
     def ns(self) -> int:
+        """Number of samples"""
         return self.raw.Ns
 
     @property
     def dual_trace(self) -> bool:
+        """Dual trace"""
         return bool(self.raw.dualTrace)
 
     @property
     def anlg_probe(self) -> int:
+        """Analog Probe type"""
         return self.raw.anlgProbe
 
     @property
     def dgt_probe1(self) -> int:
+        """Digital Probe 1 type"""
         return self.raw.dgtProbe1
 
     @property
     def dgt_probe2(self) -> int:
+        """Digital Probe 2 type"""
         return self.raw.dgtProbe2
 
     @property
     def trace1(self) -> npt.NDArray[np.int16]:
+        """Virtual Trace 1"""
         return np.ctypeslib.as_array(self.raw.Trace1, shape=(self.ns,))
 
     @property
     def trace2(self) -> npt.NDArray[np.int16]:
+        """Virtual Trace 2"""
         return np.ctypeslib.as_array(self.raw.Trace2, shape=(self.ns,))
 
     @property
     def d_trace1(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 1"""
         return np.ctypeslib.as_array(self.raw.DTrace1, shape=(self.ns,))
 
     @property
     def d_trace2(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 2"""
         return np.ctypeslib.as_array(self.raw.DTrace2, shape=(self.ns,))
 
     @property
     def d_trace3(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 3"""
         return np.ctypeslib.as_array(self.raw.DTrace3, shape=(self.ns,))
 
     @property
     def d_trace4(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 4"""
         return np.ctypeslib.as_array(self.raw.DTrace4, shape=(self.ns,))
 
 
@@ -1183,6 +1299,7 @@ DPPCIWaveforms = DPPPSDWaveforms
 
 
 class DPPQDCWaveformsRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_QDC_Waveforms_t"""
     _fields_ = [
         ('Ns', ct.c_uint32),
         ('dualTrace', ct.c_uint8),
@@ -1207,46 +1324,57 @@ class DPPQDCWaveforms:
 
     @property
     def ns(self) -> int:
+        """Number of samples"""
         return self.raw.Ns
 
     @property
     def dual_trace(self) -> bool:
+        """Dual trace"""
         return bool(self.raw.dualTrace)
 
     @property
     def anlg_probe(self) -> int:
+        """Analog Probe type"""
         return self.raw.anlgProbe
 
     @property
     def dgt_probe1(self) -> int:
+        """Digital Probe 1 type"""
         return self.raw.dgtProbe1
 
     @property
     def dgt_probe2(self) -> int:
+        """Digital Probe 2 type"""
         return self.raw.dgtProbe2
 
     @property
     def trace1(self) -> npt.NDArray[np.uint16]:
+        """Virtual Trace 1"""
         return np.ctypeslib.as_array(self.raw.Trace1, shape=(self.ns,))
 
     @property
     def trace2(self) -> npt.NDArray[np.uint16]:
+        """Virtual Trace 2"""
         return np.ctypeslib.as_array(self.raw.Trace2, shape=(self.ns,))
 
     @property
     def d_trace1(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 1"""
         return np.ctypeslib.as_array(self.raw.DTrace1, shape=(self.ns,))
 
     @property
     def d_trace2(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 2"""
         return np.ctypeslib.as_array(self.raw.DTrace2, shape=(self.ns,))
 
     @property
     def d_trace3(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 3"""
         return np.ctypeslib.as_array(self.raw.DTrace3, shape=(self.ns,))
 
     @property
     def d_trace4(self) -> npt.NDArray[np.uint8]:
+        """Digital Trace 4"""
         return np.ctypeslib.as_array(self.raw.DTrace4, shape=(self.ns,))
 
 
@@ -1420,6 +1548,7 @@ class DPPFirmware(IntEnum):
 
 
 class DPPPHAParamsRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_PHA_Params_t"""
     _fields_ = [
         ('M', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
         ('m', ct.c_int * MAX_DPP_PHA_CHANNEL_SIZE),
@@ -1453,89 +1582,72 @@ class DPPPHAParams:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Params_t
     """
-    m_: list[int] = field(default_factory=list)
-    m: list[int] = field(default_factory=list)
-    k: list[int] = field(default_factory=list)
-    ftd: list[int] = field(default_factory=list)
-    a: list[int] = field(default_factory=list)
-    b: list[int] = field(default_factory=list)
-    thr: list[int] = field(default_factory=list)
-    nsbl: list[int] = field(default_factory=list)
-    nspk: list[int] = field(default_factory=list)
-    pkho: list[int] = field(default_factory=list)
-    blho: list[int] = field(default_factory=list)
-    otrej: list[int] = field(default_factory=list)
-    trgho: list[int] = field(default_factory=list)
-    twwdt: list[int] = field(default_factory=list)
-    trgwin: list[int] = field(default_factory=list)
-    dgain: list[int] = field(default_factory=list)
-    enf: list[float] = field(default_factory=list)
-    decimation: list[int] = field(default_factory=list)
-    enskim: list[bool] = field(default_factory=list)
-    eskimlld: list[int] = field(default_factory=list)
-    eskimuld: list[int] = field(default_factory=list)
-    blrclip: list[bool] = field(default_factory=list)
-    dcomp: list[bool] = field(default_factory=list)
-    trapbsl: list[int] = field(default_factory=list)
+
+    @dataclass(**_utils.dataclass_slots)
+    class _ChData:
+        m_: int = field(default=0)
+        m: int = field(default=0)
+        k: int = field(default=0)
+        ftd: int = field(default=0)
+        a: int = field(default=0)
+        b: int = field(default=0)
+        thr: int = field(default=0)
+        nsbl: int = field(default=0)
+        nspk: int = field(default=0)
+        pkho: int = field(default=0)
+        blho: int = field(default=0)
+        otrej: int = field(default=0)
+        trgho: int = field(default=0)
+        twwdt: int = field(default=0)
+        trgwin: int = field(default=0)
+        dgain: int = field(default=0)
+        enf: float = field(default=0.)
+        decimation: int = field(default=0)
+        enskim: bool = field(default=False)
+        eskimlld: int = field(default=0)
+        eskimuld: int = field(default=0)
+        blrclip: bool = field(default=False)
+        dcomp: bool = field(default=False)
+        trapbsl: int = field(default=0)
+
+    ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
-        """Resize to n_channels."""
-        self.m_ = [0] * n_channels
-        self.m = [0] * n_channels
-        self.k = [0] * n_channels
-        self.ftd = [0] * n_channels
-        self.a = [0] * n_channels
-        self.b = [0] * n_channels
-        self.thr = [0] * n_channels
-        self.nsbl = [0] * n_channels
-        self.nspk = [0] * n_channels
-        self.pkho = [0] * n_channels
-        self.blho = [0] * n_channels
-        self.otrej = [0] * n_channels
-        self.trgho = [0] * n_channels
-        self.twwdt = [0] * n_channels
-        self.trgwin = [0] * n_channels
-        self.dgain = [0] * n_channels
-        self.enf = [0.] * n_channels
-        self.decimation = [0] * n_channels
-        self.enskim = [False] * n_channels
-        self.eskimlld = [0] * n_channels
-        self.eskimuld = [0] * n_channels
-        self.blrclip = [False] * n_channels
-        self.dcomp = [False] * n_channels
-        self.trapbsl = [0] * n_channels
+        """Resize to n_channels"""
+        self.ch = [self._ChData() for _ in range(n_channels)]
 
     def to_raw(self) -> DPPPHAParamsRaw:
         """Convert to raw data"""
         return DPPPHAParamsRaw(
-            tuple(self.m_),
-            tuple(self.m),
-            tuple(self.k),
-            tuple(self.ftd),
-            tuple(self.a),
-            tuple(self.b),
-            tuple(self.thr),
-            tuple(self.nsbl),
-            tuple(self.nspk),
-            tuple(self.pkho),
-            tuple(self.blho),
-            tuple(self.otrej),
-            tuple(self.trgho),
-            tuple(self.twwdt),
-            tuple(self.trgwin),
-            tuple(self.dgain),
-            tuple(self.enf),
-            tuple(self.decimation),
-            tuple(self.enskim),
-            tuple(self.eskimlld),
-            tuple(self.eskimuld),
-            tuple(self.blrclip),
-            tuple(self.dcomp),
-            tuple(self.trapbsl),
+            tuple(ch.m_ for ch in self.ch),
+            tuple(ch.m for ch in self.ch),
+            tuple(ch.k for ch in self.ch),
+            tuple(ch.ftd for ch in self.ch),
+            tuple(ch.a for ch in self.ch),
+            tuple(ch.b for ch in self.ch),
+            tuple(ch.thr for ch in self.ch),
+            tuple(ch.nsbl for ch in self.ch),
+            tuple(ch.nspk for ch in self.ch),
+            tuple(ch.pkho for ch in self.ch),
+            tuple(ch.blho for ch in self.ch),
+            tuple(ch.otrej for ch in self.ch),
+            tuple(ch.trgho for ch in self.ch),
+            tuple(ch.twwdt for ch in self.ch),
+            tuple(ch.trgwin for ch in self.ch),
+            tuple(ch.dgain for ch in self.ch),
+            tuple(ch.enf for ch in self.ch),
+            tuple(ch.decimation for ch in self.ch),
+            tuple(ch.enskim for ch in self.ch),
+            tuple(ch.eskimlld for ch in self.ch),
+            tuple(ch.eskimuld for ch in self.ch),
+            tuple(ch.blrclip for ch in self.ch),
+            tuple(ch.dcomp for ch in self.ch),
+            tuple(ch.trapbsl for ch in self.ch),
         )
 
 
 class DPPPSDParamsRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_PSD_Params_t"""
     _fields_ = [
         ('blthr', ct.c_int),
         ('bltmo', ct.c_int),
@@ -1582,38 +1694,32 @@ class DPPPSDParams:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Params_t
     """
+
+    @dataclass(**_utils.dataclass_slots)
+    class _ChData:
+        thr: int = field(default=0)
+        selft: bool = field(default=False)
+        csens: int = field(default=0)
+        sgate: int = field(default=0)
+        lgate: int = field(default=0)
+        pgate: int = field(default=0)
+        tvaw: int = field(default=0)
+        nsbl: int = field(default=0)
+        discr: bool = field(default=False)
+        cfdf: int = field(default=0)
+        cfdd: int = field(default=0)
+        trgc: DPPTriggerConfig = field(default=DPPTriggerConfig.PEAK)
+
     blthr: int = field(default=0)
     bltmo: int = field(default=0)
     trgho: int = field(default=0)
-    thr: list[int] = field(default_factory=list)
-    selft: list[bool] = field(default_factory=list)
-    csens: list[int] = field(default_factory=list)
-    sgate: list[int] = field(default_factory=list)
-    lgate: list[int] = field(default_factory=list)
-    pgate: list[int] = field(default_factory=list)
-    tvaw: list[int] = field(default_factory=list)
-    nsbl: list[int] = field(default_factory=list)
-    discr: list[bool] = field(default_factory=list)
-    cfdf: list[int] = field(default_factory=list)
-    cfdd: list[int] = field(default_factory=list)
-    trgc: list[DPPTriggerConfig] = field(default_factory=list)
     purh: DPPPUR = field(default=DPPPUR.DETECT_ONLY)
     purgap: int = field(default=0)
+    ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
         """Resize to n_channels"""
-        self.thr = [0] * n_channels
-        self.selft = [False] * n_channels
-        self.csens = [0] * n_channels
-        self.sgate = [0] * n_channels
-        self.lgate = [0] * n_channels
-        self.pgate = [0] * n_channels
-        self.tvaw = [0] * n_channels
-        self.nsbl = [0] * n_channels
-        self.discr = [False] * n_channels
-        self.cfdf = [0] * n_channels
-        self.cfdd = [0] * n_channels
-        self.trgc = [DPPTriggerConfig.PEAK] * n_channels
+        self.ch = [self._ChData() for _ in range(n_channels)]
 
     def to_raw(self) -> DPPPSDParamsRaw:
         """Convert to raw data"""
@@ -1621,24 +1727,25 @@ class DPPPSDParams:
             self.blthr,
             self.bltmo,
             self.trgho,
-            tuple(self.thr),
-            tuple(self.selft),
-            tuple(self.csens),
-            tuple(self.sgate),
-            tuple(self.lgate),
-            tuple(self.pgate),
-            tuple(self.tvaw),
-            tuple(self.nsbl),
-            tuple(self.discr),
-            tuple(self.cfdf),
-            tuple(self.cfdd),
-            tuple(self.trgc),
+            tuple(ch.thr for ch in self.ch),
+            tuple(ch.selft for ch in self.ch),
+            tuple(ch.csens for ch in self.ch),
+            tuple(ch.sgate for ch in self.ch),
+            tuple(ch.lgate for ch in self.ch),
+            tuple(ch.pgate for ch in self.ch),
+            tuple(ch.tvaw for ch in self.ch),
+            tuple(ch.nsbl for ch in self.ch),
+            tuple(ch.discr for ch in self.ch),
+            tuple(ch.cfdf for ch in self.ch),
+            tuple(ch.cfdd for ch in self.ch),
+            tuple(ch.trgc for ch in self.ch),
             self.purh,
             self.purgap,
         )
 
 
 class DPPCIParamsRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_CI_Params_t"""
     _fields_ = [
         ('purgap', ct.c_int),
         ('purh', ct.c_int),
@@ -1661,30 +1768,28 @@ class DPPCIParams:
     """
     Binding of ::CAEN_DGTZ_DPP_CI_Params_t
     """
+
+    @dataclass(**_utils.dataclass_slots)
+    class _ChData:
+        thr: int = field(default=0)
+        selft: bool = field(default=False)
+        csens: int = field(default=0)
+        gate: int = field(default=0)
+        pgate: int = field(default=0)
+        tvaw: int = field(default=0)
+        nsbl: int = field(default=0)
+        trgc: DPPTriggerConfig = field(default=DPPTriggerConfig.PEAK)
+
     purgap: int = field(default=0)
     purh: DPPPUR = field(default=DPPPUR.DETECT_ONLY)
     blthr: int = field(default=0)
     bltmo: int = field(default=0)
     trgho: int = field(default=0)
-    thr: list[int] = field(default_factory=list)
-    selft: list[bool] = field(default_factory=list)
-    csens: list[int] = field(default_factory=list)
-    gate: list[int] = field(default_factory=list)
-    pgate: list[int] = field(default_factory=list)
-    tvaw: list[int] = field(default_factory=list)
-    nsbl: list[int] = field(default_factory=list)
-    trgc: list[DPPTriggerConfig] = field(default_factory=list)
+    ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
         """Resize to n_channels"""
-        self.thr = [0] * n_channels
-        self.selft = [False] * n_channels
-        self.csens = [0] * n_channels
-        self.gate = [0] * n_channels
-        self.pgate = [0] * n_channels
-        self.tvaw = [0] * n_channels
-        self.nsbl = [0] * n_channels
-        self.trgc = [DPPTriggerConfig.PEAK] * n_channels
+        self.ch = [self._ChData() for _ in range(n_channels)]
 
     def to_raw(self) -> DPPCIParamsRaw:
         """Convert to raw data"""
@@ -1694,18 +1799,19 @@ class DPPCIParams:
             self.blthr,
             self.bltmo,
             self.trgho,
-            tuple(self.thr),
-            tuple(self.selft),
-            tuple(self.csens),
-            tuple(self.gate),
-            tuple(self.pgate),
-            tuple(self.tvaw),
-            tuple(self.nsbl),
-            tuple(self.trgc),
+            tuple(ch.thr for ch in self.ch),
+            tuple(ch.selft for ch in self.ch),
+            tuple(ch.csens for ch in self.ch),
+            tuple(ch.gate for ch in self.ch),
+            tuple(ch.pgate for ch in self.ch),
+            tuple(ch.tvaw for ch in self.ch),
+            tuple(ch.nsbl for ch in self.ch),
+            tuple(ch.trgc for ch in self.ch),
         )
 
 
 class ZLEParams751Raw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_751_ZLE_Params_t"""
     _fields_ = [
         ('NSampBck', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
         ('NSampAhe', ct.c_int * MAX_ZLE_CHANNEL_SIZE),
@@ -1723,40 +1829,40 @@ class ZLEParams751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Params_t
     """
-    nsamp_bck: list[int] = field(default_factory=list)
-    nsamp_ahe: list[int] = field(default_factory=list)
-    zle_upp_thr: list[int] = field(default_factory=list)
-    zle_und_thr: list[int] = field(default_factory=list)
-    sel_num_samp_bsl: list[int] = field(default_factory=list)
-    bsl_thrshld: list[int] = field(default_factory=list)
-    bsl_time_out: list[int] = field(default_factory=list)
+
+    @dataclass(**_utils.dataclass_slots)
+    class _ChData:
+        nsamp_bck: int = field(default=0)
+        nsamp_ahe: int = field(default=0)
+        zle_upp_thr: int = field(default=0)
+        zle_und_thr: int = field(default=0)
+        sel_num_samp_bsl: int = field(default=0)
+        bsl_thrshld: int = field(default=0)
+        bsl_time_out: int = field(default=0)
+
     pre_trgg: int = field(default=0)
+    ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
         """Resize to n_channels"""
-        self.nsamp_bck = [0] * n_channels
-        self.nsamp_ahe = [0] * n_channels
-        self.zle_upp_thr = [0] * n_channels
-        self.zle_und_thr = [0] * n_channels
-        self.sel_num_samp_bsl = [0] * n_channels
-        self.bsl_thrshld = [0] * n_channels
-        self.bsl_time_out = [0] * n_channels
+        self.ch = [self._ChData() for _ in range(n_channels)]
 
     def to_raw(self) -> ZLEParams751Raw:
         """Convert to raw data"""
         return ZLEParams751Raw(
-            tuple(self.nsamp_bck),
-            tuple(self.nsamp_ahe),
-            tuple(self.zle_upp_thr),
-            tuple(self.zle_und_thr),
-            tuple(self.sel_num_samp_bsl),
-            tuple(self.bsl_thrshld),
-            tuple(self.bsl_time_out),
+            tuple(ch.nsamp_bck for ch in self.ch),
+            tuple(ch.nsamp_ahe for ch in self.ch),
+            tuple(ch.zle_upp_thr for ch in self.ch),
+            tuple(ch.zle_und_thr for ch in self.ch),
+            tuple(ch.sel_num_samp_bsl for ch in self.ch),
+            tuple(ch.bsl_thrshld for ch in self.ch),
+            tuple(ch.bsl_time_out for ch in self.ch),
             self.pre_trgg,
         )
 
 
 class DPPX743ParamsRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_X743_Params_t"""
     _fields_ = [
         ('disableSuppressBaseline', ct.c_int),
         ('startCell', ct.c_uint * (MAX_X743_CHANNELS_X_GROUP * MAX_V1743_GROUP_SIZE)),
@@ -1771,31 +1877,34 @@ class DPPX743Params:
     """
     Binding of ::CAEN_DGTZ_DPP_X743_Params_t
     """
+
+    @dataclass(**_utils.dataclass_slots)
+    class _ChData:
+        start_cell: int = field(default=0)
+        charge_length: int = field(default=0)
+        enable_charge_threshold: EnaDis = field(default=EnaDis.DISABLE)
+        charge_threshold: float = field(default=0.)
+
     disable_suppress_baseline: EnaDis = field(default=EnaDis.DISABLE)
-    start_cell: list[int] = field(default_factory=list)
-    charge_length: list[int] = field(default_factory=list)
-    enable_charge_threshold: list[EnaDis] = field(default_factory=list)
-    charge_threshold: list[float] = field(default_factory=list)
+    ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
         """Resize to n_channels"""
-        self.start_cell = [0] * n_channels
-        self.charge_length = [0] * n_channels
-        self.enable_charge_threshold = [EnaDis.DISABLE] * n_channels
-        self.charge_threshold = [0.] * n_channels
+        self.ch = [self._ChData() for _ in range(n_channels)]
 
     def to_raw(self) -> DPPX743ParamsRaw:
         """Convert to raw data"""
         return DPPX743ParamsRaw(
             self.disable_suppress_baseline,
-            tuple(self.start_cell),
-            tuple(self.charge_length),
-            tuple(self.enable_charge_threshold),
-            tuple(self.charge_threshold),
+            tuple(ch.start_cell for ch in self.ch),
+            tuple(ch.charge_length for ch in self.ch),
+            tuple(ch.enable_charge_threshold for ch in self.ch),
+            tuple(ch.charge_threshold for ch in self.ch),
         )
 
 
 class DPPQDCParamsRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DPP_QDC_Params_t"""
     _fields_ = [
         ('trgho', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
         ('GateWidth', ct.c_int * MAX_DPP_QDC_CHANNEL_SIZE),
@@ -1820,61 +1929,54 @@ class DPPQDCParams:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Params_t
     """
-    trgho: list[int] = field(default_factory=list)
-    gate_width: list[int] = field(default_factory=list)
-    pre_gate: list[int] = field(default_factory=list)
-    fixed_baseline: list[int] = field(default_factory=list)
-    dis_trig_hist: list[bool] = field(default_factory=list)
-    dis_self_trigger: list[bool] = field(default_factory=list)
-    baseline_mode: list[int] = field(default_factory=list)
-    trg_mode: list[int] = field(default_factory=list)
-    charge_sensitivity: list[int] = field(default_factory=list)
-    pulse_pol: list[PulsePolarity] = field(default_factory=list)
-    en_charge_ped: list[bool] = field(default_factory=list)
-    test_pulses_rate: list[int] = field(default_factory=list)
-    en_test_pulses: list[bool] = field(default_factory=list)
-    input_smoothing: list[int] = field(default_factory=list)
+
+    @dataclass(**_utils.dataclass_slots)
+    class _ChData:
+        trgho: int = field(default=0)
+        gate_width: int = field(default=0)
+        pre_gate: int = field(default=0)
+        fixed_baseline: int = field(default=0)
+        dis_trig_hist: bool = field(default=False)
+        dis_self_trigger: bool = field(default=False)
+        baseline_mode: int = field(default=0)
+        trg_mode: int = field(default=0)
+        charge_sensitivity: int = field(default=0)
+        pulse_pol: PulsePolarity = field(default=PulsePolarity.POSITIVE)
+        en_charge_ped: bool = field(default=False)
+        test_pulses_rate: int = field(default=0)
+        en_test_pulses: bool = field(default=False)
+        input_smoothing: int = field(default=0)
+
     enable_extended_time_stamp: bool = field(default=False)
+    ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
         """Resize to n_channels"""
-        self.trgho = [0] * n_channels
-        self.gate_width = [0] * n_channels
-        self.pre_gate = [0] * n_channels
-        self.fixed_baseline = [0] * n_channels
-        self.dis_trig_hist = [False] * n_channels
-        self.dis_self_trigger = [False] * n_channels
-        self.baseline_mode = [0] * n_channels
-        self.trg_mode = [0] * n_channels
-        self.charge_sensitivity = [0] * n_channels
-        self.pulse_pol = [PulsePolarity.POSITIVE] * n_channels
-        self.en_charge_ped = [False] * n_channels
-        self.test_pulses_rate = [0] * n_channels
-        self.en_test_pulses = [False] * n_channels
-        self.input_smoothing = [0] * n_channels
+        self.ch = [self._ChData() for _ in range(n_channels)]
 
     def to_raw(self) -> DPPQDCParamsRaw:
         """Convert to raw data"""
         return DPPQDCParamsRaw(
-            tuple(self.trgho),
-            tuple(self.gate_width),
-            tuple(self.pre_gate),
-            tuple(self.fixed_baseline),
-            tuple(self.dis_trig_hist),
-            tuple(self.dis_self_trigger),
-            tuple(self.baseline_mode),
-            tuple(self.trg_mode),
-            tuple(self.charge_sensitivity),
-            tuple(self.pulse_pol),
-            tuple(self.en_charge_ped),
-            tuple(self.test_pulses_rate),
-            tuple(self.en_test_pulses),
-            tuple(self.input_smoothing),
+            tuple(ch.trgho for ch in self.ch),
+            tuple(ch.gate_width for ch in self.ch),
+            tuple(ch.pre_gate for ch in self.ch),
+            tuple(ch.fixed_baseline for ch in self.ch),
+            tuple(ch.dis_trig_hist for ch in self.ch),
+            tuple(ch.dis_self_trigger for ch in self.ch),
+            tuple(ch.baseline_mode for ch in self.ch),
+            tuple(ch.trg_mode for ch in self.ch),
+            tuple(ch.charge_sensitivity for ch in self.ch),
+            tuple(ch.pulse_pol for ch in self.ch),
+            tuple(ch.en_charge_ped for ch in self.ch),
+            tuple(ch.test_pulses_rate for ch in self.ch),
+            tuple(ch.en_test_pulses for ch in self.ch),
+            tuple(ch.input_smoothing for ch in self.ch),
             self.enable_extended_time_stamp,
         )
 
 
 class DRS4CorrectionRaw(ct.Structure):
+    """Raw view of ::CAEN_DGTZ_DRS4Correction_t"""
     _fields_ = [
         ('cell', (ct.c_int16 * 1024) * MAX_X742_CHANNEL_SIZE),
         ('nsample', (ct.c_int8 * 1024) * MAX_X742_CHANNEL_SIZE),
