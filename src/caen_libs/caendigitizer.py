@@ -142,8 +142,8 @@ _c_uint16_p = ct.POINTER(ct.c_uint16)
 _c_int32_p = ct.POINTER(ct.c_int32)
 _c_uint32_p = ct.POINTER(ct.c_uint32)
 _c_void_p_p = ct.POINTER(ct.c_void_p)
-_board_info_p = ct.POINTER(_types.BoardInfoRaw)
-_event_info_p = ct.POINTER(_types.EventInfoRaw)
+_board_info_p = ct.POINTER(_types.BoardInfo.Raw)
+_event_info_p = ct.POINTER(_types.EventInfo.Raw)
 
 
 class _Lib(_utils.Lib):
@@ -409,10 +409,8 @@ class Device:
     __scope_event: Optional[ct.c_void_p] = field(default=None, repr=False)  # For Standard firmware
     __dpp_events: Optional[ct.Array[ct.c_void_p]] = field(default=None, repr=False)  # For DPP
     __dpp_waveforms: Optional[ct.c_void_p] = field(default=None, repr=False)  # For DPP
-    __daw_events: Optional[ct.c_void_p] = field(default=None, repr=False)  # For DAW firmware
-    __daw_n_events: int = field(default=0, repr=False)  # For DAW firmware
-    __zle_events: Optional[ct.c_void_p] = field(default=None, repr=False)  # For ZLE firmware
-    __zle_n_events: int = field(default=0, repr=False)  # For ZLE firmware
+    __daw_events: Optional[_types.EventsBuffer] = field(default=None, repr=False)  # For DAW firmware
+    __zle_events: Optional[_types.EventsBuffer] = field(default=None, repr=False)  # For ZLE firmware
     __zle_waveforms: Optional[ct.Array] = field(default=None, repr=False)  # For 751 ZLE firmware
     __registers: _utils.Registers = field(init=False, repr=False)
 
@@ -1097,8 +1095,8 @@ class Device:
         if n_words == 0:
             return []  # Workaround for empty buffer, causes a segfault in the C API
         l_num_events = ct.c_uint32()
-        lib.get_dpp_events(self.handle, self.__ro_buff.data, n_words, self.__daw_events, l_num_events)
-        evts_ptr = ct.cast(self.__daw_events, self.__event_raw_ptr_type)
+        lib.get_dpp_events(self.handle, self.__ro_buff.data, n_words, self.__daw_events.data, l_num_events)
+        evts_ptr = ct.cast(self.__daw_events.data, self.__event_raw_ptr_type)
         return [self.__event_type(evts_ptr[i]) for i in range(l_num_events.value)]
 
     def malloc_dpp_events(self) -> int:
@@ -1125,19 +1123,18 @@ class Device:
         """
         if self.__daw_events is not None:
             raise RuntimeError('DAW events already allocated')
-        self.__daw_n_events = self.get_max_num_events_blt()
-        res = 0
+        n_events = self.get_max_num_events_blt()
         # Allocate events
         l_daw_events = ct.c_void_p()
         l_size = ct.c_uint32()
         lib.malloc_dpp_events(self.handle, l_daw_events, l_size)
-        res += l_size.value
+        res = l_size.value
         # Allocate waveforms
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_DAW:
                 # Waveforms are allocated inside each event/channel structure
                 evts_ptr = ct.cast(l_daw_events, self.__event_raw_ptr_type)
-                for i in range(self.__daw_n_events):
+                for i in range(n_events):
                     evt = evts_ptr[i]
                     for ch in range(self.__info.channels):
                         l_waveforms = ct.c_void_p()
@@ -1148,7 +1145,7 @@ class Device:
                 raise RuntimeError('Firmware not supported by the C API')
             case _:
                 raise RuntimeError('Not a DAW firmware')
-        self.__daw_events = l_daw_events
+        self.__daw_events = _types.EventsBuffer(l_daw_events, n_events)
         return res
 
     def free_dpp_events(self) -> None:
@@ -1178,8 +1175,8 @@ class Device:
         # Free waveforms, with a workaround for a bug in the C API that will lead to a memory leak
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_DAW:
-                evts_ptr = ct.cast(self.__daw_events, self.__event_raw_ptr_type)
-                for i in range(self.__daw_n_events):
+                evts_ptr = ct.cast(self.__daw_events.data, self.__event_raw_ptr_type)
+                for i in range(self.__daw_events.size):
                     evt = evts_ptr[i]
                     for ch in range(self.__info.channels):
                         try:
@@ -1192,7 +1189,7 @@ class Device:
             case _:
                 raise RuntimeError('Not a DAW firmware')
         # Free events
-        lib.free_dpp_events(self.handle, self.__daw_events)
+        lib.free_dpp_events(self.handle, self.__daw_events.data)
         self.__daw_events = None
 
     def malloc_dpp_waveforms(self) -> int:
@@ -1258,7 +1255,7 @@ class Device:
             raise RuntimeError('Not a DAW firmware')
         if self.__daw_events is None:
             raise RuntimeError('DAW events not allocated')
-        evts_ptr = ct.cast(self.__daw_events, self.__event_raw_ptr_type)
+        evts_ptr = ct.cast(self.__daw_events.data, self.__event_raw_ptr_type)
         lib.decode_dpp_waveforms(self.handle, ct.byref(evts_ptr[evt_id]), None)
 
     def set_num_events_per_aggregate(self, num_events: int, channel: int = -1) -> None:
@@ -1349,8 +1346,9 @@ class Device:
             raise RuntimeError('Not a standard firmware')
         if self.__scope_event is not None:
             raise RuntimeError('Event already allocated')
-        self.__scope_event = ct.c_void_p()
-        lib.allocate_event(self.handle, self.__scope_event)
+        l_event = ct.c_void_p()
+        lib.allocate_event(self.handle, l_event)
+        self.__scope_event = l_event
 
     def set_io_level(self, level: IOLevel) -> None:
         """
@@ -1505,7 +1503,7 @@ class Device:
         """
         if self.__zle_events is None:
             raise RuntimeError('ZLE events not allocated')
-        evts_ptr = ct.cast(self.__zle_events, self.__event_raw_ptr_type)
+        evts_ptr = ct.cast(self.__zle_events.data, self.__event_raw_ptr_type)
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_ZLE:
                 # Last argument is ignored, placed directly into the event structure
@@ -1530,20 +1528,20 @@ class Device:
         # Free waveforms
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_ZLE:
-                evts_ptr = ct.cast(self.__zle_events, self.__event_raw_ptr_type)
-                for i in range(self.__zle_n_events):
+                evts_ptr = ct.cast(self.__zle_events.data, self.__event_raw_ptr_type)
+                for i in range(self.__zle_events.size):
                     evt = evts_ptr[i]
                     for ch in range(self.__info.channels):
                         lib.free_zle_waveforms(self.handle, evt.Channel[ch].contents.Waveforms)
             case FirmwareCode.V1751_DPP_ZLE:
                 assert self.__zle_waveforms is not None
-                for i in range(self.__zle_n_events):
+                for i in range(self.__zle_events.size):
                     lib.free_zle_waveforms(self.handle, ct.byref(self.__zle_waveforms[i]))
                 self.__zle_waveforms = None
             case _:
                 raise RuntimeError('Not a ZLE firmware')
         # Free events
-        lib.free_zle_events(self.handle, self.__zle_events)
+        lib.free_zle_events(self.handle, self.__zle_events.data)
         self.__zle_events = None
 
     def malloc_zle_events_and_waveforms(self) -> int:
@@ -1562,36 +1560,37 @@ class Device:
             raise RuntimeError('Not a ZLE firmware')
         if self.__zle_events is not None:
             raise RuntimeError('ZLE events already allocated')
-        self.__zle_n_events = self.get_max_num_events_blt()
-        res = 0
+        n_events = self.get_max_num_events_blt()
         # Allocate events
         l_zle_events = ct.c_void_p()
         l_size = ct.c_uint32()
         lib.malloc_zle_events(self.handle, l_zle_events, l_size)
-        res += l_size.value
+        res = l_size.value
         # Allocate waveforms
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_ZLE:
                 # Waveforms are allocated inside each event/channel structure
                 evts_ptr = ct.cast(l_zle_events, self.__event_raw_ptr_type)
-                for i in range(self.__zle_n_events):
+                for i in range(n_events):
                     evt = evts_ptr[i]
                     for ch in range(self.__info.channels):
-                        l_waveforms = ct.c_void_p()
-                        lib.malloc_zle_waveforms(self.handle, l_waveforms, l_size)
+                        l_value = ct.c_void_p()
+                        lib.malloc_zle_waveforms(self.handle, l_value, l_size)
                         res += l_size.value
-                        evt.Channel[ch].contents.Waveforms = ct.cast(l_waveforms, ct.POINTER(self.__waveforms_raw_type))
+                        l_waveforms = ct.cast(l_value, ct.POINTER(self.__waveforms_raw_type))
+                        evt.Channel[ch].contents.Waveforms = l_waveforms
             case FirmwareCode.V1751_DPP_ZLE:
                 # We use an external array of waveforms, one per event,
                 # to make the interface similar to the V1730 case.
                 assert self.__zle_waveforms is None
-                self.__zle_waveforms = (self.__waveforms_raw_type * self.__zle_n_events)()
-                for i in range(self.__zle_n_events):
-                    lib.malloc_zle_waveforms(self.handle, ct.byref(self.__zle_waveforms[i]), l_size)
+                l_values = (self.__waveforms_raw_type * n_events)()
+                for i in range(n_events):
+                    lib.malloc_zle_waveforms(self.handle, ct.byref(l_values[i]), l_size)
                     res += l_size.value
+                self.__zle_waveforms = l_values
             case _:
                 raise RuntimeError('Not a ZLE firmware')
-        self.__zle_events = l_zle_events
+        self.__zle_events = _types.EventsBuffer(l_zle_events, n_events)
         return res
 
     def get_zle_events(self) -> Union[list[ZLEEvent730], list[ZLEEvent751]]:
@@ -1613,8 +1612,8 @@ class Device:
         if n_words == 0:
             return []  # Workaround for empty buffer, causes a segfault in the C API
         l_num_events = ct.c_uint32()
-        lib.get_zle_events(self.handle, self.__ro_buff.data, n_words, self.__zle_events, l_num_events)
-        evts_ptr = ct.cast(self.__zle_events, self.__event_raw_ptr_type)
+        lib.get_zle_events(self.handle, self.__ro_buff.data, n_words, self.__zle_events.data, l_num_events)
+        evts_ptr = ct.cast(self.__zle_events.data, self.__event_raw_ptr_type)
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_ZLE:
                 return [self.__event_type(evts_ptr[i]) for i in range(l_num_events.value)]

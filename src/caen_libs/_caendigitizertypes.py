@@ -416,7 +416,7 @@ def _safe_array(data: ct._Pointer, size: int) -> npt.NDArray:
     return np.ctypeslib.as_array(data, shape=(size,))
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class Uint16Event:
     """
     Binding of ::CAEN_DGTZ_UINT16_EVENT_t
@@ -437,7 +437,7 @@ class Uint8EventRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class Uint8Event:
     """
     Binding of ::CAEN_DGTZ_UINT8_EVENT_t
@@ -460,7 +460,7 @@ class X742GroupRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class X742Group:
     """
     Binding of ::CAEN_DGTZ_X742_GROUP_t
@@ -491,7 +491,7 @@ class X742EventRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class X742Event:
     """
     Binding of ::CAEN_DGTZ_X742_EVENT_t
@@ -523,7 +523,7 @@ class X743GroupRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class X743Group:
     """
     Binding of ::CAEN_DGTZ_X743_GROUP_t
@@ -600,7 +600,7 @@ class X743EventRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class X743Event:
     """
     Binding of ::CAEN_DGTZ_X743_EVENT_t
@@ -625,7 +625,7 @@ class DPPPHAEventRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPPHAEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Event_t
@@ -673,7 +673,7 @@ class DPPPSDEventRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPPSDEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Event_t
@@ -732,7 +732,7 @@ class DPPCIEventRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPCIEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_CI_Event_t
@@ -776,7 +776,7 @@ class DPPQDCEventRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPQDCEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Event_t
@@ -838,7 +838,7 @@ class ZLEWaveforms751Raw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class ZLEWaveforms751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Waveforms_t
@@ -870,7 +870,7 @@ class ZLEEvent751Raw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class ZLEEvent751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Event_t
@@ -906,7 +906,7 @@ class ZLEWaveforms730Raw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class ZLEWaveforms730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Waveforms_t
@@ -935,7 +935,7 @@ class ZLEChannel730Raw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class ZLEChannel730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Channel_t
@@ -969,7 +969,7 @@ class ZLEEvent730Raw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class ZLEEvent730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Event_t
@@ -1004,7 +1004,7 @@ class DPPDAWWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPDAWWaveforms:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Waveforms_t
@@ -1031,7 +1031,7 @@ class DPPDAWChannelRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPDAWChannel:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Channel_t
@@ -1080,7 +1080,7 @@ class DPPDAWEventRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPDAWEvent:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Event_t
@@ -1105,7 +1105,9 @@ class DPPDAWEvent:
     @property
     def channel(self) -> list[Optional[DPPDAWChannel]]:
         """Channel"""
-        return [DPPDAWChannel(self.raw.Channel[i].contents) if (self.raw.chmask & (1 << i)) else None for i in range(MAX_V1730_CHANNEL_SIZE)]
+        chmask: int = self.raw.chmask
+        chmask_it = (bool((chmask >> i) & 1) for i in range(chmask.bit_length()))
+        return [DPPDAWChannel(ch.contents) if en else None for ch, en in zip(self.raw.Channel, chmask_it)]
 
 
 class DPPX743EventRaw(ct.Structure):
@@ -1116,7 +1118,7 @@ class DPPX743EventRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPX743Event:
     """
     Binding of ::CAEN_DGTZ_DPP_X743_Event_t
@@ -1149,7 +1151,7 @@ class DPPPHAWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPPHAWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Waveforms_t
@@ -1219,7 +1221,7 @@ class DPPPSDWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPPSDWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Waveforms_t
@@ -1303,7 +1305,7 @@ class DPPQDCWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DPPQDCWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Waveforms_t
@@ -1972,7 +1974,7 @@ class DRS4CorrectionRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class DRS4Correction:
     """
     Binding of ::CAEN_DGTZ_DRS4Correction_t
@@ -2161,7 +2163,7 @@ class FirmwareType(Enum):
                 return cls.UNKNOWN
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(frozen=True, **_utils.dataclass_slots)
 class Buffer:
     """
     Type returned by get_event_info, to be passed to decode_event
@@ -2190,3 +2192,14 @@ class ReadoutBuffer:
         array_type = ct.c_ubyte * self.occupancy.value
         array = array_type.from_address(ct.addressof(self.data.contents))
         return memoryview(array)
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class EventsBuffer:
+    """
+    Used to store internal buffers for ZLE and DAW firmwares, containing
+    a buffer and then number of events.
+    """
+
+    data: ct.c_void_p = field(repr=False)
+    size: int = field(repr=False)
