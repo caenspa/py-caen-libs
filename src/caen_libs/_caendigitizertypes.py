@@ -409,6 +409,13 @@ class Uint16EventRaw(ct.Structure):
     ]
 
 
+def _safe_array(data: ct._Pointer, size: int) -> npt.NDArray:
+    if size == 0:
+        dtype = np.dtype(data._type_)  # pylint: disable=W0212
+        return np.array([], dtype=dtype)
+    return np.ctypeslib.as_array(data, shape=(size,))
+
+
 @dataclass(**_utils.dataclass_slots)
 class Uint16Event:
     """
@@ -416,15 +423,10 @@ class Uint16Event:
     """
     raw: Uint16EventRaw = field(repr=False)
 
-    def __get_data_channel(self, index: int) -> npt.NDArray[np.uint16]:
-        if self.raw.ChSize[index] == 0:
-            return np.array([], dtype=np.uint16)
-        return np.ctypeslib.as_array(self.raw.DataChannel[index], shape=(self.raw.ChSize[index],))
-
     @property
     def data_channel(self) -> list[npt.NDArray[np.uint16]]:
         """Data channel"""
-        return [self.__get_data_channel(i) for i in range(MAX_UINT16_CHANNEL_SIZE)]
+        return [_safe_array(d, s) for d, s in zip(self.raw.DataChannel, self.raw.ChSize)]
 
 
 class Uint8EventRaw(ct.Structure):
@@ -442,15 +444,10 @@ class Uint8Event:
     """
     raw: Uint8EventRaw = field(repr=False)
 
-    def __get_data_channel(self, index: int) -> npt.NDArray[np.uint8]:
-        if self.raw.ChSize[index] == 0:
-            return np.array([], dtype=np.uint8)
-        return np.ctypeslib.as_array(self.raw.DataChannel[index], shape=(self.raw.ChSize[index],))
-
     @property
     def data_channel(self) -> list[npt.NDArray[np.uint8]]:
         """Data channel"""
-        return [self.__get_data_channel(i) for i in range(MAX_UINT8_CHANNEL_SIZE)]
+        return [_safe_array(d, s) for d, s in zip(self.raw.DataChannel, self.raw.ChSize)]
 
 
 class X742GroupRaw(ct.Structure):
@@ -470,15 +467,10 @@ class X742Group:
     """
     raw: X742GroupRaw = field(repr=False)
 
-    def __get_data_channel(self, index: int) -> npt.NDArray[np.float32]:
-        if self.raw.ChSize[index] == 0:
-            return np.array([], dtype=np.float32)
-        return np.ctypeslib.as_array(self.raw.DataChannel[index], shape=(self.raw.ChSize[index],))
-
     @property
     def data_channel(self) -> list[npt.NDArray[np.float32]]:
         """Data channel"""
-        return [self.__get_data_channel(i) for i in range(MAX_X742_CHANNEL_SIZE)]
+        return [_safe_array(d, s) for d, s in zip(self.raw.DataChannel, self.raw.ChSize)]
 
     @property
     def trigger_time_tag(self) -> int:
@@ -538,15 +530,11 @@ class X743Group:
     """
     raw: X743GroupRaw = field(repr=False)
 
-    def __get_data_channel(self, index: int) -> npt.NDArray[np.float32]:
-        if self.raw.ChSize[index] == 0:
-            return np.array([], dtype=np.float32)
-        return np.ctypeslib.as_array(self.raw.DataChannel[index], shape=(self.raw.ChSize[index],))
-
     @property
     def data_channel(self) -> list[npt.NDArray[np.float32]]:
         """Data channel"""
-        return [self.__get_data_channel(i) for i in range(MAX_X743_CHANNELS_X_GROUP)]
+        s = self.raw.ChSize
+        return [_safe_array(d, s) for d in self.raw.DataChannel]
 
     @property
     def trigger_count(self) -> list[int]:
