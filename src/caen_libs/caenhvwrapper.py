@@ -9,10 +9,8 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 import ctypes.wintypes as ctw
-import os
 import socket
 import sys
-import warnings
 from collections.abc import Callable, Generator, Iterator, Sequence
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
@@ -354,42 +352,6 @@ else:
 lib = _Lib(_LIB_NAME)
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class _TcpPorts:
-    """
-    TCP port range to bind to for event handling. Range is exclusive,
-    so that the ports used are [first, last).
-    """
-    first: int = field(default=0)
-    last: int = field(default=1)
-
-    def __post_init__(self) -> None:
-        if self.first < 0 or self.first > 65535:
-            raise ValueError('First port must be between 0 and 65535.')
-        if self.last < 1 or self.last > 65536:
-            raise ValueError('Last port must be between 1 and 65536.')
-        if self.first == 0 and self.last != 1:
-            raise ValueError('Last port must be 1 if first port is 0.')
-        if self.first >= self.last:
-            raise ValueError('First port must be lower than last port.')
-
-    _T = TypeVar('_T', bound='_TcpPorts')
-
-    @classmethod
-    def load_defaults(cls: type[_T]) -> _T:
-        """
-        Utility function to handle deprecation of HV_FIRST_BIND_PORT.
-        """
-        env = 'HV_FIRST_BIND_PORT'
-        first_env = os.environ.get(env)
-        if first_env is not None:
-            msg = f'Environment variable {env} is deprecated. Use Device.set_events_tcp_ports() instead.'
-            warnings.warn(msg, DeprecationWarning)
-        first = int(first_env) if first_env is not None else 0
-        last = 1 if first == 0 else 65536
-        return cls(first, last)
-
-
 @dataclass(**_utils.dataclass_slots_weakref)
 class Device:
     """
@@ -417,7 +379,7 @@ class Device:
 
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
-    __bind_tcp_ports: ClassVar[_TcpPorts] = _TcpPorts.load_defaults()
+    __bind_tcp_ports: ClassVar[_types.TcpPorts] = _types.TcpPorts.load_defaults()
 
     def __del__(self) -> None:
         if self.__opened:
@@ -746,7 +708,7 @@ class Device:
         is 0, the last port must be 1. The default value is (0, 1).
         Port 0 is used to bind to a random port chosen by the OS.
         """
-        cls.__bind_tcp_ports = _TcpPorts(first, last)
+        cls.__bind_tcp_ports = _types.TcpPorts(first, last)
 
     @classmethod
     def get_events_tcp_ports(cls) -> tuple[int, int]:

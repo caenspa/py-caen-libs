@@ -142,8 +142,8 @@ _c_uint16_p = ct.POINTER(ct.c_uint16)
 _c_int32_p = ct.POINTER(ct.c_int32)
 _c_uint32_p = ct.POINTER(ct.c_uint32)
 _c_void_p_p = ct.POINTER(ct.c_void_p)
-_board_info_p = ct.POINTER(_types.BoardInfo.Raw)
-_event_info_p = ct.POINTER(_types.EventInfo.Raw)
+_board_info_p = ct.POINTER(_types.BoardInfoRaw)
+_event_info_p = ct.POINTER(_types.EventInfoRaw)
 
 
 class _Lib(_utils.Lib):
@@ -370,6 +370,7 @@ class _Lib(_utils.Lib):
         l_board_id = ct.c_int32()
         self.__vme_iack_cycle(vme_handle, level, l_board_id)
         return l_board_id.value
+
 
 lib = _Lib('CAENDigitizer')
 
@@ -894,19 +895,19 @@ class Device:
         lib.get_analog_mon_output(self.handle, channel, l_value)
         return AnalogMonitorOutputMode(l_value.value)
 
-    def set_analog_inspection_mon_params(self, channelmask: int, offset: int, mf: AnalogMonitorMagnify, ami: AnalogMonitorInspectorInverter) -> None:
+    def set_analog_inspection_mon_params(self, channel_mask: int, offset: int, mf: AnalogMonitorMagnify, ami: AnalogMonitorInspectorInverter) -> None:
         """
         Binding of CAEN_DGTZ_SetAnalogInspectionMonParams()
         """
-        lib.set_analog_inspection_mon_params(self.handle, channelmask, offset, mf, ami)
+        lib.set_analog_inspection_mon_params(self.handle, channel_mask, offset, mf, ami)
 
-    def get_analog_inspection_mon_params(self, channelmask: int, offset: int) -> tuple[AnalogMonitorMagnify, AnalogMonitorInspectorInverter]:
+    def get_analog_inspection_mon_params(self, channel_mask: int, offset: int) -> tuple[AnalogMonitorMagnify, AnalogMonitorInspectorInverter]:
         """
         Binding of CAEN_DGTZ_GetAnalogInspectionMonParams()
         """
         l_mf = ct.c_int()
         l_ami = ct.c_int()
-        lib.get_analog_inspection_mon_params(self.handle, channelmask, offset, l_mf, l_ami)
+        lib.get_analog_inspection_mon_params(self.handle, channel_mask, offset, l_mf, l_ami)
         return AnalogMonitorMagnify(l_mf.value), AnalogMonitorInspectorInverter(l_ami.value)
 
     def disable_event_aligned_readout(self) -> None:
@@ -1109,9 +1110,10 @@ class Device:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_events is not None:
             raise RuntimeError('DPP events already allocated')
-        self.__dpp_events = (ct.c_void_p * self.__info.channels)()
+        l_dpp_events = (ct.c_void_p * self.__info.channels)()
         l_size = ct.c_uint32()
-        lib.malloc_dpp_events(self.handle, self.__dpp_events, l_size)
+        lib.malloc_dpp_events(self.handle, l_dpp_events, l_size)
+        self.__dpp_events = l_dpp_events
         return l_size.value
 
     def malloc_daw_events_and_waveforms(self) -> int:
@@ -1121,6 +1123,8 @@ class Device:
         See malloc_zle_events_and_waveforms() for the rationale of this
         combined method.
         """
+        if self.__firmware_type is not _types.FirmwareType.DAW:
+            raise RuntimeError('Not a DAW firmware')
         if self.__daw_events is not None:
             raise RuntimeError('DAW events already allocated')
         n_events = self.get_max_num_events_blt()

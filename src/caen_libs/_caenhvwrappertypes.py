@@ -6,7 +6,9 @@ __license__ = 'LGPL-3.0-or-later'
 import ctypes as ct
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Optional, Union
+import os
+from typing import Optional, TypeVar, Union
+import warnings
 
 from caen_libs import _utils
 
@@ -262,3 +264,39 @@ class ParamProp:
     onstate: Optional[str] = field(default=None)
     offstate: Optional[str] = field(default=None)
     enum: Optional[tuple[str, ...]] = field(default=None)
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class TcpPorts:
+    """
+    TCP port range to bind to for event handling. Range is exclusive,
+    so that the ports used are [first, last).
+    """
+    first: int = field(default=0)
+    last: int = field(default=1)
+
+    def __post_init__(self) -> None:
+        if self.first < 0 or self.first > 65535:
+            raise ValueError('First port must be between 0 and 65535.')
+        if self.last < 1 or self.last > 65536:
+            raise ValueError('Last port must be between 1 and 65536.')
+        if self.first == 0 and self.last != 1:
+            raise ValueError('Last port must be 1 if first port is 0.')
+        if self.first >= self.last:
+            raise ValueError('First port must be lower than last port.')
+
+    _T = TypeVar('_T', bound='TcpPorts')
+
+    @classmethod
+    def load_defaults(cls: type[_T]) -> _T:
+        """
+        Utility function to handle deprecation of HV_FIRST_BIND_PORT.
+        """
+        env = 'HV_FIRST_BIND_PORT'
+        first_env = os.environ.get(env)
+        if first_env is not None:
+            msg = f'Environment variable {env} is deprecated. Use Device.set_events_tcp_ports() instead.'
+            warnings.warn(msg, DeprecationWarning)
+        first = int(first_env) if first_env is not None else 0
+        last = 1 if first == 0 else 65536
+        return cls(first, last)
