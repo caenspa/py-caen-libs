@@ -57,50 +57,50 @@ class BoardModel(IntEnum):
     """
     Binding of ::CAEN_DGTZ_BoardModel_t
     """
-    V1724     = 0
-    V1721     = 1
-    V1731     = 2
-    V1720     = 3
-    V1740     = 4
-    V1751     = 5
-    DT5724    = 6
-    DT5721    = 7
-    DT5731    = 8
-    DT5720    = 9
-    DT5740    = 10
-    DT5751    = 11
-    N6724     = 12
-    N6721     = 13
-    N6731     = 14
-    N6720     = 15
-    N6740     = 16
-    N6751     = 17
-    DT5742    = 18
-    N6742     = 19
-    V1742     = 20
-    DT5780    = 21
-    N6780     = 22
-    V1780     = 23
-    DT5761    = 24
-    N6761     = 25
-    V1761     = 26
-    DT5743    = 27
-    N6743     = 28
-    V1743     = 29
-    DT5730    = 30
-    N6730     = 31
-    V1730     = 32
-    DT5790    = 33
-    N6790     = 34
-    V1790     = 35
-    DT5781    = 36
-    N6781     = 37
-    V1781     = 38
-    DT5725    = 39
-    N6725     = 40
-    V1725     = 41
-    V1782     = 42
-    V1784     = 43
+    V1724 = 0
+    V1721 = 1
+    V1731 = 2
+    V1720 = 3
+    V1740 = 4
+    V1751 = 5
+    DT5724 = 6
+    DT5721 = 7
+    DT5731 = 8
+    DT5720 = 9
+    DT5740 = 10
+    DT5751 = 11
+    N6724 = 12
+    N6721 = 13
+    N6731 = 14
+    N6720 = 15
+    N6740 = 16
+    N6751 = 17
+    DT5742 = 18
+    N6742 = 19
+    V1742 = 20
+    DT5780 = 21
+    N6780 = 22
+    V1780 = 23
+    DT5761 = 24
+    N6761 = 25
+    V1761 = 26
+    DT5743 = 27
+    N6743 = 28
+    V1743 = 29
+    DT5730 = 30
+    N6730 = 31
+    V1730 = 32
+    DT5790 = 33
+    N6790 = 34
+    V1790 = 35
+    DT5781 = 36
+    N6781 = 37
+    V1781 = 38
+    DT5725 = 39
+    N6725 = 40
+    V1725 = 41
+    V1782 = 42
+    V1784 = 43
 
 
 @unique
@@ -108,11 +108,11 @@ class BoardFormFactor(IntEnum):
     """
     Binding of ::CAEN_DGTZ_BoardFormFactor_t
     """
-    VME64         = 0
-    VME64X        = 1
-    DESKTOP       = 2
-    NIM           = 3
-    RACK          = 4
+    VME64 = 0
+    VME64X = 1
+    DESKTOP = 2
+    NIM = 3
+    RACK = 4
 
 
 @unique
@@ -120,22 +120,22 @@ class BoardFamilyCode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_BoardFamilyCode_t
     """
-    XX724   = 0
-    XX721   = 1
-    XX731   = 2
-    XX720   = 3
-    XX740   = 4
-    XX751   = 5
-    XX742   = 6
-    XX780   = 7
-    XX761   = 8
-    XX743   = 9
-    XX730   = 11
-    XX790   = 12
-    XX781   = 13
-    XX725   = 14
-    XX782   = 16
-    XX784   = 0x84
+    XX724 = 0
+    XX721 = 1
+    XX731 = 2
+    XX720 = 3
+    XX740 = 4
+    XX751 = 5
+    XX742 = 6
+    XX780 = 7
+    XX761 = 8
+    XX743 = 9
+    XX730 = 11
+    XX790 = 12
+    XX781 = 13
+    XX725 = 14
+    XX782 = 16
+    XX784 = 0x84
 
 
 @unique
@@ -143,22 +143,22 @@ class FirmwareCode(IntEnum):
     """
     Binding of ::*_CODE
     """
-    STANDARD_FW       = 0x00
-    V1724_DPP_PHA     = 0x80
-    V1720_DPP_CI      = 0x82
-    V1720_DPP_PSD     = 0x83
-    V1751_DPP_PSD     = 0x84
-    V1751_DPP_ZLE     = 0x85
-    V1743_DPP_CI      = 0x86
-    V1740_DPP_QDC     = 0x87
-    V1730_DPP_PSD     = 0x88
-    V1724_DPP_DAW     = 0x89  # Not really supported by CAEN Digitizer
-    V1730_DPP_PHA     = 0x8B
-    V1730_DPP_ZLE     = 0x8C
-    V1730_DPP_DAW     = 0x8D
-    STANDARD_FW_X742  = 0x01  # Binding extension
-    STANDARD_FW_X743  = 0x02  # Binding extension
-    UNKNOWN           = 0xFF  # Binding extension
+    STANDARD_FW = 0x00
+    V1724_DPP_PHA = 0x80
+    V1720_DPP_CI = 0x82
+    V1720_DPP_PSD = 0x83
+    V1751_DPP_PSD = 0x84
+    V1751_DPP_ZLE = 0x85
+    V1743_DPP_CI = 0x86
+    V1740_DPP_QDC = 0x87
+    V1730_DPP_PSD = 0x88
+    V1724_DPP_DAW = 0x89  # Not really supported by CAEN Digitizer
+    V1730_DPP_PHA = 0x8B
+    V1730_DPP_ZLE = 0x8C
+    V1730_DPP_DAW = 0x8D
+    STANDARD_FW_X742 = 0x01  # Binding extension
+    STANDARD_FW_X743 = 0x02  # Binding extension
+    UNKNOWN = 0xFF  # Binding extension
 
     @classmethod
     def _missing_(cls, value):
@@ -172,125 +172,125 @@ class Registers(IntEnum):
     """
     Binding of Digitizer Registers Address Map
     """
-    MULTI_EVENT_BUFFER                          = 0x0000
-    SAM_EEPROM_ACCESS                           = 0x100C
-    CHANNEL_ZS_THRESHOLD_BASE_ADDRESS           = 0x1024
-    CHANNEL_ZS_NSAMPLE_BASE_ADDRESS             = 0x1028
-    CHANNEL_THRESHOLD_BASE_ADDRESS              = 0x1080
-    CHANNEL_OV_UND_TRSH_BASE_ADDRESS            = 0x1084
-    CHANNEL_STATUS_BASE_ADDRESS                 = 0x1088
-    CHANNEL_AMC_FPGA_FW_BASE_ADDRESS            = 0x108C
-    CHANNEL_BUFFER_OCC_BASE_ADDRESS             = 0x1094
-    CHANNEL_DAC_BASE_ADDRESS                    = 0x1098
-    CHANNEL_GROUP_V1740_BASE_ADDRESS            = 0x10A8
-    GROUP_FASTTRG_THR_V1742_BASE_ADDRESS        = 0x10D4
-    GROUP_FASTTRG_DCOFFSET_V1742_BASE_ADDRESS   = 0x10DC
-    DRS4_FREQUENCY_REG                          = 0x10D8
-    SAM_ENABLE_PULSE_REG                        = 0x102C
-    SAM_TRIGGER_GATE_REG                        = 0x1038
-    SAM_FREQUENCY_REG                           = 0x1040
-    SAM_CHARGE_TRESHOLD_CH0                     = 0x1048
-    SAM_CHARGE_TRESHOLD_CH1                     = 0x104C
-    SAM_TRIGGER_REG_ADD                         = 0x103C
-    SAM_FREQUENCY_REG_WRITE                     = 0x1040
-    SAM_CHARGE_LENGTH_CH0                       = 0x1080
-    SAM_CHARGE_LENGTH_CH1                       = 0x10A0
-    SAM_REG_ADD                                 = 0x1084
-    SAM_REG_VALUE                               = 0x1028
-    SAM_DAC_SPI_DATA_ADD                        = 0x1054
-    SAM_START_CELL_CH0                          = 0x1058
-    SAM_START_CELL_CH1                          = 0x10A4
-    SAM_CTRL_ADD                                = 0x1070
-    SAM_EEPROM_WP_ADD                           = 0x1078
-    SAM_START_ACQ_ADD                           = 0x1018
-    SAM_RESET_ACQ_ADD                           = 0x105C
-    SAM_NB_OF_COLS_2_READ_ADD                   = 0x1044
-    SAM_POST_TRIGGER_ADD                        = 0x1030
-    SAM_PULSE_PATTERN_ADD                       = 0x1034
-    SAM_RATE_COUNTERS_CH0                       = 0x106C
-    SAM_RATE_COUNTERS_CH1                       = 0x1094
-    BROAD_CH_CTRL_ADD                           = 0x8000
-    BROAD_CH_CONFIGBIT_SET_ADD                  = 0x8004
-    BROAD_CH_CLEAR_CTRL_ADD                     = 0x8008
-    BROAD_NUM_BLOCK_ADD                         = 0x800C
-    CUSTOM_SIZE_REG                             = 0x8020
-    DPP_NUM_EVENTS_PER_AGGREGATE                = 0x8034
-    DRS4_FREQUENCY_REG_WRITE                    = 0x80D8
-    SAM_BROAD_FREQUENCY_REG_WRITE               = 0x8040
-    SAM_BROAD_REG_ADD                           = 0x8084
-    SAM_BROAD_REG_VALUE                         = 0x8028
-    SAM_BROAD_DAC_SPI_DATA_ADD                  = 0x8054
-    SAM_BROAD_CTRL_ADD                          = 0x8070
-    SAM_BROAD_PRETRIGGER_ADD                    = 0x8074
-    SAM_BROAD_START_ACQ_ADD                     = 0x8018
-    SAM_BROAD_RESET_ACQ_ADD                     = 0x805C
-    DECIMATION_ADD                              = 0x8044
-    SAM_BROAD_NB_OF_COLS_2_READ_ADD             = 0x8044
-    SAM_BROAD_POST_TRIGGER_ADD                  = 0x8030
-    SAM_BROAD_PBK_RESET                         = 0x8010
-    SAM_BROAD_PULSE_CHANNELS                    = 0x801C
-    SAM_START_RATE_COUNTERS                     = 0x8020
-    SAM_BROAD_CHIP_RESET                        = 0x807C
-    ACQ_CONTROL_ADD                             = 0x8100
-    ACQ_STATUS_ADD                              = 0x8104
-    SW_TRIGGER_ADD                              = 0x8108
-    TRIGGER_SRC_ENABLE_ADD                      = 0x810C
-    FP_TRIGGER_OUT_ENABLE_ADD                   = 0x8110
-    POST_TRIG_ADD                               = 0x8114
-    FRONT_PANEL_IO_ADD                          = 0x8118
-    FRONT_PANEL_IO_CTRL_ADD                     = 0x811C
-    CH_ENABLE_ADD                               = 0x8120
-    FW_REV_ADD                                  = 0x8124
-    DOWNSAMPLE_FACT_ADD                         = 0x8128
-    EVENT_STORED_ADD                            = 0x812C
-    MON_SET_ADD                                 = 0x8138
-    SYNC_CMD                                    = 0x813C
-    BOARD_INFO_ADD                              = 0x8140
-    EVENT_SIZE_ADD                              = 0x814C
-    MON_MODE_ADD                                = 0x8144
-    ANALOG_MON_ADD                              = 0x8150
-    TRIGGER_VETO_ADD                            = 0x817C
-    VME_CONTROL_ADD                             = 0xEF00
-    VME_STATUS_ADD                              = 0xEF04
-    BOARD_ID_ADD                                = 0xEF08
-    MCST_CBLT_ADD_CTRL_ADD                      = 0xEF0C
-    RELOCATION_ADDRESS_ADD                      = 0xEF10
-    INT_STATUS_ID_ADD                           = 0xEF14
-    INT_EVENT_NUM_ADD                           = 0xEF18
-    BLT_EVENT_NUM_ADD                           = 0xEF1C
-    SCRATCH_ADD                                 = 0xEF20
-    SW_RESET_ADD                                = 0xEF24
-    SW_CLEAR_ADD                                = 0xEF28
-    FLASH_EN_ADD                                = 0xEF2C
-    FLASH_DATA_ADD                              = 0xEF30
-    RELOAD_CONFIG_ADD                           = 0xEF34
-    ROM_CHKSUM_ADD                              = 0xF000
-    ROM_CHKSUM_LEN_2_ADD                        = 0xF004
-    ROM_CHKSUM_LEN_1_ADD                        = 0xF008
-    ROM_CHKSUM_LEN_0_ADD                        = 0xF00C
-    ROM_CONST_2_ADD                             = 0xF010
-    ROM_CONST_1_ADD                             = 0xF014
-    ROM_CONST_0_ADD                             = 0xF018
-    ROM_C_CODE_ADD                              = 0xF01C
-    ROM_R_CODE_ADD                              = 0xF020
-    ROM_OUI_2_ADD                               = 0xF024
-    ROM_OUI_1_ADD                               = 0xF028
-    ROM_OUI_0_ADD                               = 0xF02C
-    ROM_VERSION_ADD                             = 0xF030
-    ROM_BOARD_ID_2_ADD                          = 0xF034
-    ROM_BOARD_ID_1_ADD                          = 0xF038
-    ROM_BOARD_ID_0_ADD                          = 0xF03C
-    ROM_REVISION_3_ADD                          = 0xF040
-    ROM_REVISION_2_ADD                          = 0xF044
-    ROM_REVISION_1_ADD                          = 0xF048
-    ROM_REVISION_0_ADD                          = 0xF04C
-    ROM_SERIAL_0_V2_ADD                         = 0xF070
-    ROM_SERIAL_1_V2_ADD                         = 0xF074
-    ROM_SERIAL_2_V2_ADD                         = 0xF078
-    ROM_SERIAL_3_V2_ADD                         = 0xF07C
-    ROM_SERIAL_1_ADD                            = 0xF080
-    ROM_SERIAL_0_ADD                            = 0xF084
-    ROM_VCXO_TYPE_ADD                           = 0xF088
+    MULTI_EVENT_BUFFER = 0x0000
+    SAM_EEPROM_ACCESS = 0x100C
+    CHANNEL_ZS_THRESHOLD_BASE_ADDRESS = 0x1024
+    CHANNEL_ZS_NSAMPLE_BASE_ADDRESS = 0x1028
+    CHANNEL_THRESHOLD_BASE_ADDRESS = 0x1080
+    CHANNEL_OV_UND_TRSH_BASE_ADDRESS = 0x1084
+    CHANNEL_STATUS_BASE_ADDRESS = 0x1088
+    CHANNEL_AMC_FPGA_FW_BASE_ADDRESS = 0x108C
+    CHANNEL_BUFFER_OCC_BASE_ADDRESS = 0x1094
+    CHANNEL_DAC_BASE_ADDRESS = 0x1098
+    CHANNEL_GROUP_V1740_BASE_ADDRESS = 0x10A8
+    GROUP_FASTTRG_THR_V1742_BASE_ADDRESS = 0x10D4
+    GROUP_FASTTRG_DCOFFSET_V1742_BASE_ADDRESS = 0x10DC
+    DRS4_FREQUENCY_REG = 0x10D8
+    SAM_ENABLE_PULSE_REG = 0x102C
+    SAM_TRIGGER_GATE_REG = 0x1038
+    SAM_FREQUENCY_REG = 0x1040
+    SAM_CHARGE_TRESHOLD_CH0 = 0x1048
+    SAM_CHARGE_TRESHOLD_CH1 = 0x104C
+    SAM_TRIGGER_REG_ADD = 0x103C
+    SAM_FREQUENCY_REG_WRITE = 0x1040
+    SAM_CHARGE_LENGTH_CH0 = 0x1080
+    SAM_CHARGE_LENGTH_CH1 = 0x10A0
+    SAM_REG_ADD = 0x1084
+    SAM_REG_VALUE = 0x1028
+    SAM_DAC_SPI_DATA_ADD = 0x1054
+    SAM_START_CELL_CH0 = 0x1058
+    SAM_START_CELL_CH1 = 0x10A4
+    SAM_CTRL_ADD = 0x1070
+    SAM_EEPROM_WP_ADD = 0x1078
+    SAM_START_ACQ_ADD = 0x1018
+    SAM_RESET_ACQ_ADD = 0x105C
+    SAM_NB_OF_COLS_2_READ_ADD = 0x1044
+    SAM_POST_TRIGGER_ADD = 0x1030
+    SAM_PULSE_PATTERN_ADD = 0x1034
+    SAM_RATE_COUNTERS_CH0 = 0x106C
+    SAM_RATE_COUNTERS_CH1 = 0x1094
+    BROAD_CH_CTRL_ADD = 0x8000
+    BROAD_CH_CONFIGBIT_SET_ADD = 0x8004
+    BROAD_CH_CLEAR_CTRL_ADD = 0x8008
+    BROAD_NUM_BLOCK_ADD = 0x800C
+    CUSTOM_SIZE_REG = 0x8020
+    DPP_NUM_EVENTS_PER_AGGREGATE = 0x8034
+    DRS4_FREQUENCY_REG_WRITE = 0x80D8
+    SAM_BROAD_FREQUENCY_REG_WRITE = 0x8040
+    SAM_BROAD_REG_ADD = 0x8084
+    SAM_BROAD_REG_VALUE = 0x8028
+    SAM_BROAD_DAC_SPI_DATA_ADD = 0x8054
+    SAM_BROAD_CTRL_ADD = 0x8070
+    SAM_BROAD_PRETRIGGER_ADD = 0x8074
+    SAM_BROAD_START_ACQ_ADD = 0x8018
+    SAM_BROAD_RESET_ACQ_ADD = 0x805C
+    DECIMATION_ADD = 0x8044
+    SAM_BROAD_NB_OF_COLS_2_READ_ADD = 0x8044
+    SAM_BROAD_POST_TRIGGER_ADD = 0x8030
+    SAM_BROAD_PBK_RESET = 0x8010
+    SAM_BROAD_PULSE_CHANNELS = 0x801C
+    SAM_START_RATE_COUNTERS = 0x8020
+    SAM_BROAD_CHIP_RESET = 0x807C
+    ACQ_CONTROL_ADD = 0x8100
+    ACQ_STATUS_ADD = 0x8104
+    SW_TRIGGER_ADD = 0x8108
+    TRIGGER_SRC_ENABLE_ADD = 0x810C
+    FP_TRIGGER_OUT_ENABLE_ADD = 0x8110
+    POST_TRIG_ADD = 0x8114
+    FRONT_PANEL_IO_ADD = 0x8118
+    FRONT_PANEL_IO_CTRL_ADD = 0x811C
+    CH_ENABLE_ADD = 0x8120
+    FW_REV_ADD = 0x8124
+    DOWNSAMPLE_FACT_ADD = 0x8128
+    EVENT_STORED_ADD = 0x812C
+    MON_SET_ADD = 0x8138
+    SYNC_CMD = 0x813C
+    BOARD_INFO_ADD = 0x8140
+    EVENT_SIZE_ADD = 0x814C
+    MON_MODE_ADD = 0x8144
+    ANALOG_MON_ADD = 0x8150
+    TRIGGER_VETO_ADD = 0x817C
+    VME_CONTROL_ADD = 0xEF00
+    VME_STATUS_ADD = 0xEF04
+    BOARD_ID_ADD = 0xEF08
+    MCST_CBLT_ADD_CTRL_ADD = 0xEF0C
+    RELOCATION_ADDRESS_ADD = 0xEF10
+    INT_STATUS_ID_ADD = 0xEF14
+    INT_EVENT_NUM_ADD = 0xEF18
+    BLT_EVENT_NUM_ADD = 0xEF1C
+    SCRATCH_ADD = 0xEF20
+    SW_RESET_ADD = 0xEF24
+    SW_CLEAR_ADD = 0xEF28
+    FLASH_EN_ADD = 0xEF2C
+    FLASH_DATA_ADD = 0xEF30
+    RELOAD_CONFIG_ADD = 0xEF34
+    ROM_CHKSUM_ADD = 0xF000
+    ROM_CHKSUM_LEN_2_ADD = 0xF004
+    ROM_CHKSUM_LEN_1_ADD = 0xF008
+    ROM_CHKSUM_LEN_0_ADD = 0xF00C
+    ROM_CONST_2_ADD = 0xF010
+    ROM_CONST_1_ADD = 0xF014
+    ROM_CONST_0_ADD = 0xF018
+    ROM_C_CODE_ADD = 0xF01C
+    ROM_R_CODE_ADD = 0xF020
+    ROM_OUI_2_ADD = 0xF024
+    ROM_OUI_1_ADD = 0xF028
+    ROM_OUI_0_ADD = 0xF02C
+    ROM_VERSION_ADD = 0xF030
+    ROM_BOARD_ID_2_ADD = 0xF034
+    ROM_BOARD_ID_1_ADD = 0xF038
+    ROM_BOARD_ID_0_ADD = 0xF03C
+    ROM_REVISION_3_ADD = 0xF040
+    ROM_REVISION_2_ADD = 0xF044
+    ROM_REVISION_1_ADD = 0xF048
+    ROM_REVISION_0_ADD = 0xF04C
+    ROM_SERIAL_0_V2_ADD = 0xF070
+    ROM_SERIAL_1_V2_ADD = 0xF074
+    ROM_SERIAL_2_V2_ADD = 0xF078
+    ROM_SERIAL_3_V2_ADD = 0xF07C
+    ROM_SERIAL_1_ADD = 0xF080
+    ROM_SERIAL_0_ADD = 0xF084
+    ROM_VCXO_TYPE_ADD = 0xF088
 
 
 class BoardInfoRaw(ct.Structure):
@@ -340,10 +340,7 @@ class BoardInfo:
     def from_raw(cls, raw: BoardInfoRaw):
         """Instantiate from raw data"""
         amc_version = raw.AMC_FirmwareRel.decode('ascii')
-        try:
-            maj_amc_version = int(amc_version.split('.')[0])
-        except (ValueError, IndexError):
-            maj_amc_version = -1
+        maj_amc_version = int(amc_version.split('.')[0])
         return cls(
             raw.ModelName.decode('ascii'),
             BoardModel(raw.Model),
@@ -1373,7 +1370,7 @@ class EnaDis(IntEnum):
     """
     Binding of ::CAEN_DGTZ_EnaDis_t
     """
-    ENABLE  = 1
+    ENABLE = 1
     DISABLE = 0
 
 
@@ -1391,10 +1388,10 @@ class TriggerMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_TriggerMode_t
     """
-    DISABLED         = 0
-    EXTOUT_ONLY      = 2
-    ACQ_ONLY         = 1
-    ACQ_AND_EXTOUT   = 3
+    DISABLED = 0
+    EXTOUT_ONLY = 2
+    ACQ_ONLY = 1
+    ACQ_AND_EXTOUT = 3
 
 
 @unique
@@ -1402,7 +1399,7 @@ class TriggerPolarity(IntEnum):
     """
     Binding of ::CAEN_DGTZ_TriggerPolarity_t
     """
-    ON_RISING_EDGE  = 0
+    ON_RISING_EDGE = 0
     ON_FALLING_EDGE = 1
 
 
@@ -1420,7 +1417,7 @@ class ZSMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_ZS_Mode_t
     """
-    NO  = 0
+    NO = 0
     INT = 1
     ZLE = 2
     AMP = 3
@@ -1431,8 +1428,8 @@ class ThresholdWeight(IntEnum):
     """
     Binding of ::CAEN_DGTZ_ThresholdWeight_t
     """
-    FINE    = 0
-    COARSE  = 1
+    FINE = 0
+    COARSE = 1
 
 
 @unique
@@ -1440,10 +1437,10 @@ class AcqMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_AcqMode_t
     """
-    SW_CONTROLLED           = 0
-    S_IN_CONTROLLED         = 1
-    FIRST_TRG_CONTROLLED    = 2
-    LVDS_CONTROLLED         = 3
+    SW_CONTROLLED = 0
+    S_IN_CONTROLLED = 1
+    FIRST_TRG_CONTROLLED = 2
+    LVDS_CONTROLLED = 3
 
 
 @unique
@@ -1451,9 +1448,9 @@ class TriggerLogic(IntEnum):
     """
     Binding of ::CAEN_DGTZ_TriggerLogic_t
     """
-    OR            = 0
-    AND           = 1
-    MAJORITY      = 2
+    OR = 0
+    AND = 1
+    MAJORITY = 2
 
 
 @unique
@@ -1461,11 +1458,11 @@ class RunSyncMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_RunSyncMode_t
     """
-    DISABLED                    = 0
-    TRG_OUT_TRG_IN_DAISY_CHAIN  = 1
-    TRG_OUT_SIN_DAISY_CHAIN     = 2
-    SIN_FANOUT                  = 3
-    GPIO_GPIO_DAISY_CHAIN       = 4
+    DISABLED = 0
+    TRG_OUT_TRG_IN_DAISY_CHAIN = 1
+    TRG_OUT_SIN_DAISY_CHAIN = 2
+    SIN_FANOUT = 3
+    GPIO_GPIO_DAISY_CHAIN = 4
 
 
 @unique
@@ -1473,11 +1470,11 @@ class AnalogMonitorOutputMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_AnalogMonitorOutputMode_t
     """
-    TRIGGER_MAJORITY    = 0
-    TEST                = 1
-    ANALOG_INSPECTION   = 2
-    BUFFER_OCCUPANCY    = 3
-    VOLTAGE_LEVEL       = 4
+    TRIGGER_MAJORITY = 0
+    TEST = 1
+    ANALOG_INSPECTION = 2
+    BUFFER_OCCUPANCY = 3
+    VOLTAGE_LEVEL = 4
 
 
 @unique
@@ -1485,10 +1482,10 @@ class AnalogMonitorMagnify(IntEnum):
     """
     Binding of ::CAEN_DGTZ_AnalogMonitorMagnify_t
     """
-    MAGNIFY_1X  = 0
-    MAGNIFY_2X  = 1
-    MAGNIFY_4X  = 2
-    MAGNIFY_8X  = 3
+    MAGNIFY_1X = 0
+    MAGNIFY_2X = 1
+    MAGNIFY_4X = 2
+    MAGNIFY_8X = 3
 
 
 @unique
@@ -1496,8 +1493,8 @@ class AnalogMonitorInspectorInverter(IntEnum):
     """
     Binding of ::CAEN_DGTZ_AnalogMonitorInspectorInverter_t
     """
-    P_1X  = 0
-    N_1X  = 1
+    P_1X = 0
+    N_1X = 1
 
 
 @unique
@@ -1505,12 +1502,12 @@ class ReadMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_ReadMode_t
     """
-    SLAVE_TERMINATED_READOUT_MBLT   = 0
-    SLAVE_TERMINATED_READOUT_2eVME  = 1
-    SLAVE_TERMINATED_READOUT_2eSST  = 2
-    POLLING_MBLT                    = 3
-    POLLING_2eVME                   = 4
-    POLLING_2eSST                   = 5
+    SLAVE_TERMINATED_READOUT_MBLT = 0
+    SLAVE_TERMINATED_READOUT_2eVME = 1
+    SLAVE_TERMINATED_READOUT_2eSST = 2
+    POLLING_MBLT = 3
+    POLLING_2eVME = 4
+    POLLING_2eSST = 5
 
 
 @unique
@@ -1518,9 +1515,9 @@ class DPPAcqMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DPP_AcqMode_t
     """
-    OSCILLOSCOPE  = 0
-    LIST          = 1
-    MIXED         = 2
+    OSCILLOSCOPE = 0
+    LIST = 1
+    MIXED = 2
 
 
 @unique
@@ -1530,7 +1527,7 @@ class DPPFirmware(IntEnum):
     """
     PHA = 0
     PSD = 1
-    CI  = 2
+    CI = 2
     ZLE = 3
     QDC = 4
     DAW = 5
@@ -1664,8 +1661,8 @@ class DPPTriggerConfig(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DPP_TriggerConfig_t
     """
-    PEAK       = 0
-    THRESHOLD  = 1
+    PEAK = 0
+    THRESHOLD = 1
 
 
 @unique
@@ -2051,11 +2048,11 @@ class DPPSaveParam(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DPP_SaveParam_t
     """
-    ENERGY_ONLY     = 0
-    TIME_ONLY       = 1
+    ENERGY_ONLY = 0
+    TIME_ONLY = 1
     ENERGY_AND_TIME = 2
     CHARGE_AND_TIME = 4
-    NONE            = 3
+    NONE = 3
 
 
 @unique
@@ -2063,7 +2060,7 @@ class DPPTriggerMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DPP_TriggerMode_t
     """
-    NORMAL      = 0
+    NORMAL = 0
     COINCIDENCE = 1
 
 
@@ -2081,10 +2078,10 @@ class DRS4Frequency(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DRS4Frequency_t
     """
-    F_5GHz  = 0
-    F_2_5GHz  = 1
-    F_1GHz  = 2
-    F_750MHz  = 3
+    F_5GHz = 0
+    F_2_5GHz = 1
+    F_1GHz = 2
+    F_750MHz = 3
 
 
 @unique
@@ -2092,14 +2089,14 @@ class OutputSignalMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_OutputSignalMode_t
     """
-    TRIGGER                  = 0
-    FASTTRG_ALL              = 1
-    FASTTRG_ACCEPTED         = 2
-    BUSY                     = 3
-    CLK_OUT                  = 4
-    RUN                      = 5
-    TRGPULSE                 = 6
-    OVERTHRESHOLD            = 7
+    TRIGGER = 0
+    FASTTRG_ALL = 1
+    FASTTRG_ACCEPTED = 2
+    BUSY = 3
+    CLK_OUT = 4
+    RUN = 5
+    TRGPULSE = 6
+    OVERTHRESHOLD = 7
 
 
 @unique
@@ -2107,10 +2104,10 @@ class SAMCorrectionLevel(IntEnum):
     """
     Binding of ::CAEN_DGTZ_SAM_CORRECTION_LEVEL_t
     """
-    DISABLED        = 0
-    PEDESTAL_ONLY   = 1
-    INL             = 2
-    ALL             = 3
+    DISABLED = 0
+    PEDESTAL_ONLY = 1
+    INL = 2
+    ALL = 3
 
 
 @unique
@@ -2118,8 +2115,8 @@ class SAMPulseSourceType(IntEnum):
     """
     Binding of ::CAEN_DGTZ_SAMPulseSourceType_t
     """
-    SOFTWARE    = 0
-    CONT        = 1
+    SOFTWARE = 0
+    CONT = 1
 
 
 @unique
@@ -2127,10 +2124,10 @@ class SAMFrequency(IntEnum):
     """
     Binding of ::CAEN_DGTZ_SAMFrequency_t
     """
-    F_3_2GHz  = 0
-    F_1_6GHz  = 1
-    F_800MHz  = 2
-    F_400MHz  = 3
+    F_3_2GHz = 0
+    F_1_6GHz = 1
+    F_800MHz = 2
+    F_400MHz = 3
 
 
 class FirmwareType(Enum):

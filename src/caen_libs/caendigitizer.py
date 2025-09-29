@@ -90,41 +90,51 @@ class Error(error.Error):
         """
         Binding of ::CAEN_DGTZ_ErrorCode
         """
-        SUCCESS                         = 0
-        COMM_ERROR                      = -1
-        GENERIC_ERROR                   = -2
-        INVALID_PARAM                   = -3
-        INVALID_LINK_TYPE               = -4
-        INVALID_HANDLE                  = -5
-        MAX_DEVICES_ERROR               = -6
-        BAD_BOARD_TYPE                  = -7
-        BAD_INTERRUPT_LEV               = -8
-        BAD_EVENT_NUMBER                = -9
-        READ_DEVICE_REGISTER_FAIL       = -10
-        WRITE_DEVICE_REGISTER_FAIL      = -11
-        INVALID_CHANNEL_NUMBER          = -13
-        CHANNEL_BUSY                    = -14
-        FPIO_MODE_INVALID               = -15
-        WRONG_ACQ_MODE                  = -16
-        FUNCTION_NOT_ALLOWED            = -17
-        TIMEOUT                         = -18
-        INVALID_BUFFER                  = -19
-        EVENT_NOT_FOUND                 = -20
-        INVALID_EVENT                   = -21
-        OUT_OF_MEMORY                   = -22
-        CALIBRATION_ERROR               = -23
-        DIGITIZER_NOT_FOUND             = -24
-        DIGITIZER_ALREADY_OPEN          = -25
-        DIGITIZER_NOT_READY             = -26
-        INTERRUPT_NOT_CONFIGURED        = -27
-        DIGITIZER_MEMORY_CORRUPTED      = -28
-        DPP_FIRMWARE_NOT_SUPPORTED      = -29
-        INVALID_LICENSE                 = -30
-        INVALID_DIGITIZER_STATUS        = -31
-        UNSUPPORTED_TRACE               = -32
-        INVALID_PROBE                   = -33
-        UNSUPPORTED_BASE_ADDRESS        = -34
-        NOT_YET_IMPLEMENTED             = -99
+        UNKNOWN = 0xDEADFACE  # Special value for Python binding
+        SUCCESS = 0
+        COMM_ERROR = -1
+        GENERIC_ERROR = -2
+        INVALID_PARAM = -3
+        INVALID_LINK_TYPE = -4
+        INVALID_HANDLE = -5
+        MAX_DEVICES_ERROR = -6
+        BAD_BOARD_TYPE = -7
+        BAD_INTERRUPT_LEV = -8
+        BAD_EVENT_NUMBER = -9
+        READ_DEVICE_REGISTER_FAIL = -10
+        WRITE_DEVICE_REGISTER_FAIL = -11
+        INVALID_CHANNEL_NUMBER = -13
+        CHANNEL_BUSY = -14
+        FPIO_MODE_INVALID = -15
+        WRONG_ACQ_MODE = -16
+        FUNCTION_NOT_ALLOWED = -17
+        TIMEOUT = -18
+        INVALID_BUFFER = -19
+        EVENT_NOT_FOUND = -20
+        INVALID_EVENT = -21
+        OUT_OF_MEMORY = -22
+        CALIBRATION_ERROR = -23
+        DIGITIZER_NOT_FOUND = -24
+        DIGITIZER_ALREADY_OPEN = -25
+        DIGITIZER_NOT_READY = -26
+        INTERRUPT_NOT_CONFIGURED = -27
+        DIGITIZER_MEMORY_CORRUPTED = -28
+        DPP_FIRMWARE_NOT_SUPPORTED = -29
+        INVALID_LICENSE = -30
+        INVALID_DIGITIZER_STATUS = -31
+        UNSUPPORTED_TRACE = -32
+        INVALID_PROBE = -33
+        UNSUPPORTED_BASE_ADDRESS = -34
+        NOT_YET_IMPLEMENTED = -99
+
+        @classmethod
+        def _missing_(cls, _):
+            """
+            Sometimes library returns values not contained in the
+            enumerator, due to errors in the library itself. We
+            catch them and return UNKNOWN.
+            """
+            return cls.UNKNOWN
 
     code: Code
 
@@ -983,6 +993,8 @@ class Device:
     def readout_buffer(self) -> memoryview:
         """
         Get content of the readout buffer as a memoryview
+
+        Useful to access raw data, e.g. for saving to a file.
 
         The content is valid until the next call to one of:
         - read_data()

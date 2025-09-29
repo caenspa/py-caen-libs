@@ -97,39 +97,39 @@ class AddressModifiers(IntEnum):
     """
     Binding of ::CVAddressModifier
     """
-    A16_S        = 0x2D  # A16 supervisory access
-    A16_U        = 0x29  # A16 non-privileged
-    A16_LCK      = 0x2C  # A16 lock command
-    A24_S_BLT    = 0x3F  # A24 supervisory block transfer
-    A24_S_PGM    = 0x3E  # A24 supervisory program access
-    A24_S_DATA   = 0x3D  # A24 supervisory data access
-    A24_S_MBLT   = 0x3C  # A24 supervisory 64-bit block transfer
-    A24_U_BLT    = 0x3B  # A24 non-privileged block transfer
-    A24_U_PGM    = 0x3A  # A24 non-privileged program access
-    A24_U_DATA   = 0x39  # A24 non-privileged data access
-    A24_U_MBLT   = 0x38  # A24 non-privileged 64-bit block transfer
-    A24_LCK      = 0x32  # A24 lock command
-    A32_S_BLT    = 0x0F  # A32 supervisory block transfer
-    A32_S_PGM    = 0x0E  # A32 supervisory program access
-    A32_S_DATA   = 0x0D  # A32 supervisory data access
-    A32_S_MBLT   = 0x0C  # A32 supervisory 64-bit block transfer
-    A32_U_BLT    = 0x0B  # A32 non-privileged block transfer
-    A32_U_PGM    = 0x0A  # A32 non-privileged program access
-    A32_U_DATA   = 0x09  # A32 non-privileged data access
-    A32_U_MBLT   = 0x08  # A32 non-privileged 64-bit block transfer
-    A32_LCK      = 0x05  # A32 lock command
-    CR_CSR       = 0x2F  # CR/CSR space
+    A16_S = 0x2D
+    A16_U = 0x29
+    A16_LCK = 0x2C
+    A24_S_BLT = 0x3F
+    A24_S_PGM = 0x3E
+    A24_S_DATA = 0x3D
+    A24_S_MBLT = 0x3C
+    A24_U_BLT = 0x3B
+    A24_U_PGM = 0x3A
+    A24_U_DATA = 0x39
+    A24_U_MBLT = 0x38
+    A24_LCK = 0x32
+    A32_S_BLT = 0x0F
+    A32_S_PGM = 0x0E
+    A32_S_DATA = 0x0D
+    A32_S_MBLT = 0x0C
+    A32_U_BLT = 0x0B
+    A32_U_PGM = 0x0A
+    A32_U_DATA = 0x09
+    A32_U_MBLT = 0x08
+    A32_LCK = 0x05
+    CR_CSR = 0x2F
 
     # The following address modifiers are not yet implemented.
-    A40_BLT      = 0x37  # A40 block transfer (MD32) @warning Not yet implem
-    A40_LCK      = 0x35  # A40 lock command @warning Not yet implemented
-    A40          = 0x34  # A40 access @warning Not yet implemented
-    A64          = 0x01  # A64 single transfer access @warning Not yet implemented
-    A64_BLT      = 0x03  # A64 block transfer @warning Not yet implemented
-    A64_MBLT     = 0x00  # A64 64-bit block transfer @warning Not yet implemented
-    A64_LCK      = 0x04  # A64 lock command @warning Not yet implemented
-    A3U_2EVME    = 0x21  # 2eVME for 3U modules @warning Not yet implemented
-    A6U_2EVME    = 0x20  # 2eVME for 6U modules @warning Not yet implemented
+    A40_BLT = 0x37
+    A40_LCK = 0x35
+    A40 = 0x34
+    A64 = 0x01
+    A64_BLT = 0x03
+    A64_MBLT = 0x00
+    A64_LCK = 0x04
+    A3U_2EVME = 0x21
+    A6U_2EVME = 0x20
 
 
 @unique
@@ -146,11 +146,11 @@ class OutputSelect(IntEnum):
     """
     Binding of ::CVOutputSelect
     """
-    O0 = 0  # Output line 0
-    O1 = 1  # Output line 1
-    O2 = 2  # Output line 2
-    O3 = 3  # Output line 3
-    O4 = 4  # Output line 4
+    O0 = 0
+    O1 = 1
+    O2 = 2
+    O3 = 3
+    O4 = 4
 
 
 @unique
@@ -158,8 +158,8 @@ class InputSelect(IntEnum):
     """
     Binding of ::CVInputSelect
     """
-    I0 = 0  # Input line 0
-    I1 = 1  # Input line 1
+    I0 = 0
+    I1 = 1
 
 
 @unique
@@ -167,15 +167,15 @@ class IOSources(IntEnum):
     """
     Binding of ::CVIOSources
     """
-    MANUAL_SW     = 0  # Manual (button) or software controlled
-    INPUT_SRC_0   = 1  # Input line 0
-    INPUT_SRC_1   = 2  # Input line 1
-    COINCIDENCE   = 3  # Inputs coincidence
-    VME_SIGNALS   = 4  # Signals from VME bus
-    MISC_SIGNALS  = 6  # Various internal signals
-    PULSER_V3718A = 7  # Pulser A output
-    PULSER_V3718B = 8  # Pulser B output
-    SCALER_END    = 9  # Scaler End output
+    MANUAL_SW = 0
+    INPUT_SRC_0 = 1
+    INPUT_SRC_1 = 2
+    COINCIDENCE = 3
+    VME_SIGNALS = 4
+    MISC_SIGNALS = 6
+    PULSER_V3718A = 7
+    PULSER_V3718B = 8
+    SCALER_END = 9
 
 
 @unique
@@ -183,11 +183,11 @@ class TimeUnits(IntEnum):
     """
     Binding of ::CVTimeUnits
     """
-    T25_NS   = 0  # 25 nanoseconds
-    T1600_NS = 1  # 1.6 microseconds
-    T410_US  = 2  # 410 microseconds
-    T104_MS  = 3  # 104 milliseconds
-    T25_US   = 4  # 25 microseconds
+    T25_NS = 0
+    T1600_NS = 1
+    T410_US  = 2
+    T104_MS  = 3
+    T25_US   = 4
 
 
 @unique
@@ -195,8 +195,8 @@ class LEDPolarity(IntEnum):
     """
     Binding of ::CVLEDPolarity
     """
-    ACTIVE_HIGH = 0  # LED emits on signal high level
-    ACTIVE_LOW  = 1  # LED emits on signal low level
+    ACTIVE_HIGH = 0
+    ACTIVE_LOW = 1
 
 
 @unique
@@ -204,17 +204,17 @@ class IOPolarity(IntEnum):
     """
     Binding of ::CVIOPolarity
     """
-    DIRECT   = 0  # Normal polarity
-    INVERTED = 1  # Inverted polarity
+    DIRECT = 0
+    INVERTED = 1
 
 
 if sys.platform == 'win32':
-    _CaenBool = ct.c_short  # CAEN_BOOL
+    _CaenBool = ct.c_short
 else:
-    _CaenBool = ct.c_int  # CAEN_BOOL
+    _CaenBool = ct.c_int
 
-_CAEN_FALSE = 0  # CAEN_FALSE
-_CAEN_TRUE = -1  # CAEN_TRUE
+_CAEN_FALSE = 0
+_CAEN_TRUE = -1
 
 
 class IRQLevels(IntFlag):
@@ -256,21 +256,21 @@ class Display:
     """
     Binding of ::CVDisplay
     """
-    address: int          # VME Address
-    data: int             # VME Data
-    am: AddressModifiers  # Address modifier
-    irq: IRQLevels        # IRQ levels
-    ds0: bool             # Data Strobe 0 signal
-    ds1: bool             # Data Strobe 1 signal
-    as_: bool             # Address Strobe signal
-    iack: bool            # Interrupt Acknowledge signal
-    write: bool           # Write signal
-    lword: bool           # Long Word signal
-    dtack: bool           # Data Acknowledge signal
-    berr: bool            # Bus Error signal
-    sysres: bool          # System Reset signal
-    br: bool              # Bus Request signal
-    bg: bool              # Bus Grant signal
+    address: int
+    data: int
+    am: AddressModifiers
+    irq: IRQLevels
+    ds0: bool
+    ds1: bool
+    as_: bool
+    iack: bool
+    write: bool
+    lword: bool
+    dtack: bool
+    berr: bool
+    sysres: bool
+    br: bool
+    bg: bool
 
     @classmethod
     def from_raw(cls, raw: DisplayRaw):
@@ -299,8 +299,8 @@ class ArbiterTypes(IntEnum):
     """
     Binding of ::CVArbiterTypes
     """
-    PRIORIZED  = 0  # Priority Arbiter
-    ROUNDROBIN = 1  # Round-Robin Arbiter
+    PRIORIZED = 0
+    ROUNDROBIN = 1
 
 
 @unique
@@ -308,8 +308,8 @@ class RequesterTypes(IntEnum):
     """
     Binding of ::CVRequesterTypes
     """
-    FAIR   = 0  # Fair bus requester
-    DEMAND = 1  # On demand bus requester
+    FAIR = 0
+    DEMAND = 1
 
 
 @unique
@@ -317,8 +317,8 @@ class ReleaseTypes(IntEnum):
     """
     Binding of ::CVReleaseTypes
     """
-    RWD = 0  # Release When Done
-    ROR = 1  # Release On Request
+    RWD = 0
+    ROR = 1
 
 
 @unique
@@ -326,10 +326,10 @@ class BusReqLevels(IntEnum):
     """
     Binding of ::CVBusReqLevels
     """
-    BR0 = 0  # Bus request level 0
-    BR1 = 1  # Bus request level 1
-    BR2 = 2  # Bus request level 2
-    BR3 = 3  # Bus request level 3
+    BR0 = 0
+    BR1 = 1
+    BR2 = 2
+    BR3 = 3
 
 
 @unique
@@ -337,8 +337,8 @@ class VMETimeouts(IntEnum):
     """
     Binding of ::CVVMETimeouts
     """
-    T50_US  = 0  # Timeout is 50 microseconds
-    T400_US = 1  # Timeout is 400 microseconds
+    T50_US = 0
+    T400_US = 1
 
 
 @unique
@@ -346,16 +346,16 @@ class ScalerSource(IntEnum):
     """
     Binding of ::CVScalerSource
     """
-    IN0       = 0x0002
-    IN1       = 0x0003
-    DTACK     = 0x0006
-    BERR      = 0x0007
-    DS        = 0x0004
-    AS        = 0x0005
-    SW        = 0x0008
+    IN0 = 0x0002
+    IN1 = 0x0003
+    DTACK = 0x0006
+    BERR = 0x0007
+    DS = 0x0004
+    AS = 0x0005
+    SW = 0x0008
     FP_BUTTON = 0x0009
-    COINC     = 0x000A
-    INOR      = 0x000B
+    COINC = 0x000A
+    INOR = 0x000B
 
 
 @unique
@@ -363,9 +363,9 @@ class ScalerMode(IntEnum):
     """
     Binding of ::CVScalerMode
     """
-    GATE_MODE       = 0
+    GATE_MODE = 0
     DWELL_TIME_MODE = 1
-    MAX_HITS_MODE   = 2
+    MAX_HITS_MODE = 2
 
 
 @unique
@@ -374,4 +374,4 @@ class ContinuosRun(IntEnum):
     Binding of ::CVContinuosRun
     """
     OFF = 1
-    ON  = 0
+    ON = 0

@@ -135,7 +135,7 @@ class _Lib(_utils.Lib):
         return a tuple with the correct size, but with the fields of
         the connected board set to empty strings.
         """
-        l_data_size = 128  # Undocumented but, hopefully, long enough
+        l_data_size = 255  # Undocumented but, hopefully, long enough
         l_data = (_types.USBDeviceRaw * l_data_size)()
         l_num_devs = ct.c_uint32()
         self.__usb_enumerate(l_data, l_num_devs)

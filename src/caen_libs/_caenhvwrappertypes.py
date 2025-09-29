@@ -18,23 +18,23 @@ class SystemType(IntEnum):
     """
     Binding of ::CAENHV_SYSTEM_TYPE_t
     """
-    SY1527      = 0
-    SY2527      = 1
-    SY4527      = 2
-    SY5527      = 3
-    N568        = 4
-    V65XX       = 5
-    N1470       = 6
-    V8100       = 7
-    N568E       = 8
-    DT55XX      = 9
-    FTK         = 10
-    DT55XXE     = 11
-    N1068       = 12
-    SMARTHV     = 13
-    NGPS        = 14
-    N1168       = 15
-    R6060       = 16
+    SY1527 = 0
+    SY2527 = 1
+    SY4527 = 2
+    SY5527 = 3
+    N568 = 4
+    V65XX = 5
+    N1470 = 6
+    V8100 = 7
+    N568E = 8
+    DT55XX = 9
+    FTK = 10
+    DT55XXE = 11
+    N1068 = 12
+    SMARTHV = 13
+    NGPS = 14
+    N1168 = 15
+    R6060 = 16
 
 
 @unique
@@ -42,14 +42,14 @@ class LinkType(IntEnum):
     """
     Binding of Link Types for InitSystem
     """
-    TCPIP   = 0
-    RS232   = 1
-    CAENET  = 2
-    USB     = 3
+    TCPIP = 0
+    RS232 = 1
+    CAENET = 2
+    USB = 3
     OPTLINK = 4
     USB_VCP = 5
-    USB3    = 6
-    A4818   = 7
+    USB3 = 6
+    A4818 = 7
 
 
 @unique
@@ -57,10 +57,10 @@ class EventStatus(IntEnum):
     """
     Binding of ::CAENHV_EVT_STATUS_t
     """
-    SYNC        = 0
-    ASYNC       = 1
-    UNSYNC      = 2
-    NOTAVAIL    = 3
+    SYNC = 0
+    ASYNC = 1
+    UNSYNC = 2
+    NOTAVAIL = 3
 
 
 class SystemStatusRaw(ct.Structure):
@@ -93,10 +93,10 @@ class EventType(IntEnum):
     """
     Binding of ::CAENHV_ID_TYPE_t
     """
-    PARAMETER   = 0
-    ALARM       = 1
-    KEEPALIVE   = 2
-    TRMODE      = 3
+    PARAMETER = 0
+    ALARM = 1
+    KEEPALIVE = 2
+    TRMODE = 3
 
 
 class IdValueRaw(ct.Union):
@@ -172,12 +172,12 @@ class SysPropType(IntEnum):
     """
     Binding of ::SYSPROP_TYPE_*
     """
-    STR     = 0
-    REAL    = 1
-    UINT2   = 2
-    UINT4   = 3
-    INT2    = 4
-    INT4    = 5
+    STR = 0
+    REAL = 1
+    UINT2 = 2
+    UINT4 = 3
+    INT2 = 4
+    INT4 = 5
     BOOLEAN = 6
 
 
@@ -186,9 +186,9 @@ class SysPropMode(IntEnum):
     """
     Binding of ::SYSPROP_MODE_*
     """
-    RDONLY  = 0
-    WRONLY  = 1
-    RDWR    = 2
+    RDONLY = 0
+    WRONLY = 1
+    RDWR = 2
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
@@ -206,15 +206,15 @@ class ParamType(IntEnum):
     """
     Binding of ::PARAM_TYPE_*
     """
-    _INVALID    = 0xBAAAAAAD  # Special value for Python binding
-    NUMERIC     = 0
-    ONOFF       = 1
-    CHSTATUS    = 2
-    BDSTATUS    = 3
-    BINARY      = 4
-    STRING      = 5
-    ENUM        = 6
-    CMD         = 7
+    _INVALID = 0xBAAAAAAD  # Special value for Python binding
+    NUMERIC = 0
+    ONOFF = 1
+    CHSTATUS = 2
+    BDSTATUS = 3
+    BINARY = 4
+    STRING = 5
+    ENUM = 6
+    CMD = 7
 
 
 @unique
@@ -222,10 +222,10 @@ class ParamMode(IntEnum):
     """
     Binding of ::PARAM_MODE_*
     """
-    _INVALID    = 0xBAAAAAAD  # Special value for Python binding
-    RDONLY      = 0
-    WRONLY      = 1
-    RDWR        = 2
+    _INVALID = 0xBAAAAAAD  # Special value for Python binding
+    RDONLY = 0
+    WRONLY = 1
+    RDWR = 2
 
 
 @unique
@@ -233,19 +233,19 @@ class ParamUnit(IntEnum):
     """
     Binding of ::PARAM_UN_*
     """
-    NONE    = 0
-    AMPERE  = 1
-    VOLT    = 2
-    WATT    = 3
+    NONE = 0
+    AMPERE = 1
+    VOLT = 2
+    WATT = 3
     CELSIUS = 4
-    HERTZ   = 5
-    BAR     = 6
-    VPS     = 7
-    SECOND  = 8
-    RPM     = 9
-    COUNT   = 10
-    BIT     = 11
-    APS     = 12
+    HERTZ = 5
+    BAR = 6
+    VPS = 7
+    SECOND = 8
+    RPM = 9
+    COUNT = 10
+    BIT = 11
+    APS = 12
 
 
 @dataclass(**_utils.dataclass_slots)
