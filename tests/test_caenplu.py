@@ -1,3 +1,5 @@
+"""Tests for the caen_libs.caenplu module."""
+
 import unittest
 from unittest.mock import ANY, DEFAULT, patch
 
@@ -5,6 +7,7 @@ import caen_libs.caenplu as plu
 
 
 class TestCaenPlu(unittest.TestCase):
+    """Test the Device class."""
 
     def setUp(self):
         patcher = patch('caen_libs.caenplu.lib', autospec=True)

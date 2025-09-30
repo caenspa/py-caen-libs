@@ -1,4 +1,4 @@
-""""Test the caenhvwrapper module."""
+"""Tests for the caen_libs.caenhvwrapper module."""
 
 import unittest
 from unittest.mock import ANY, DEFAULT, patch
