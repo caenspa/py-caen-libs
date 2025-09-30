@@ -1,25 +1,24 @@
 """Tests for the caen_libs.caendigitizer module."""
 
 import unittest
-from unittest.mock import ANY, DEFAULT, patch
+from unittest.mock import ANY, DEFAULT, MagicMock, patch
 
 import ctypes as ct
 
 import caen_libs.caendigitizer as dgtz
 
 
-class TestDeviceStandard(unittest.TestCase):
-    """
-    Test the Device class.
-    Specific for Standard Firmware. Testing all methods except those
-    that are specific to DPP firmware, which are tested in TestDeviceDPP.
-    """
+class _TestDevice(unittest.TestCase):
 
-    def setUp(self) -> None:
+    mock_lib: MagicMock
+    device: dgtz.Device
+
+    def baseSetUp(self, fw_type: dgtz._types.FirmwareCode) -> None:
         """Common setup for tests."""
         patcher = patch('caen_libs.caendigitizer.lib', autospec=True)
         self.addCleanup(patcher.stop)
         self.mock_lib = patcher.start()
+        print(type(self.mock_lib))
         def side_effect(*args):
             args[4].value = 0xdeadbeaf
             return DEFAULT
@@ -27,7 +26,6 @@ class TestDeviceStandard(unittest.TestCase):
         # open also invokes get_info to infer firmware type:
         # mock it here to assume a standard firmware.
         def info_side_effect(*args):
-            fw_type = dgtz._types.FirmwareCode.STANDARD_FW  # pylint: disable=W0212
             amc_version = f'{fw_type}.0'.encode('ascii')
             args[1].AMC_FirmwareRel = amc_version
             args[1].Channels = 16
@@ -182,8 +180,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_interrupt_config(self):
         """Test set_interrupt_config"""
-        self.device.set_interrupt_config(1, 2, 3, 4, 5)
-        self.mock_lib.set_interrupt_config.assert_called_once_with(self.device.handle, 1, 2, 3, 4, 5)
+        self.device.set_interrupt_config(dgtz.EnaDis.DISABLE, 2, 3, 4, dgtz.IRQMode.ROAK)
+        self.mock_lib.set_interrupt_config.assert_called_once_with(self.device.handle, dgtz.EnaDis.DISABLE, 2, 3, 4, dgtz.IRQMode.ROAK)
 
     def test_get_interrupt_config(self):
         """Test get_interrupt_config"""
@@ -202,8 +200,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_sw_trigger_mode(self):
         """Test set_sw_trigger_mode"""
-        self.device.set_sw_trigger_mode(1)
-        self.mock_lib.set_sw_trigger_mode.assert_called_once_with(self.device.handle, 1)
+        self.device.set_sw_trigger_mode(dgtz.TriggerMode.ACQ_AND_EXTOUT)
+        self.mock_lib.set_sw_trigger_mode.assert_called_once_with(self.device.handle, dgtz.TriggerMode.ACQ_AND_EXTOUT)
 
     def test_get_sw_trigger_mode(self):
         """Test get_sw_trigger_mode"""
@@ -212,8 +210,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_ext_trigger_input_mode(self):
         """Test set_ext_trigger_input_mode"""
-        self.device.set_ext_trigger_input_mode(1)
-        self.mock_lib.set_ext_trigger_input_mode.assert_called_once_with(self.device.handle, 1)
+        self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_AND_EXTOUT)
+        self.mock_lib.set_ext_trigger_input_mode.assert_called_once_with(self.device.handle, dgtz.TriggerMode.ACQ_AND_EXTOUT)
 
     def test_get_ext_trigger_input_mode(self):
         """Test get_ext_trigger_input_mode"""
@@ -222,8 +220,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_channel_self_trigger(self):
         """Test set_channel_self_trigger"""
-        self.device.set_channel_self_trigger(1, 2)
-        self.mock_lib.set_channel_self_trigger.assert_called_once_with(self.device.handle, 1, 2)
+        self.device.set_channel_self_trigger(dgtz.TriggerMode.ACQ_AND_EXTOUT, 2)
+        self.mock_lib.set_channel_self_trigger.assert_called_once_with(self.device.handle, dgtz.TriggerMode.ACQ_AND_EXTOUT, 2)
 
     def test_get_channel_self_trigger(self):
         """Test get_channel_self_trigger"""
@@ -262,8 +260,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_channel_pulse_polarity(self):
         """Test set_channel_pulse_polarity"""
-        self.device.set_channel_pulse_polarity(1, 2)
-        self.mock_lib.set_channel_pulse_polarity.assert_called_once_with(self.device.handle, 1, 2)
+        self.device.set_channel_pulse_polarity(1, dgtz.PulsePolarity.NEGATIVE)
+        self.mock_lib.set_channel_pulse_polarity.assert_called_once_with(self.device.handle, 1, dgtz.PulsePolarity.NEGATIVE)
 
     def test_get_channel_pulse_polarity(self):
         """Test get_channel_pulse_polarity"""
@@ -282,8 +280,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_zero_suppression_mode(self):
         """Test set_zero_suppression_mode"""
-        self.device.set_zero_suppression_mode(1, 2)
-        self.mock_lib.set_zero_suppression_mode.assert_called_once_with(self.device.handle, 1, 2)
+        self.device.set_zero_suppression_mode(1, dgtz.ZSMode.AMP)
+        self.mock_lib.set_zero_suppression_mode.assert_called_once_with(self.device.handle, 1, dgtz.ZSMode.AMP)
 
     def test_get_zero_suppression_mode(self):
         """Test get_zero_suppression_mode"""
@@ -292,8 +290,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_channel_zs_params(self):
         """Test set_channel_zs_params"""
-        self.device.set_channel_zs_params(1, 2, 3, 4)
-        self.mock_lib.set_channel_zs_params.assert_called_once_with(self.device.handle, 1, 2, 3, 4)
+        self.device.set_channel_zs_params(1, dgtz.ThresholdWeight.COARSE, 3, 4)
+        self.mock_lib.set_channel_zs_params.assert_called_once_with(self.device.handle, 1, dgtz.ThresholdWeight.COARSE, 3, 4)
 
     def test_get_channel_zs_params(self):
         """Test get_channel_zs_params"""
@@ -302,8 +300,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_run_synchronization_mode(self):
         """Test set_run_synchronization_mode"""
-        self.device.set_run_synchronization_mode(1)
-        self.mock_lib.set_run_synchronization_mode.assert_called_once_with(self.device.handle, 1)
+        self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
+        self.mock_lib.set_run_synchronization_mode.assert_called_once_with(self.device.handle, dgtz.RunSyncMode.DISABLED)
 
     def test_get_run_synchronization_mode(self):
         """Test get_run_synchronization_mode"""
@@ -312,8 +310,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_analog_mon_output(self):
         """Test set_analog_mon_output"""
-        self.device.set_analog_mon_output(1, 2)
-        self.mock_lib.set_analog_mon_output.assert_called_once_with(self.device.handle, 1, 2)
+        self.device.set_analog_mon_output(1, dgtz.AnalogMonitorOutputMode.ANALOG_INSPECTION)
+        self.mock_lib.set_analog_mon_output.assert_called_once_with(self.device.handle, 1, dgtz.AnalogMonitorOutputMode.ANALOG_INSPECTION)
 
     def test_get_analog_mon_output(self):
         """Test get_analog_mon_output"""
@@ -322,8 +320,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_analog_inspection_mon_params(self):
         """Test set_analog_inspection_mon_params"""
-        self.device.set_analog_inspection_mon_params(1, 2, 3, 4)
-        self.mock_lib.set_analog_inspection_mon_params.assert_called_once_with(self.device.handle, 1, 2, 3, 4)
+        self.device.set_analog_inspection_mon_params(1, 2, dgtz.AnalogMonitorMagnify.MAGNIFY_1X, dgtz.AnalogMonitorInspectorInverter.N_1X)
+        self.mock_lib.set_analog_inspection_mon_params.assert_called_once_with(self.device.handle, 1, 2, dgtz.AnalogMonitorMagnify.MAGNIFY_1X, dgtz.AnalogMonitorInspectorInverter.N_1X)
 
     def test_get_analog_inspection_mon_params(self):
         """Test get_analog_inspection_mon_params"""
@@ -337,8 +335,8 @@ class TestDeviceStandard(unittest.TestCase):
 
     def test_set_event_packaging(self):
         """Test set_event_packaging"""
-        self.device.set_event_packaging(1)
-        self.mock_lib.set_event_packaging.assert_called_once_with(self.device.handle, 1)
+        self.device.set_event_packaging(dgtz.EnaDis.ENABLE)
+        self.mock_lib.set_event_packaging.assert_called_once_with(self.device.handle, dgtz.EnaDis.ENABLE)
 
     def test_get_event_packaging(self):
         """Test get_event_packaging"""
@@ -645,6 +643,17 @@ class TestDeviceStandard(unittest.TestCase):
         self.device.get_dpp_firmware_type()
         self.mock_lib.get_dpp_firmware_type.assert_called_once_with(self.device.handle, ANY)
 
+
+class TestDeviceStandard(_TestDevice):
+    """
+    Test the Device class.
+    Specific for Standard Firmware. Testing all methods except those
+    that are specific to DPP firmware, which are tested in TestDeviceDPP.
+    """
+
+    def setUp(self):
+        self.baseSetUp(dgtz._types.FirmwareCode.STANDARD_FW)  # pylint: disable=W0212
+
     def test_standard_firmware_daq(self):
         """
         Test Standard Firmware DAQ:
@@ -664,7 +673,7 @@ class TestDeviceStandard(unittest.TestCase):
         self.mock_lib.allocate_event.side_effect = side_effect
         self.device.malloc_readout_buffer()
         self.device.allocate_event()
-        self.device.read_data(1)
+        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
         self.device.get_num_events()
         _, buffer = self.device.get_event_info(1)
         self.device.decode_event(buffer)
@@ -672,7 +681,7 @@ class TestDeviceStandard(unittest.TestCase):
         self.device.free_readout_buffer()
         self.mock_lib.malloc_readout_buffer.assert_called_once_with(self.device.handle, ANY, ANY)
         self.mock_lib.allocate_event.assert_called_once_with(self.device.handle, ANY)
-        self.mock_lib.read_data.assert_called_once_with(self.device.handle, 1, ANY, ANY)
+        self.mock_lib.read_data.assert_called_once_with(self.device.handle, dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT, ANY, ANY)
         self.mock_lib.get_num_events.assert_called_once_with(self.device.handle, ANY, ANY, ANY)
         self.mock_lib.get_event_info.assert_called_once_with(self.device.handle, ANY, ANY, ANY, ANY, ANY)
         self.mock_lib.decode_event.assert_called_once_with(self.device.handle, ANY, ANY)
@@ -680,33 +689,15 @@ class TestDeviceStandard(unittest.TestCase):
         self.mock_lib.free_readout_buffer.assert_called_once_with(ANY)
 
 
-class TestDeviceDPP(unittest.TestCase):
+class TestDeviceDPP(_TestDevice):
     """
     Test the Device class.
     Specific tests for DPP firmware, skip methods already tested in
     TestDeviceStandard.
     """
 
-    def setUp(self) -> None:
-        """Common setup for tests."""
-        patcher = patch('caen_libs.caendigitizer.lib', autospec=True)
-        self.addCleanup(patcher.stop)
-        self.mock_lib = patcher.start()
-        def side_effect(*args):
-            args[4].value = 0xdeadbeaf
-            return DEFAULT
-        self.mock_lib.open_digitizer2.side_effect = side_effect
-        # open also invokes get_info to infer firmware type:
-        # mock it here to assume a standard firmware.
-        def info_side_effect(*args):
-            fw_type = dgtz._types.FirmwareCode.V1720_DPP_PSD  # pylint: disable=W0212
-            amc_version = f'{fw_type}.0'.encode('ascii')
-            args[1].AMC_FirmwareRel = amc_version
-            args[1].Channels = 16
-            return DEFAULT
-        self.mock_lib.get_info.side_effect = info_side_effect
-        self.device = dgtz.Device.open(dgtz.ConnectionType.USB, 0, 0, 0)
-        self.addCleanup(self.device.close)
+    def setUp(self):
+        self.baseSetUp(dgtz._types.FirmwareCode.V1720_DPP_PSD)  # pylint: disable=W0212
 
     def test_dpp_daq(self):
         """
@@ -734,7 +725,7 @@ class TestDeviceDPP(unittest.TestCase):
         self.device.malloc_readout_buffer()
         self.device.malloc_dpp_events()
         self.device.malloc_dpp_waveforms()
-        self.device.read_data(1)
+        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
         self.device.get_dpp_events()
         self.device.decode_dpp_waveforms(0, 0)
         self.device.free_dpp_waveforms()
@@ -743,7 +734,7 @@ class TestDeviceDPP(unittest.TestCase):
         self.mock_lib.malloc_readout_buffer.assert_called_once_with(self.device.handle, ANY, ANY)
         self.mock_lib.malloc_dpp_events.assert_called_once_with(self.device.handle, ANY, ANY)
         self.mock_lib.malloc_dpp_waveforms.assert_called_once_with(self.device.handle, ANY, ANY)
-        self.mock_lib.read_data.assert_called_once_with(self.device.handle, 1, ANY, ANY)
+        self.mock_lib.read_data.assert_called_once_with(self.device.handle, dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT, ANY, ANY)
         self.mock_lib.get_dpp_events.assert_called_once_with(self.device.handle, ANY, ANY, ANY, ANY)
         self.mock_lib.decode_dpp_waveforms.assert_called_once_with(self.device.handle, ANY, ANY)
         self.mock_lib.free_dpp_waveforms.assert_called_once_with(self.device.handle, ANY)
@@ -758,6 +749,21 @@ class TestDeviceDPP(unittest.TestCase):
 
 # Not easy to implement DAW and ZLE tests due to the complexity of the
 # data structures involved, expecially channel data within events.
+
+
+TEST_CASES = (TestDeviceStandard, TestDeviceDPP)
+
+
+def load_tests(loader: unittest.TestLoader, standard_tests, pattern):
+    """
+    Protocol for unittest test discovery:
+    Manually create the test suite to avoid running _TestDevice
+    """
+    suite = unittest.TestSuite()
+    for test_class in TEST_CASES:
+        tests = loader.loadTestsFromTestCase(test_class)
+        suite.addTests(tests)
+    return suite
 
 
 if __name__ == '__main__':

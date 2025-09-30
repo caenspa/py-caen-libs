@@ -1442,7 +1442,7 @@ class Device:
         lib.get_group_fast_trigger_threshold(self.handle, group, l_value)
         return l_value.value
 
-    def set_group_fast_trigger_dc_offset(self, group: int, dc_value) -> None:
+    def set_group_fast_trigger_dc_offset(self, group: int, dc_value: int) -> None:
         """
         Binding of CAEN_DGTZ_SetGroupFastTriggerDCOffset()
         """
