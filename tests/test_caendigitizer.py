@@ -18,7 +18,6 @@ class _TestDevice(unittest.TestCase):
         patcher = patch('caen_libs.caendigitizer.lib', autospec=True)
         self.addCleanup(patcher.stop)
         self.mock_lib = patcher.start()
-        print(type(self.mock_lib))
         def side_effect(*args):
             args[4].value = 0xdeadbeaf
             return DEFAULT
