@@ -645,9 +645,7 @@ class _TestDevice(unittest.TestCase):
 
 class TestDeviceStandard(_TestDevice):
     """
-    Test the Device class.
-    Specific for Standard Firmware. Testing all methods except those
-    that are specific to DPP firmware, which are tested in TestDeviceDPP.
+    Test the Device class. Specific for Standard Firmware.
     """
 
     def setUp(self):
@@ -690,9 +688,7 @@ class TestDeviceStandard(_TestDevice):
 
 class TestDeviceDPP(_TestDevice):
     """
-    Test the Device class.
-    Specific tests for DPP firmware, skip methods already tested in
-    TestDeviceStandard.
+    Test the Device class. Specific for DPP Firmware.
     """
 
     def setUp(self):
@@ -746,11 +742,109 @@ class TestDeviceDPP(_TestDevice):
         self.mock_lib.set_dpp_parameters.assert_called_once_with(self.device.handle, 0xff, ANY)
 
 
-# Not easy to implement DAW and ZLE tests due to the complexity of the
-# data structures involved, expecially channel data within events.
+class TestDeviceDAW(_TestDevice):
+    """
+    Test the Device class. Specific for DAW  Firmware.
+    """
+
+    def setUp(self):
+        self.baseSetUp(dgtz._types.FirmwareCode.V1730_DPP_DAW)  # pylint: disable=W0212
+
+    def test_daw_daq(self):
+        """
+        Test DAW Firmware DAQ:
+        - malloc_readout_buffer
+        - malloc_daw_events_and_waveforms
+        - read_data
+        - get_daw_events
+        - decode_daw_waveforms
+        - free_daw_events_and_waveforms
+        - free_readout_buffer
+
+        Waveform functions are not called because it is very complex to
+        mock the waveform buffers within the events structure, allocated
+        by malloc_dpp_events.
+        """
+        events_buffer = ct.create_string_buffer(1024)
+        def read_side_effect(*args):
+            args[2].value = ct.addressof(events_buffer)
+            args[3].value = 1024
+            return DEFAULT
+        self.mock_lib.read_data.side_effect = read_side_effect
+        def evt_side_effect(*args):
+            args[1].value = ct.addressof(events_buffer)
+            return DEFAULT
+        self.mock_lib.malloc_dpp_events.side_effect = evt_side_effect
+        self.device.malloc_readout_buffer()
+        self.device.malloc_daw_events_and_waveforms()
+        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+        self.device.get_daw_events()
+        self.device.decode_daw_waveforms(0)
+        self.device.free_daw_events_and_waveforms()
+        self.device.free_readout_buffer()
+        self.mock_lib.malloc_readout_buffer.assert_called_once_with(self.device.handle, ANY, ANY)
+        self.mock_lib.malloc_dpp_events.assert_called_once_with(self.device.handle, ANY, ANY)
+        self.mock_lib.malloc_dpp_waveforms.assert_not_called()  # Not called because get_max_num_events_blt return 0
+        self.mock_lib.read_data.assert_called_once_with(self.device.handle, dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT, ANY, ANY)
+        self.mock_lib.get_dpp_events.assert_called_once_with(self.device.handle, ANY, ANY, ANY, ANY)
+        self.mock_lib.decode_dpp_waveforms.assert_called_once_with(self.device.handle, ANY, ANY)
+        self.mock_lib.free_dpp_waveforms.assert_not_called()  # Same of malloc_dpp_waveforms
+        self.mock_lib.free_dpp_events.assert_called_once_with(self.device.handle, ANY)
+        self.mock_lib.free_readout_buffer.assert_called_once_with(ANY)
 
 
-TEST_CASES = (TestDeviceStandard, TestDeviceDPP)
+class TestDeviceZLE(_TestDevice):
+    """
+    Test the Device class. Specific for ZLE Firmware.
+    """
+
+    def setUp(self):
+        self.baseSetUp(dgtz._types.FirmwareCode.V1730_DPP_ZLE)  # pylint: disable=W0212
+
+    def test_zle_daq(self):
+        """
+        Test ZLE Firmware DAQ:
+        - malloc_readout_buffer
+        - malloc_zle_events_and_waveforms
+        - read_data
+        - get_zle_events
+        - decode_zle_waveforms
+        - free_zle_events_and_waveforms
+        - free_readout_buffer
+
+        Waveform functions are not called because it is very complex to
+        mock the waveform buffers within the events structure, allocated
+        by malloc_zle_events.
+        """
+        events_buffer = ct.create_string_buffer(1024)
+        def read_side_effect(*args):
+            args[2].value = ct.addressof(events_buffer)
+            args[3].value = 1024
+            return DEFAULT
+        self.mock_lib.read_data.side_effect = read_side_effect
+        def evt_side_effect(*args):
+            args[1].value = ct.addressof(events_buffer)
+            return DEFAULT
+        self.mock_lib.malloc_zle_events.side_effect = evt_side_effect
+        self.device.malloc_readout_buffer()
+        self.device.malloc_zle_events_and_waveforms()
+        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+        self.device.get_zle_events()
+        self.device.decode_zle_waveforms(0)
+        self.device.free_zle_events_and_waveforms()
+        self.device.free_readout_buffer()
+        self.mock_lib.malloc_readout_buffer.assert_called_once_with(self.device.handle, ANY, ANY)
+        self.mock_lib.malloc_zle_events.assert_called_once_with(self.device.handle, ANY, ANY)
+        self.mock_lib.malloc_zle_waveforms.assert_not_called()  # Not called because get_max_num_events_blt return 0
+        self.mock_lib.read_data.assert_called_once_with(self.device.handle, dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT, ANY, ANY)
+        self.mock_lib.get_zle_events.assert_called_once_with(self.device.handle, ANY, ANY, ANY, ANY)
+        self.mock_lib.decode_zle_waveforms.assert_called_once_with(self.device.handle, ANY, ANY)
+        self.mock_lib.free_zle_waveforms.assert_not_called()  # Same of malloc_zle_waveforms
+        self.mock_lib.free_zle_events.assert_called_once_with(self.device.handle, ANY)
+        self.mock_lib.free_readout_buffer.assert_called_once_with(ANY)
+
+
+TEST_CASES = (TestDeviceStandard, TestDeviceDPP, TestDeviceDAW, TestDeviceZLE)
 
 
 def load_tests(loader: unittest.TestLoader, standard_tests, pattern):

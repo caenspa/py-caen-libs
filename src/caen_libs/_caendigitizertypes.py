@@ -2188,15 +2188,15 @@ class ReadoutBuffer:
             raise ValueError("Buffer is not allocated")
         array_type = ct.c_ubyte * self.occupancy.value
         array = array_type.from_address(ct.addressof(self.data.contents))
-        return memoryview(array)
+        return memoryview(array).toreadonly()
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
 class EventsBuffer:
     """
     Used to store internal buffers for ZLE and DAW firmwares, containing
-    a buffer and then number of events.
+    a buffer and the number of events.
     """
 
     data: ct.c_void_p = field(repr=False)
-    size: int = field(repr=False)
+    n_events: int = field(repr=False)
