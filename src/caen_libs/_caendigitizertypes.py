@@ -2175,9 +2175,9 @@ class ReadoutBuffer:
     """
     Internal representation of readout buffer
     """
-    data: 'ct._Pointer[ct.c_char]' = field(default_factory=ct.POINTER(ct.c_char), repr=False)
-    size: ct.c_uint32 = field(default_factory=ct.c_uint32, repr=False)
-    occupancy: ct.c_uint32 = field(default_factory=ct.c_uint32, repr=False)
+    data: 'ct._Pointer[ct.c_char]' = field(default_factory=ct.POINTER(ct.c_char))
+    size: ct.c_uint32 = field(default_factory=ct.c_uint32)
+    occupancy: ct.c_uint32 = field(default_factory=ct.c_uint32)
 
     def as_memoryview(self) -> memoryview:
         """
@@ -2198,5 +2198,31 @@ class EventsBuffer:
     a buffer and the number of events.
     """
 
-    data: ct.c_void_p = field(repr=False)
-    n_events: int = field(repr=False)
+    data: ct.c_void_p
+    n_events: int
+
+
+@dataclass(**_utils.dataclass_slots)
+class RawTypes:
+    """
+    Used to store raw types, their raw representations and pointers to
+    those representations.
+    """
+    native: type
+    raw: type[ct.Structure]
+    raw_p: type[ct._Pointer] = field(init=False)
+    raw_p_p: type[ct._Pointer] = field(init=False)
+
+    def __post_init__(self):
+        self.raw_p = ct.POINTER(self.raw)
+        self.raw_p_p = ct.POINTER(self.raw_p)
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class EventTypes:
+    """
+    Used to store event types, their raw representations and pointers to
+    those representations.
+    """
+    event: RawTypes
+    waveforms: Optional[RawTypes]
