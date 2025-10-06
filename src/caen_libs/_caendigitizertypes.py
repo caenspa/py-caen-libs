@@ -6,7 +6,7 @@ __license__ = 'LGPL-3.0-or-later'
 import ctypes as ct
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto, unique
-from typing import ClassVar, Optional, Protocol
+from typing import ClassVar, Generic, Optional, Protocol, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -2233,14 +2233,19 @@ class _HasRaw(Protocol):
     raw_type: ClassVar[type[ct.Structure]]
 
 
+_THasRaw = TypeVar('_THasRaw', bound=_HasRaw)
+_TEvent = TypeVar('_TEvent', bound=_HasRaw)
+_TWave = TypeVar('_TWave', bound=_HasRaw)
+
+
 @dataclass(**_utils.dataclass_slots)
-class BindingType:
+class BindingType(Generic[_THasRaw]):
     """
     Convenience class to store a Python binding native type and its raw
     representation, as well as pointers, computed at initialization time
     to avoid recomputing them multiple times at runtime.
     """
-    native: type[_HasRaw]
+    native: type[_THasRaw]
     raw: type[ct.Structure] = field(init=False)
     raw_p: type[ct._Pointer] = field(init=False)
     raw_p_p: type[ct._Pointer] = field(init=False)
@@ -2252,15 +2257,15 @@ class BindingType:
 
 
 @dataclass(**_utils.dataclass_slots)
-class EventTypes:
+class EventTypes(Generic[_TEvent, _TWave]):
     """
     Used to store event types, their raw representations and pointers to
     those representations. Waveforms can be None if not applicable.
     """
-    __event: type[_HasRaw]
-    __waveforms: Optional[type[_HasRaw]]
-    event: BindingType = field(init=False)
-    waveforms: Optional[BindingType] = field(init=False)
+    __event: type[_TEvent]
+    __waveforms: Optional[type[_TWave]]
+    event: BindingType[_TEvent] = field(init=False)
+    waveforms: Optional[BindingType[_TWave]] = field(init=False)
 
     def __post_init__(self):
         self.event = BindingType(self.__event)

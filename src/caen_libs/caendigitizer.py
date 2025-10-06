@@ -1055,7 +1055,7 @@ class Device:
             raise RuntimeError('Event not allocated')
         lib.decode_event(self.handle, event_data.data, self.__scope_event)
         evt_p = ct.cast(self.__scope_event, self.__e.raw_p)
-        return self.__e.native(evt_p.contents)  # type: ignore
+        return self.__e.native(evt_p.contents)
 
     def free_event(self) -> None:
         """
@@ -1092,7 +1092,7 @@ class Device:
         # self.__info.channels: this will constrain the iteration of the
         # unbound evts_p_p too.
         ch_data = zip(evts_p_p, l_n_events_ch)  # type: ignore
-        return [list(map(self.__e.native, evts_p[:n])) for evts_p, n in ch_data]  # type: ignore
+        return [list(map(self.__e.native, evts_p[:n])) for evts_p, n in ch_data]
 
     def get_daw_events(self) -> list[DPPDAWEvent]:
         """
@@ -1115,7 +1115,7 @@ class Device:
         l_n_events = ct.c_uint32()
         lib.get_dpp_events(self.handle, self.__ro_buff.data, n_words, self.__daw_events.data, l_n_events)
         evts_p = ct.cast(self.__daw_events.data, self.__e.raw_p)
-        return list(map(self.__e.native, evts_p[:l_n_events.value]))  # type: ignore
+        return list(map(self.__e.native, evts_p[:l_n_events.value]))
 
     def malloc_dpp_events(self) -> int:
         """
@@ -1257,7 +1257,7 @@ class Device:
         evts_p_p = ct.cast(self.__dpp_events, self.__e.raw_p_p)
         lib.decode_dpp_waveforms(self.handle, ct.byref(evts_p_p[ch][evt_id]), self.__dpp_waveforms)
         wave_p = ct.cast(self.__dpp_waveforms, self.__w.raw_p)
-        return self.__w.native(wave_p.contents)  # type: ignore
+        return self.__w.native(wave_p.contents)
 
     def decode_daw_waveforms(self, evt_id: int) -> None:
         """
@@ -1624,7 +1624,7 @@ class Device:
         evts_p = ct.cast(self.__zle_events.data, self.__e.raw_p)
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_ZLE:
-                return list(map(self.__e.native, evts_p[:l_n_events.value]))  # type: ignore
+                return list(map(self.__e.native, evts_p[:l_n_events.value]))
             case FirmwareCode.V1751_DPP_ZLE:
                 # Also adds the waveforms to the event structure, where
                 # the user will find the waveforms after calling
@@ -1632,7 +1632,7 @@ class Device:
                 assert self.__zle_waveforms is not None
                 # We only need to limit one of the two sequences, as in zip:
                 # the resulting size is the minimum of the two.
-                return list(map(self.__e.native, evts_p[:l_n_events.value], self.__zle_waveforms))  # type: ignore
+                return list(map(self.__e.native, evts_p[:l_n_events.value], self.__zle_waveforms))
             case _:
                 raise RuntimeError('Not a ZLE firmware')
 
