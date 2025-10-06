@@ -6,7 +6,7 @@ __license__ = 'LGPL-3.0-or-later'
 import ctypes as ct
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto, unique
-from typing import Optional
+from typing import ClassVar, Optional, Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -418,6 +418,7 @@ class Uint16Event:
     """
     Binding of ::CAEN_DGTZ_UINT16_EVENT_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = Uint16EventRaw
     raw: Uint16EventRaw = field(repr=False)
 
     @property
@@ -439,6 +440,7 @@ class Uint8Event:
     """
     Binding of ::CAEN_DGTZ_UINT8_EVENT_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = Uint8EventRaw
     raw: Uint8EventRaw = field(repr=False)
 
     @property
@@ -462,6 +464,7 @@ class X742Group:
     """
     Binding of ::CAEN_DGTZ_X742_GROUP_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = X742GroupRaw
     raw: X742GroupRaw = field(repr=False)
 
     @property
@@ -493,6 +496,7 @@ class X742Event:
     """
     Binding of ::CAEN_DGTZ_X742_EVENT_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = X742EventRaw
     raw: X742EventRaw = field(repr=False)
 
     @property
@@ -525,6 +529,7 @@ class X743Group:
     """
     Binding of ::CAEN_DGTZ_X743_GROUP_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = X743GroupRaw
     raw: X743GroupRaw = field(repr=False)
 
     @property
@@ -602,6 +607,7 @@ class X743Event:
     """
     Binding of ::CAEN_DGTZ_X743_EVENT_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = X743EventRaw
     raw: X743EventRaw = field(repr=False)
 
     @property
@@ -627,6 +633,7 @@ class DPPPHAEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Event_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPPHAEventRaw
     raw: DPPPHAEventRaw = field(repr=False)
 
     @property
@@ -675,6 +682,7 @@ class DPPPSDEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Event_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPPSDEventRaw
     raw: DPPPSDEventRaw = field(repr=False)
 
     @property
@@ -734,6 +742,7 @@ class DPPCIEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_CI_Event_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPCIEventRaw
     raw: DPPCIEventRaw = field(repr=False)
 
     @property
@@ -778,6 +787,7 @@ class DPPQDCEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Event_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPQDCEventRaw
     raw: DPPQDCEventRaw = field(repr=False)
 
     @property
@@ -840,6 +850,7 @@ class ZLEWaveforms751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Waveforms_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = ZLEWaveforms751Raw
     raw: ZLEWaveforms751Raw = field(repr=False)
 
     @property
@@ -875,6 +886,7 @@ class ZLEEvent751:
     Also contains a reference to a waveforms to align the behavior to
     V1730 ZLE event, which has waveform inside the channel structure.
     """
+    raw_type: ClassVar[type[ct.Structure]] = ZLEEvent751Raw
     raw: ZLEEvent751Raw = field(repr=False)
     raw_waveforms: ZLEWaveforms751Raw = field(repr=False)
 
@@ -908,6 +920,7 @@ class ZLEWaveforms730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Waveforms_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = ZLEWaveforms730Raw
     raw: ZLEWaveforms730Raw = field(repr=False)
 
     @property
@@ -937,6 +950,7 @@ class ZLEChannel730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Channel_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = ZLEChannel730Raw
     raw: ZLEChannel730Raw = field(repr=False)
 
     @property
@@ -971,6 +985,7 @@ class ZLEEvent730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Event_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = ZLEEvent730Raw
     raw: ZLEEvent730Raw = field(repr=False)
 
     @property
@@ -1006,6 +1021,7 @@ class DPPDAWWaveforms:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Waveforms_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPDAWWaveformsRaw
     raw: DPPDAWWaveformsRaw = field(repr=False)
     _size: int = field(repr=False)
 
@@ -1033,6 +1049,7 @@ class DPPDAWChannel:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Channel_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPDAWChannelRaw
     raw: DPPDAWChannelRaw = field(repr=False)
 
     @property
@@ -1082,6 +1099,7 @@ class DPPDAWEvent:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Event_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPDAWEventRaw
     raw: DPPDAWEventRaw = field(repr=False)
 
     @property
@@ -1120,6 +1138,7 @@ class DPPX743Event:
     """
     Binding of ::CAEN_DGTZ_DPP_X743_Event_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPX743EventRaw
     raw: DPPX743EventRaw = field(repr=False)
 
     @property
@@ -1153,6 +1172,7 @@ class DPPPHAWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Waveforms_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPPHAWaveformsRaw
     raw: DPPPHAWaveformsRaw = field(repr=False)
 
     @property
@@ -1223,6 +1243,7 @@ class DPPPSDWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Waveforms_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPPSDWaveformsRaw
     raw: DPPPSDWaveformsRaw = field(repr=False)
 
     @property
@@ -1307,6 +1328,7 @@ class DPPQDCWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Waveforms_t
     """
+    raw_type: ClassVar[type[ct.Structure]] = DPPQDCWaveformsRaw
     raw: DPPQDCWaveformsRaw = field(repr=False)
 
     @property
@@ -2197,32 +2219,49 @@ class EventsBuffer:
     Used to store internal buffers for ZLE and DAW firmwares, containing
     a buffer and the number of events.
     """
-
     data: ct.c_void_p
     n_events: int
 
 
+class _HasRaw(Protocol):
+    """
+    Protocol for classes that have a `raw_type` attribute.
+
+    A protocol is a sort of base class for all classes that have a
+    raw_type attribute, useful for typing.
+    """
+    raw_type: ClassVar[type[ct.Structure]]
+
+
 @dataclass(**_utils.dataclass_slots)
-class RawTypes:
+class BindingType:
     """
-    Used to store raw types, their raw representations and pointers to
-    those representations.
+    Convenience class to store a Python binding native type and its raw
+    representation, as well as pointers, computed at initialization time
+    to avoid recomputing them multiple times at runtime.
     """
-    native: type
-    raw: type[ct.Structure]
+    native: type[_HasRaw]
+    raw: type[ct.Structure] = field(init=False)
     raw_p: type[ct._Pointer] = field(init=False)
     raw_p_p: type[ct._Pointer] = field(init=False)
 
     def __post_init__(self):
+        self.raw = self.native.raw_type
         self.raw_p = ct.POINTER(self.raw)
         self.raw_p_p = ct.POINTER(self.raw_p)
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(**_utils.dataclass_slots)
 class EventTypes:
     """
     Used to store event types, their raw representations and pointers to
-    those representations.
+    those representations. Waveforms can be None if not applicable.
     """
-    event: RawTypes
-    waveforms: Optional[RawTypes]
+    __event: type[_HasRaw]
+    __waveforms: Optional[type[_HasRaw]]
+    event: BindingType = field(init=False)
+    waveforms: Optional[BindingType] = field(init=False)
+
+    def __post_init__(self):
+        self.event = BindingType(self.__event)
+        self.waveforms = BindingType(self.__waveforms) if self.__waveforms else None
