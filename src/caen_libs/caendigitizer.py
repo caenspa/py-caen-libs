@@ -1092,7 +1092,7 @@ class Device:
         # self.__info.channels: this will constrain the iteration of the
         # unbound evts_p_p too.
         ch_data = zip(evts_p_p, l_n_events_ch)  # type: ignore
-        return [list(map(self.__e.native, evts_p[:n])) for evts_p, n in ch_data]
+        return [list(map(self.__e.native, evts_p[:n_events])) for evts_p, n_events in ch_data]
 
     def get_daw_events(self) -> list[DPPDAWEvent]:
         """
