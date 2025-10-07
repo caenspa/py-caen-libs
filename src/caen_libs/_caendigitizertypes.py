@@ -398,6 +398,21 @@ class EventInfo:
         )
 
 
+class NeverRaw(ct.Structure):
+    """Raw view of a non-instantiable type"""
+    _fields_ = []
+
+
+@dataclass(frozen=True, **_utils.dataclass_slots)
+class Never:
+    """
+    A non-instantiable type, useful for typing when there is no waveform
+    type associated with the current firmware.
+    """
+    raw_type: ClassVar[type[ct.Structure]] = NeverRaw
+    raw: NeverRaw = field(repr=False)
+
+
 class Uint16EventRaw(ct.Structure):
     """Raw view of ::CAEN_DGTZ_UINT16_EVENT_t"""
     _fields_ = [
@@ -2229,13 +2244,18 @@ class _HasRaw(Protocol):
 
     A protocol is a sort of base class for all classes that have a
     raw_type attribute, useful for typing.
+
+    All classes should also have a `raw` attribute of type `raw_type`,
+    as first argument of their constructor, since this assumption is
+    widely used in the codebase (see usage of self.__e.native in Device
+    class, for example). Currently this is not enforced by the protocol.
+    There is an exception represented by ZLEEvent751 that has 2 raw
+    attributes: this special case is handled directly in the codebase.
     """
     raw_type: ClassVar[type[ct.Structure]]
 
 
 _THasRaw = TypeVar('_THasRaw', bound=_HasRaw)
-_TEvent = TypeVar('_TEvent', bound=_HasRaw)
-_TWave = TypeVar('_TWave', bound=_HasRaw)
 
 
 @dataclass(**_utils.dataclass_slots)
@@ -2256,6 +2276,10 @@ class BindingType(Generic[_THasRaw]):
         self.raw_p_p = ct.POINTER(self.raw_p)
 
 
+_TEvent = TypeVar('_TEvent', bound=_HasRaw)
+_TWave = TypeVar('_TWave', bound=_HasRaw)
+
+
 @dataclass(**_utils.dataclass_slots)
 class EventTypes(Generic[_TEvent, _TWave]):
     """
@@ -2263,10 +2287,10 @@ class EventTypes(Generic[_TEvent, _TWave]):
     those representations. Waveforms can be None if not applicable.
     """
     __event: type[_TEvent]
-    __waveforms: Optional[type[_TWave]]
+    __waveforms: type[_TWave]
     event: BindingType[_TEvent] = field(init=False)
-    waveforms: Optional[BindingType[_TWave]] = field(init=False)
+    waveforms: BindingType[_TWave] = field(init=False)
 
     def __post_init__(self):
         self.event = BindingType(self.__event)
-        self.waveforms = BindingType(self.__waveforms) if self.__waveforms else None
+        self.waveforms = BindingType(self.__waveforms)

@@ -25,6 +25,7 @@ from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     AnalogMonitorOutputMode,
     BoardFamilyCode,
     BoardInfo,
+    Buffer as _Buffer,
     ConnectionType,
     DPPAcqMode,
     DPPCIEvent,
@@ -53,7 +54,11 @@ from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     DRS4Frequency,
     EnaDis,
     EventInfo,
+    EventTypes as _EventTypes,
+    EventsBuffer as _EventsBuffer,
     FirmwareCode,
+    FirmwareType as _FirmwareType,
+    Never as _Never,
     IOLevel,
     IRQMode,
     OutputSignalMode,
@@ -413,23 +418,23 @@ class Device:
     __registers: _utils.Registers = field(init=False, repr=False)
     __ro_buff: Optional[_types.ReadoutBuffer] = field(default=None, repr=False)
     __info: BoardInfo = field(init=False, repr=False)
-    __firmware_type: _types.FirmwareType = field(init=False, repr=False)
+    __firmware_type: _FirmwareType = field(init=False, repr=False)
 
     # Private members for internal firmware-specific event representation
-    __types: _types.EventTypes = field(init=False, repr=False)
+    __types: _EventTypes = field(init=False, repr=False)
 
     # Private members for internal firmware-specific memory management
     __scope_event: Optional[ct.c_void_p] = field(default=None, repr=False)  # Standard firmware
     __dpp_events: Optional[ct.Array[ct.c_void_p]] = field(default=None, repr=False)  # DPP
     __dpp_waveforms: Optional[ct.c_void_p] = field(default=None, repr=False)  # DPP
-    __daw_events: Optional[_types.EventsBuffer] = field(default=None, repr=False)  # DAW firmware
-    __zle_events: Optional[_types.EventsBuffer] = field(default=None, repr=False)  # ZLE firmware
+    __daw_events: Optional[_EventsBuffer] = field(default=None, repr=False)  # DAW firmware
+    __zle_events: Optional[_EventsBuffer] = field(default=None, repr=False)  # ZLE firmware
     __zle_waveforms: Optional[ct.Array[ct.Structure]] = field(default=None, repr=False)  # 751 ZLE firmware
 
     def __post_init__(self) -> None:
         self.__registers = _utils.Registers(self.read_register, self.write_register)
         self.__info = self.get_info()
-        self.__firmware_type = _types.FirmwareType.from_code(self.__info.firmware_code)
+        self.__firmware_type = _FirmwareType.from_code(self.__info.firmware_code)
         self.__types = self.__get_event_types()
 
     def __del__(self) -> None:
@@ -449,42 +454,41 @@ class Device:
         Convenience property to access waveform type, should not be used
         if firmware does not support waveforms.
         """
-        assert self.__types.waveforms is not None
+        assert self.__types.waveforms is not _Never
         return self.__types.waveforms
 
-    def __get_event_types(self) -> _types.EventTypes:
+    def __get_event_types(self) -> _EventTypes:
         # Some comments:
         # - Standard firmware waveforms are rather stored in the event structure; event information
         #     is also stored in EventInfo returned by get_event_info()
         # - DPPX743Event is not supported by CAEN_DGTZ_DecodeDPPWaveforms
         F = FirmwareCode
         B = BoardFamilyCode
-        E = _types.EventTypes
         match self.__info.firmware_code, self.__info.family_code:
             case F.STANDARD_FW, B.XX721 | B.XX731:
-                return E(Uint8Event, None)
+                return _EventTypes[Uint8Event, _Never](Uint8Event, _Never)
             case F.STANDARD_FW, _:
-                return E(Uint16Event, None)
+                return _EventTypes[Uint16Event, _Never](Uint16Event, _Never)
             case F.STANDARD_FW_X742, B.XX742:
-                return E(X742Event, None)
+                return _EventTypes[X742Event, _Never](X742Event, _Never)
             case F.STANDARD_FW_X743, B.XX743:
-                return E(X743Event, None)
+                return _EventTypes[X743Event, _Never](X743Event, _Never)
             case F.V1724_DPP_PHA | F.V1730_DPP_PHA, _:
-                return E(DPPPHAEvent, DPPPHAWaveforms)
+                return _EventTypes[DPPPHAEvent, DPPPHAWaveforms](DPPPHAEvent, DPPPHAWaveforms)
             case F.V1720_DPP_PSD | F.V1730_DPP_PSD | F.V1751_DPP_PSD, _:
-                return E(DPPPSDEvent, DPPPSDWaveforms)
+                return _EventTypes[DPPPSDEvent, DPPPSDWaveforms](DPPPSDEvent, DPPPSDWaveforms)
             case F.V1720_DPP_CI, _:
-                return E(DPPCIEvent, DPPCIWaveforms)
+                return _EventTypes[DPPCIEvent, DPPCIWaveforms](DPPCIEvent, DPPCIWaveforms)
             case F.V1743_DPP_CI, _:
-                return E(DPPX743Event, None)
+                return _EventTypes[DPPX743Event, _Never](DPPX743Event, _Never)
             case F.V1740_DPP_QDC, _:
-                return E(DPPQDCEvent, DPPQDCWaveforms)
+                return _EventTypes[DPPQDCEvent, DPPQDCWaveforms](DPPQDCEvent, DPPQDCWaveforms)
             case F.V1730_DPP_ZLE, _:
-                return E(ZLEEvent730, ZLEWaveforms730)
+                return _EventTypes[ZLEEvent730, ZLEWaveforms730](ZLEEvent730, ZLEWaveforms730)
             case F.V1751_DPP_ZLE, _:
-                return E(ZLEEvent751, ZLEWaveforms751)
+                return _EventTypes[ZLEEvent751, ZLEWaveforms751](ZLEEvent751, ZLEWaveforms751)
             case F.V1724_DPP_DAW | F.V1730_DPP_DAW, _:
-                return E(DPPDAWEvent, DPPDAWWaveforms)
+                return _EventTypes[DPPDAWEvent, DPPDAWWaveforms](DPPDAWEvent, DPPDAWWaveforms)
             case _:
                 raise RuntimeError('Unknown firmware')
 
@@ -522,14 +526,14 @@ class Device:
         Binding of CAEN_DGTZ_CloseDigitizer()
         """
         match self.__firmware_type:
-            case _types.FirmwareType.STANDARD:
+            case _FirmwareType.STANDARD:
                 self.free_event()
-            case _types.FirmwareType.DPP:
+            case _FirmwareType.DPP:
                 self.free_dpp_events()
                 self.free_dpp_waveforms()
-            case _types.FirmwareType.ZLE:
+            case _FirmwareType.ZLE:
                 self.free_zle_events_and_waveforms()
-            case _types.FirmwareType.DAW:
+            case _FirmwareType.DAW:
                 self.free_daw_events_and_waveforms()
         self.free_readout_buffer()
         lib.close_digitizer(self.handle)
@@ -1023,7 +1027,7 @@ class Device:
         lib.get_num_events(self.handle, self.__ro_buff.data, self.__ro_buff.occupancy, l_value)
         return l_value.value
 
-    def get_event_info(self, num_event: int) -> tuple[EventInfo, _types.Buffer]:
+    def get_event_info(self, num_event: int) -> tuple[EventInfo, _Buffer]:
         """
         Binding of CAEN_DGTZ_GetEventInfo()
 
@@ -1031,7 +1035,7 @@ class Device:
         - read_data()
         - free_readout_buffer()
         """
-        if self.__firmware_type is not _types.FirmwareType.STANDARD:
+        if self.__firmware_type is not _FirmwareType.STANDARD:
             raise RuntimeError('Not a Standard firmware')
         if self.__ro_buff is None:
             raise RuntimeError('Readout buffer not allocated')
@@ -1039,9 +1043,9 @@ class Device:
         l_event_info = _types.EventInfoRaw()
         lib.get_event_info(self.handle, self.__ro_buff.data, self.__ro_buff.occupancy, num_event, l_event_info, l_event_p)
         event_info = EventInfo.from_raw(l_event_info)
-        return event_info, _types.Buffer(l_event_p)
+        return event_info, _Buffer(l_event_p)
 
-    def decode_event(self, event_data: _types.Buffer) -> Union[Uint16Event, Uint8Event, X742Event, X743Event]:
+    def decode_event(self, event_data: _Buffer) -> Union[Uint16Event, Uint8Event, X742Event, X743Event]:
         """
         Binding of CAEN_DGTZ_DecodeEvent()
 
@@ -1061,7 +1065,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_FreeEvent()
         """
-        if self.__firmware_type is not _types.FirmwareType.STANDARD:
+        if self.__firmware_type is not _FirmwareType.STANDARD:
             raise RuntimeError('Not a Standard firmware')
         if self.__scope_event is None:
             return
@@ -1079,7 +1083,7 @@ class Device:
         - free_dpp_events()
         - free_readout_buffer()
         """
-        if self.__firmware_type is not _types.FirmwareType.DPP:
+        if self.__firmware_type is not _FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__ro_buff is None:
             raise RuntimeError('Readout buffer not allocated')
@@ -1103,7 +1107,7 @@ class Device:
         - free_daw_events_and_waveforms()
         - free_readout_buffer()
         """
-        if self.__firmware_type is not _types.FirmwareType.DAW:
+        if self.__firmware_type is not _FirmwareType.DAW:
             raise RuntimeError('Not a DAW firmware')
         if self.__ro_buff is None:
             raise RuntimeError('Readout buffer not allocated')
@@ -1123,7 +1127,7 @@ class Device:
 
         Note: for DAW firmware use malloc_daw_events_and_waveforms()
         """
-        if self.__firmware_type is not _types.FirmwareType.DPP:
+        if self.__firmware_type is not _FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_events is not None:
             raise RuntimeError('DPP events already allocated')
@@ -1140,7 +1144,7 @@ class Device:
         See malloc_zle_events_and_waveforms() for the rationale of this
         combined method.
         """
-        if self.__firmware_type is not _types.FirmwareType.DAW:
+        if self.__firmware_type is not _FirmwareType.DAW:
             raise RuntimeError('Not a DAW firmware')
         if self.__daw_events is not None:
             raise RuntimeError('DAW events already allocated')
@@ -1163,7 +1167,7 @@ class Device:
                 raise RuntimeError('Firmware not supported by the C API')
             case _:
                 raise RuntimeError('Not a DAW firmware')
-        self.__daw_events = _types.EventsBuffer(l_daw_events, n_events)
+        self.__daw_events = _EventsBuffer(l_daw_events, n_events)
 
     def free_dpp_events(self) -> None:
         """
@@ -1171,7 +1175,7 @@ class Device:
 
         Note: for DAW firmware use free_daw_events_and_waveforms()
         """
-        if self.__firmware_type is not _types.FirmwareType.DPP:
+        if self.__firmware_type is not _FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_events is None:
             return
@@ -1185,7 +1189,7 @@ class Device:
         See malloc_zle_events_and_waveforms() for the rationale of this
         combined method.
         """
-        if self.__firmware_type is not _types.FirmwareType.DAW:
+        if self.__firmware_type is not _FirmwareType.DAW:
             raise RuntimeError('Not a DAW firmware')
         if self.__daw_events is None:
             return
@@ -1214,7 +1218,7 @@ class Device:
 
         Note: for DAW use malloc_daw_events_and_waveforms().
         """
-        if self.__firmware_type is not _types.FirmwareType.DPP:
+        if self.__firmware_type is not _FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_waveforms is not None:
             raise RuntimeError('DPP waveforms already allocated')
@@ -1230,7 +1234,7 @@ class Device:
 
         Note: for DAW use free_daw_events_and_waveforms() method.
         """
-        if self.__firmware_type is not _types.FirmwareType.DPP:
+        if self.__firmware_type is not _FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_waveforms is None:
             return
@@ -1248,7 +1252,7 @@ class Device:
         - read_data()
         - free_dpp_waveforms()
         """
-        if self.__firmware_type is not _types.FirmwareType.DPP:
+        if self.__firmware_type is not _FirmwareType.DPP:
             raise RuntimeError('Not a DPP firmware')
         if self.__dpp_events is None:
             raise RuntimeError('DPP events not allocated')
@@ -1266,7 +1270,7 @@ class Device:
         Returns None, the waveforms are placed directly into the event structure,
         at the same index used to decode the event with get_daw_events().
         """
-        if self.__firmware_type is not _types.FirmwareType.DAW:
+        if self.__firmware_type is not _FirmwareType.DAW:
             raise RuntimeError('Not a DAW firmware')
         if self.__daw_events is None:
             raise RuntimeError('DAW events not allocated')
@@ -1357,7 +1361,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_AllocateEvent()
         """
-        if self.__firmware_type is not _types.FirmwareType.STANDARD:
+        if self.__firmware_type is not _FirmwareType.STANDARD:
             raise RuntimeError('Not a standard firmware')
         if self.__scope_event is not None:
             raise RuntimeError('Event already allocated')
@@ -1536,7 +1540,7 @@ class Device:
         See malloc_zle_events_and_waveforms() for the rationale of this
         combined method.
         """
-        if self.__firmware_type is not _types.FirmwareType.ZLE:
+        if self.__firmware_type is not _FirmwareType.ZLE:
             raise RuntimeError('Not a ZLE firmware')
         if self.__zle_events is None:
             return
@@ -1570,7 +1574,7 @@ class Device:
         this combined method for symmetry and convenience, embedding the
         waveforms pointers inside the event class.
         """
-        if self.__firmware_type is not _types.FirmwareType.ZLE:
+        if self.__firmware_type is not _FirmwareType.ZLE:
             raise RuntimeError('Not a ZLE firmware')
         if self.__zle_events is not None:
             raise RuntimeError('ZLE events already allocated')
@@ -1599,7 +1603,7 @@ class Device:
                 self.__zle_waveforms = l_values
             case _:
                 raise RuntimeError('Not a ZLE firmware')
-        self.__zle_events = _types.EventsBuffer(l_zle_events, n_events)
+        self.__zle_events = _EventsBuffer(l_zle_events, n_events)
 
     def get_zle_events(self) -> Union[list[ZLEEvent730], list[ZLEEvent751]]:
         """
@@ -1610,7 +1614,7 @@ class Device:
         - free_zle_events_and_waveforms()
         - free_readout_buffer()
         """
-        if self.__firmware_type is not _types.FirmwareType.ZLE:
+        if self.__firmware_type is not _FirmwareType.ZLE:
             raise RuntimeError('Not a ZLE firmware')
         if self.__ro_buff is None:
             raise RuntimeError('Readout buffer not allocated')
