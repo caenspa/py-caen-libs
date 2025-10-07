@@ -514,7 +514,7 @@ class Device:
         """
         n_indexes = len(slot_list)
         if n_indexes == 0:
-            return []  # type: ignore
+            return []
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, None, name)
@@ -623,7 +623,7 @@ class Device:
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
-            return []  # type: ignore
+            return []
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
         l_value = ct.create_string_buffer(self.__MAX_CH_NAME * n_allocated_values)
@@ -646,7 +646,7 @@ class Device:
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
-            return []  # type: ignore
+            return []
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, first_index, name)
