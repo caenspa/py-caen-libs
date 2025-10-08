@@ -11,50 +11,17 @@ import ctypes as ct
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from enum import IntEnum, IntFlag, unique
+from enum import IntEnum, unique
 from typing import TypeVar, Union
 
 from caen_libs import error, _utils
 
-
-@unique
-class ConnectionType(IntEnum):
-    """
-    Binding of ::CAEN_Comm_ConnectionType
-    """
-    USB = 0
-    OPTICAL_LINK = 1
-    USB_A4818 = 5
-    ETH_V4718 = 6
-    USB_V4718 = 7
-
-
-@unique
-class Info(IntEnum):
-    """
-    Binding of ::CAENCOMM_INFO
-
-    ::CAENComm_VMELIB_handle missing, since implemented on separated
-    binding.
-    """
-    PCI_BOARD_SN = 0
-    PCI_BOARD_FW_REL = 1
-    VME_BRIDGE_SN = 2
-    VME_BRIDGE_FW_REL_1 = 3
-    VME_BRIDGE_FW_REL_2 = 4
-
-
-class IRQLevels(IntFlag):
-    """
-    Binding of ::IRQLevels
-    """
-    L1 = 0x01
-    L2 = 0x02
-    L3 = 0x04
-    L4 = 0x08
-    L5 = 0x10
-    L6 = 0x20
-    L7 = 0x40
+# Add some types to the module namespace
+from caen_libs._caencommtypes import (  # pylint: disable=W0611
+    ConnectionType,
+    Info,
+    IRQLevels,
+)
 
 
 class Error(error.Error):
@@ -88,10 +55,6 @@ class Error(error.Error):
     def __init__(self, message: str, res: int, func: str) -> None:
         self.code = Error.Code(res)
         super().__init__(message, self.code.name, func)
-
-
-# For backward compatibility. Deprecated.
-ErrorCode = Error.Code
 
 
 # Utility definitions
@@ -191,7 +154,7 @@ class _Lib(_utils.Lib):
         Binding of CAENComm_VMEIACKCycle16()
         """
         l_value = ct.c_int()
-        self.__vme_iack_cycle16(vme_handle, levels)
+        self.__vme_iack_cycle16(vme_handle, levels, l_value)
         return l_value.value
 
     def vme_iack_cycle32(self, vme_handle: int, levels: IRQLevels) -> int:
@@ -199,7 +162,7 @@ class _Lib(_utils.Lib):
         Binding of CAENComm_VMEIACKCycle32()
         """
         l_value = ct.c_int()
-        self.__vme_iack_cycle32(vme_handle, levels)
+        self.__vme_iack_cycle32(vme_handle, levels, l_value)
         return l_value.value
 
     def vme_irq_wait(self, connection_type: ConnectionType, link_num: int, conet_node: int, irq_mask: IRQLevels, timeout: int) -> int:
@@ -327,9 +290,9 @@ class Device:
         n_cycles = len(address)
         l_address = (ct.c_uint32 * n_cycles)(*address)
         l_data = (ct.c_uint32 * n_cycles)(*data)
-        l_error_code = (ct.c_int * n_cycles)()
-        lib.multi_write32(self.handle, l_address, n_cycles, l_data, l_error_code)
-        failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        l_ecs = (ct.c_int * n_cycles)()
+        lib.multi_write32(self.handle, l_address, n_cycles, l_data, l_ecs)
+        failed_cycles = {i: e.name for i, ec in enumerate(l_ecs) if (e := Error.Code(ec)) is not Error.Code.SUCCESS}
         if failed_cycles:
             raise RuntimeError(f'multi_write32 failed at cycles {failed_cycles}')
 
@@ -340,9 +303,9 @@ class Device:
         n_cycles = len(address)
         l_address = (ct.c_uint32 * n_cycles)(*address)
         l_data = (ct.c_uint16 * n_cycles)(*data)
-        l_error_code = (ct.c_int * n_cycles)()
-        lib.multi_write16(self.handle, l_address, n_cycles, l_data, l_error_code)
-        failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        l_ecs = (ct.c_int * n_cycles)()
+        lib.multi_write16(self.handle, l_address, n_cycles, l_data, l_ecs)
+        failed_cycles = {i: e.name for i, ec in enumerate(l_ecs) if (e := Error.Code(ec)) is not Error.Code.SUCCESS}
         if failed_cycles:
             raise RuntimeError(f'multi_write16 failed at cycles {failed_cycles}')
 
@@ -353,9 +316,9 @@ class Device:
         n_cycles = len(address)
         l_address = (ct.c_uint32 * n_cycles)(*address)
         l_data = (ct.c_uint32 * n_cycles)()
-        l_error_code = (ct.c_int * n_cycles)()
-        lib.multi_read32(self.handle, l_address, n_cycles, l_data, l_error_code)
-        failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        l_ecs = (ct.c_int * n_cycles)()
+        lib.multi_read32(self.handle, l_address, n_cycles, l_data, l_ecs)
+        failed_cycles = {i: e.name for i, ec in enumerate(l_ecs) if (e := Error.Code(ec)) is not Error.Code.SUCCESS}
         if failed_cycles:
             raise RuntimeError(f'multi_read32 failed at cycles {failed_cycles}')
         return l_data[:]
@@ -367,9 +330,9 @@ class Device:
         n_cycles = len(address)
         l_address = (ct.c_uint32 * n_cycles)(*address)
         l_data = (ct.c_uint16 * n_cycles)()
-        l_error_code = (ct.c_int * n_cycles)()
-        lib.multi_read16(self.handle, l_address, n_cycles, l_data, l_error_code)
-        failed_cycles = {i: Error.Code(ec).name for i, ec in enumerate(l_error_code) if ec}
+        l_ecs = (ct.c_int * n_cycles)()
+        lib.multi_read16(self.handle, l_address, n_cycles, l_data, l_ecs)
+        failed_cycles = {i: e.name for i, ec in enumerate(l_ecs) if (e := Error.Code(ec)) is not Error.Code.SUCCESS}
         if failed_cycles:
             raise RuntimeError(f'multi_read16 failed at cycles {failed_cycles}')
         return l_data[:]
@@ -463,3 +426,6 @@ class Device:
         """Called when exiting from `with` block"""
         if self.__opened:
             self.close()
+
+    def __hash__(self) -> int:
+        return hash(self.handle)

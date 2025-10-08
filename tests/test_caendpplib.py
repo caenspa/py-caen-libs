@@ -1,4 +1,4 @@
-"""Tests for the caendpp module."""
+"""Tests for the caen_libs.caendpp module."""
 
 import unittest
 from unittest.mock import ANY, DEFAULT, patch
@@ -26,8 +26,8 @@ class TestDevice(unittest.TestCase):
         with self.assertRaises(dpp.Error):
             dpp.Device.open()
 
-    def test_device_close(self):
-        """Test close_device"""
+    def test_close(self):
+        """Test close"""
         self.device.close()
         self.mock_lib.end_library.assert_called_once_with(self.device.handle)
 

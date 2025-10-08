@@ -9,10 +9,8 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 import ctypes.wintypes as ctw
-import os
 import socket
 import sys
-import warnings
 from collections.abc import Callable, Generator, Iterator, Sequence
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
@@ -20,244 +18,26 @@ from enum import IntEnum, unique
 from typing import Any, ClassVar, Optional, TypeVar, Union
 
 from caen_libs import _cache, _string, _utils, error
+import caen_libs._caenhvwrappertypes as _types
 
-
-@unique
-class SystemType(IntEnum):
-    """
-    Binding of ::CAENHV_SYSTEM_TYPE_t
-    """
-    SY1527      = 0
-    SY2527      = 1
-    SY4527      = 2
-    SY5527      = 3
-    N568        = 4
-    V65XX       = 5
-    N1470       = 6
-    V8100       = 7
-    N568E       = 8
-    DT55XX      = 9
-    FTK         = 10
-    DT55XXE     = 11
-    N1068       = 12
-    SMARTHV     = 13
-    NGPS        = 14
-    N1168       = 15
-    R6060       = 16
-
-
-@unique
-class LinkType(IntEnum):
-    """
-    Binding of Link Types for InitSystem
-    """
-    TCPIP   = 0
-    RS232   = 1
-    CAENET  = 2
-    USB     = 3
-    OPTLINK = 4
-    USB_VCP = 5
-    USB3    = 6
-    A4818   = 7
-
-
-@unique
-class EventStatus(IntEnum):
-    """
-    Binding of ::CAENHV_EVT_STATUS_t
-    """
-    SYNC        = 0
-    ASYNC       = 1
-    UNSYNC      = 2
-    NOTAVAIL    = 3
-
-
-class _SystemStatusRaw(ct.Structure):
-    _fields_ = [
-        ('System', ct.c_int),
-        ('Board', ct.c_int * 16),
-    ]
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class SystemStatus:
-    """
-    Binding of ::CAENHV_SYSTEMSTATUS_t
-    """
-    system: EventStatus
-    board: tuple[EventStatus, ...]
-
-    @classmethod
-    def from_raw(cls, raw: _SystemStatusRaw):
-        """Instantiate from raw data"""
-        return cls(
-            EventStatus(raw.System),
-            tuple(map(EventStatus, raw.Board)),
-        )
-
-
-@unique
-class EventType(IntEnum):
-    """
-    Binding of ::CAENHV_ID_TYPE_t
-    """
-    PARAMETER   = 0
-    ALARM       = 1
-    KEEPALIVE   = 2
-    TRMODE      = 3
-
-
-class _IdValueRaw(ct.Union):
-    _fields_ = [
-        ('StringValue', ct.c_char * 1024),
-        ('FloatValue', ct.c_float),
-        ('IntValue', ct.c_int),
-    ]
-
-
-class _EventDataRaw(ct.Structure):
-    _fields_ = [
-        ('Type', ct.c_int),
-        ('SystemHandle', ct.c_int),
-        ('BoardIndex', ct.c_int),
-        ('ChannelIndex', ct.c_int),
-        ('ItemID', ct.c_char * 20),
-        ('Value', _IdValueRaw),
-    ]
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class EventData:
-    """
-    Binding of ::CAENHVEVENT_TYPE_t
-    """
-    type: EventType
-    item_id: str
-    board_index: int
-    channel_index: int
-    value: Union[str, float, int]
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class FwVersion:
-    """
-    Firmware version
-    """
-    major: int
-    minor: int
-
-    def __str__(self) -> str:
-        return f'{self.major}.{self.minor}'
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class Board:
-    """
-    Type returned by ::CAENHV_GetCrateMap
-    """
-    model: str
-    description: str
-    serial_number: int
-    n_channel: int
-    fw_version: FwVersion
-
-
-@unique
-class SysPropType(IntEnum):
-    """
-    Binding of ::SYSPROP_TYPE_*
-    """
-    STR     = 0
-    REAL    = 1
-    UINT2   = 2
-    UINT4   = 3
-    INT2    = 4
-    INT4    = 5
-    BOOLEAN = 6
-
-
-@unique
-class SysPropMode(IntEnum):
-    """
-    Binding of ::SYSPROP_MODE_*
-    """
-    RDONLY  = 0
-    WRONLY  = 1
-    RDWR    = 2
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class SysProp:
-    """
-    Type returned by ::CAENHV_GetSysPropInfo
-    """
-    name: str
-    mode: SysPropMode
-    type: SysPropType
-
-
-@unique
-class ParamType(IntEnum):
-    """
-    Binding of ::PARAM_TYPE_*
-    """
-    _INVALID    = 0xBAAAAAAD  # Special value for Python binding
-    NUMERIC     = 0
-    ONOFF       = 1
-    CHSTATUS    = 2
-    BDSTATUS    = 3
-    BINARY      = 4
-    STRING      = 5
-    ENUM        = 6
-    CMD         = 7
-
-
-@unique
-class ParamMode(IntEnum):
-    """
-    Binding of ::PARAM_MODE_*
-    """
-    RDONLY  = 0
-    WRONLY  = 1
-    RDWR    = 2
-
-
-@unique
-class ParamUnit(IntEnum):
-    """
-    Binding of ::PARAM_UN_*
-    """
-    NONE    = 0
-    AMPERE  = 1
-    VOLT    = 2
-    WATT    = 3
-    CELSIUS = 4
-    HERTZ   = 5
-    BAR     = 6
-    VPS     = 7
-    SECOND  = 8
-    RPM     = 9
-    COUNT   = 10
-    BIT     = 11
-    APS     = 12
-
-
-@dataclass(**_utils.dataclass_slots)
-class ParamProp:
-    """
-    Type returned by ::CAENHV_GetBdParamProp
-    """
-    type: ParamType
-    mode: ParamMode
-    minval: Optional[float] = field(default=None)
-    maxval: Optional[float] = field(default=None)
-    unit: Optional[ParamUnit] = field(default=None)
-    exp: Optional[int] = field(default=None)
-    decimal: Optional[int] = field(default=None)
-    resol: Optional[int] = field(default=None)
-    onstate: Optional[str] = field(default=None)
-    offstate: Optional[str] = field(default=None)
-    enum: Optional[tuple[str, ...]] = field(default=None)
+# Add some types to the module namespace
+from caen_libs._caenhvwrappertypes import (  # pylint: disable=W0611
+    Board,
+    EventData,
+    EventStatus,
+    EventType,
+    FwVersion,
+    LinkType,
+    ParamMode,
+    ParamProp,
+    ParamType,
+    ParamUnit,
+    SysProp,
+    SysPropMode,
+    SysPropType,
+    SystemStatus,
+    SystemType,
+)
 
 
 class Error(error.Error):
@@ -270,45 +50,45 @@ class Error(error.Error):
         """
         Binding of ::CAENHVRESULT
         """
-        UNKNOWN                 = 0xDEADFACE  # Special value for Python binding
-        OK                      = 0
-        SYSERR                  = 1
-        WRITEERR                = 2
-        READERR                 = 3
-        TIMEERR                 = 4
-        DOWN                    = 5
-        NOTPRES                 = 6
-        SLOTNOTPRES             = 7
-        NOSERIAL                = 8
-        MEMORYFAULT             = 9
-        OUTOFRANGE              = 10
-        EXECCOMNOTIMPL          = 11
-        GETPROPNOTIMPL          = 12
-        SETPROPNOTIMPL          = 13
-        PROPNOTFOUND            = 14
-        EXECNOTFOUND            = 15
-        NOTSYSPROP              = 16
-        NOTGETPROP              = 17
-        NOTSETPROP              = 18
-        NOTEXECOMM              = 19
-        SYSCONFCHANGE           = 20
-        PARAMPROPNOTFOUND       = 21
-        PARAMNOTFOUND           = 22
-        NODATA                  = 23
-        DEVALREADYOPEN          = 24
-        TOOMANYDEVICEOPEN       = 25
-        INVALIDPARAMETER        = 26
-        FUNCTIONNOTAVAILABLE    = 27
-        SOCKETERROR             = 28
-        COMMUNICATIONERROR      = 29
-        NOTYETIMPLEMENTED       = 30
-        CONNECTED               = 0x1000 + 1
-        NOTCONNECTED            = 0x1000 + 2
-        OS                      = 0x1000 + 3
-        LOGINFAILED             = 0x1000 + 4
-        LOGOUTFAILED            = 0x1000 + 5
-        LINKNOTSUPPORTED        = 0x1000 + 6
-        USERPASSFAILED          = 0x1000 + 7
+        UNKNOWN = 0xDEADFACE  # Special value for Python binding
+        OK = 0
+        SYSERR = 1
+        WRITEERR = 2
+        READERR = 3
+        TIMEERR = 4
+        DOWN = 5
+        NOTPRES = 6
+        SLOTNOTPRES = 7
+        NOSERIAL = 8
+        MEMORYFAULT = 9
+        OUTOFRANGE = 10
+        EXECCOMNOTIMPL = 11
+        GETPROPNOTIMPL = 12
+        SETPROPNOTIMPL = 13
+        PROPNOTFOUND = 14
+        EXECNOTFOUND = 15
+        NOTSYSPROP = 16
+        NOTGETPROP = 17
+        NOTSETPROP = 18
+        NOTEXECOMM = 19
+        SYSCONFCHANGE = 20
+        PARAMPROPNOTFOUND = 21
+        PARAMNOTFOUND = 22
+        NODATA = 23
+        DEVALREADYOPEN = 24
+        TOOMANYDEVICEOPEN = 25
+        INVALIDPARAMETER = 26
+        FUNCTIONNOTAVAILABLE = 27
+        SOCKETERROR = 28
+        COMMUNICATIONERROR = 29
+        NOTYETIMPLEMENTED = 30
+        CONNECTED = 0x1000 + 1
+        NOTCONNECTED = 0x1000 + 2
+        OS = 0x1000 + 3
+        LOGINFAILED = 0x1000 + 4
+        LOGOUTFAILED = 0x1000 + 5
+        LINKNOTSUPPORTED = 0x1000 + 6
+        USERPASSFAILED = 0x1000 + 7
 
         @classmethod
         def _missing_(cls, _):
@@ -326,10 +106,6 @@ class Error(error.Error):
         super().__init__(message, self.code.name, func)
 
 
-# For backward compatibility. Deprecated.
-ErrorCode = Error.Code
-
-
 # Utility definitions
 _c_char_p = ct.POINTER(ct.c_char)  # ct.c_char_p is not fine due to its own memory management
 _c_char_p_p = ct.POINTER(_c_char_p)
@@ -340,8 +116,8 @@ _c_ushort_p_p = ct.POINTER(_c_ushort_p)
 _c_int_p = ct.POINTER(ct.c_int)
 _c_uint_p = ct.POINTER(ct.c_uint)
 _c_uint_p_p = ct.POINTER(_c_uint_p)
-_system_status_p = ct.POINTER(_SystemStatusRaw)
-_event_data_p = ct.POINTER(_EventDataRaw)
+_system_status_p = ct.POINTER(_types.SystemStatusRaw)
+_event_data_p = ct.POINTER(_types.EventDataRaw)
 _event_data_p_p = ct.POINTER(_event_data_p)
 if sys.platform == 'win32':
     _socket = ctw.WPARAM  # Actually a SOCKET is UINT_PTR, same as WPARAM
@@ -407,7 +183,7 @@ _PARAM_TYPE_SET_ARG: dict[ParamType, Callable[[Any, int], Any]] = {
 }
 
 
-_SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
+_SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_types.IdValueRaw], Union[str, float, int]]] = {
     SysPropType.STR:        lambda v: v.StringValue.decode('ascii'),
     SysPropType.REAL:       lambda v: v.FloatValue,
     SysPropType.UINT2:      lambda v: v.IntValue,
@@ -418,7 +194,7 @@ _SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_IdValueRaw], Union[str, f
 }
 
 
-_PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_IdValueRaw], Union[str, float, int]]] = {
+_PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_types.IdValueRaw], Union[str, float, int]]] = {
     ParamType.NUMERIC:      lambda v: v.FloatValue,
     ParamType.ONOFF:        lambda v: v.IntValue,
     ParamType.CHSTATUS:     lambda v: v.IntValue,
@@ -446,7 +222,7 @@ class _Lib(_utils.Lib):
         ser_num_type = _c_uint_p_p if self.support_32bit_pid() else _c_ushort_p_p
 
         # Load API
-        self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p)
+        self.init_system = self.__get('InitSystem', ct.c_int, ct.c_int, ct.c_void_p, _c_char_p, _c_char_p, _c_int_p, handle_errcheck=False)  # no errcheck, see __api_handle_errcheck docstring
         self.deinit_system = self.__get('DeinitSystem', ct.c_int)
         self.get_crate_map = self.__get('GetCrateMap', ct.c_int, _c_ushort_p, _c_ushort_p_p, _c_char_p_p, _c_char_p_p, ser_num_type, _c_ubyte_p_p, _c_ubyte_p_p)
         self.get_sys_prop_list = self.__get('GetSysPropList', ct.c_int, _c_ushort_p, _c_char_p_p)
@@ -488,6 +264,11 @@ class _Lib(_utils.Lib):
         because actually it has to be called after a failed call.
         The handle is obtained assuming it is the first argument
         of the failed function.
+
+        This could be used also for InitSystem, since it sets handle
+        to -1 in case of error and this function return something like
+        "connection failed" if handle is -1, but it is not used because
+        it seems too weird.
         """
         if res != Error.Code.OK:
             handle = func_args[0]  # first argument is always handle
@@ -546,7 +327,7 @@ class _Lib(_utils.Lib):
             self.__free(value)
 
     @contextmanager
-    def evt_data_auto_ptr(self) -> Generator['ct._Pointer[_EventDataRaw]', None, None]:
+    def evt_data_auto_ptr(self) -> Generator['ct._Pointer[_types.EventDataRaw]', None, None]:
         """
         Context manager to auto free event data on scope exit
 
@@ -569,42 +350,6 @@ else:
 
 
 lib = _Lib(_LIB_NAME)
-
-
-@dataclass(frozen=True, **_utils.dataclass_slots)
-class _TcpPorts:
-    """
-    TCP port range to bind to for event handling. Range is exclusive,
-    so that the ports used are [first, last).
-    """
-    first: int = field(default=0)
-    last: int = field(default=1)
-
-    def __post_init__(self) -> None:
-        if self.first < 0 or self.first > 65535:
-            raise ValueError('First port must be between 0 and 65535.')
-        if self.last < 1 or self.last > 65536:
-            raise ValueError('Last port must be between 1 and 65536.')
-        if self.first == 0 and self.last != 1:
-            raise ValueError('Last port must be 1 if first port is 0.')
-        if self.first >= self.last:
-            raise ValueError('First port must be lower than last port.')
-
-    _T = TypeVar('_T', bound='_TcpPorts')
-
-    @classmethod
-    def load_defaults(cls: type[_T]) -> _T:
-        """
-        Utility function to handle deprecation of HV_FIRST_BIND_PORT.
-        """
-        env = 'HV_FIRST_BIND_PORT'
-        first_env = os.environ.get(env)
-        if first_env is not None:
-            msg = f'Environment variable {env} is deprecated. Use Device.set_events_tcp_ports() instead.'
-            warnings.warn(msg, DeprecationWarning)
-        first = int(first_env) if first_env is not None else 0
-        last = 1 if first == 0 else 65536
-        return cls(first, last)
 
 
 @dataclass(**_utils.dataclass_slots_weakref)
@@ -634,7 +379,7 @@ class Device:
 
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
-    __bind_tcp_ports: ClassVar[_TcpPorts] = _TcpPorts.load_defaults()
+    __bind_tcp_ports: ClassVar[_types.TcpPorts] = _types.TcpPorts.load_defaults()
 
     def __del__(self) -> None:
         if self.__opened:
@@ -711,6 +456,7 @@ class Device:
             dl = tuple(_string.from_char_p(l_dl, l_nos.value))
             return tuple(
                 Board(
+                    i,
                     ml[i],
                     dl[i],
                     l_snl[i],
@@ -768,10 +514,10 @@ class Device:
         """
         n_indexes = len(slot_list)
         if n_indexes == 0:
-            return []  # type: ignore
+            return []
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         first_index = slot_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(first_index, name, None)
+        param_type = self.__get_param_type(first_index, None, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
         if param_type is ParamType.STRING and self.__char_p_p_str_bd_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
@@ -811,7 +557,7 @@ class Device:
             return
         l_index_list = (ct.c_ushort * n_indexes)(*slot_list)
         first_index = slot_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(first_index, name, None)
+        param_type = self.__get_param_type(first_index, None, name)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
         lib.set_bd_param(self.handle, n_indexes, l_index_list, name.encode('ascii'), l_data)
 
@@ -819,7 +565,7 @@ class Device:
         """
         Binding of CAENHV_GetBdParamProp()
         """
-        return self.__get_param_prop(slot, name, None)
+        return self.__get_param_prop(slot, None, name)
 
     @_cache.cached(cache_manager=__cache_manager)
     def get_bd_param_info(self, slot: int) -> tuple[str, ...]:
@@ -846,6 +592,7 @@ class Device:
             model = l_m.contents.value.decode('ascii')
             description = l_d.contents.value.decode('ascii')
             return Board(
+                slot,
                 model,
                 description,
                 l_ser_num.value,
@@ -857,7 +604,7 @@ class Device:
         """
         Binding of CAENHV_GetChParamProp()
         """
-        return self.__get_param_prop(slot, name, channel)
+        return self.__get_param_prop(slot, channel, name)
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
     def get_ch_param_info(self, slot: int, channel: int) -> tuple[str, ...]:
@@ -876,7 +623,7 @@ class Device:
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
-            return []  # type: ignore
+            return []
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
         l_value = ct.create_string_buffer(self.__MAX_CH_NAME * n_allocated_values)
@@ -899,10 +646,10 @@ class Device:
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
-            return []  # type: ignore
+            return []
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         first_index = channel_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(slot, name, first_index)
+        param_type = self.__get_param_type(slot, first_index, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
         if param_type is ParamType.STRING and self.__char_p_p_str_ch_param_arg():
             # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
@@ -932,7 +679,7 @@ class Device:
             return
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         first_index = channel_list[0]  # Assuming all types are equal
-        param_type = self.__get_param_type(slot, name, first_index)
+        param_type = self.__get_param_type(slot, first_index, name)
         l_data = _PARAM_TYPE_SET_ARG[param_type](value, n_indexes)
         lib.set_ch_param(self.handle, slot, name.encode('ascii'), n_indexes, l_index_list, ct.byref(l_data))
 
@@ -961,7 +708,7 @@ class Device:
         is 0, the last port must be 1. The default value is (0, 1).
         Port 0 is used to bind to a random port chosen by the OS.
         """
-        cls.__bind_tcp_ports = _TcpPorts(first, last)
+        cls.__bind_tcp_ports = _types.TcpPorts(first, last)
 
     @classmethod
     def get_events_tcp_ports(cls) -> tuple[int, int]:
@@ -1018,7 +765,7 @@ class Device:
         """
         self.__init_events_client()
         assert self.__skt_client is not None
-        l_system_status = _SystemStatusRaw()
+        l_system_status = _types.SystemStatusRaw()
         g_event_data = lib.evt_data_auto_ptr()
         l_data_number = ct.c_uint()
         with g_event_data as l_ed:
@@ -1028,7 +775,7 @@ class Device:
 
     # Private utilities
 
-    def __get_prop(self, slot: int, name: str, prop_name: bytes, channel: Optional[int], var_type: Callable[..., _R], *args, **kwargs) -> _R:
+    def __get_prop(self, slot: int, channel: Optional[int], name: str, prop_name: bytes, var_type: Callable[..., _R], *args, **kwargs) -> _R:
         """
         Get single parameter property.
 
@@ -1051,41 +798,41 @@ class Device:
             raise ex
         return l_value
 
-    def __get_param_prop(self, slot: int, name: str, channel: Optional[int]) -> ParamProp:
+    def __get_param_prop(self, slot: int, channel: Optional[int], name: str) -> ParamProp:
         """
         Get all parameter properties.
         Cannot be cached since minval/maxval may depend on the value of
         other parameters.
         """
         # Mandatory values (raise if name is not valid)
-        param_type = self.__get_param_type(slot, name, channel)
-        param_mode = self.__get_param_mode(slot, name, channel)
+        param_type = self.__get_param_type(slot, channel, name)
+        param_mode = self.__get_param_mode(slot, channel, name)
         res = ParamProp(param_type, param_mode)
         # Optional values
         if param_type is ParamType.NUMERIC:
             # Always defined
-            res.unit = ParamUnit(self.__get_prop(slot, name, b'Unit', channel, ct.c_ushort).value)
-            res.exp = self.__get_prop(slot, name, b'Exp', channel, ct.c_short).value
+            res.unit = ParamUnit(self.__get_prop(slot, channel, name, b'Unit', ct.c_ushort).value)
+            res.exp = self.__get_prop(slot, channel, name, b'Exp', ct.c_short).value
             # Not defined on some old systems
-            res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float, default=0.).value
-            res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float, default=0.).value
-            res.decimal = self.__get_prop(slot, name, b'Decimal', channel, ct.c_short, default=0).value
+            res.minval = self.__get_prop(slot, channel, name, b'Minval', ct.c_float, default=0.).value
+            res.maxval = self.__get_prop(slot, channel, name, b'Maxval', ct.c_float, default=0.).value
+            res.decimal = self.__get_prop(slot, channel, name, b'Decimal', ct.c_short, default=0).value
             if self.__resol_param_prop():
-                res.resol = self.__get_prop(slot, name, b'Resol', channel, ct.c_short, default=1).value
+                res.resol = self.__get_prop(slot, channel, name, b'Resol', ct.c_short, default=1).value
         elif param_type is ParamType.ONOFF:
-            res.onstate = self.__get_prop(slot, name, b'Onstate', channel, ct.c_char * _STR_SIZE).value.decode('ascii')
-            res.offstate = self.__get_prop(slot, name, b'Offstate', channel, ct.c_char * _STR_SIZE).value.decode('ascii')
+            res.onstate = self.__get_prop(slot, channel, name, b'Onstate', ct.c_char * _STR_SIZE).value.decode('ascii')
+            res.offstate = self.__get_prop(slot, channel, name, b'Offstate', ct.c_char * _STR_SIZE).value.decode('ascii')
         elif param_type is ParamType.ENUM:
-            res.minval = self.__get_prop(slot, name, b'Minval', channel, ct.c_float).value
-            res.maxval = self.__get_prop(slot, name, b'Maxval', channel, ct.c_float).value
+            res.minval = self.__get_prop(slot, channel, name, b'Minval', ct.c_float).value
+            res.maxval = self.__get_prop(slot, channel, name, b'Maxval', ct.c_float).value
             n_enums = int(res.maxval - res.minval + 1)
             assert n_enums <= self.__MAX_ENUM_VALS
-            l_value = self.__get_prop(slot, name, b'Enum', channel, ct.c_char * (self.__MAX_ENUM_NAME * self.__MAX_ENUM_VALS))
+            l_value = self.__get_prop(slot, channel, name, b'Enum', ct.c_char * (self.__MAX_ENUM_NAME * self.__MAX_ENUM_VALS))
             res.enum = tuple(_string.from_n_char_array(l_value, self.__MAX_ENUM_NAME, n_enums))
         return res
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
-    def __get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
+    def __get_param_type(self, slot: int, channel: Optional[int], name: str) -> ParamType:
         """
         Simplified version of __get_param_prop used internally to
         retrieve just param type.
@@ -1097,21 +844,21 @@ class Device:
         # properties because, in case of invalid parameter, it will fail in the very
         # first call.
         # pylint: disable=W0212
-        value = self.__get_prop(slot, name, b'Type', channel, ct.c_uint, ParamType._INVALID).value
+        value = self.__get_prop(slot, channel, name, b'Type', ct.c_uint, ParamType._INVALID).value
         if value == ParamType._INVALID:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_type')
         return ParamType(value)
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
-    def __get_param_mode(self, slot: int, name: str, channel: Optional[int]) -> ParamMode:
+    def __get_param_mode(self, slot: int, channel: Optional[int], name: str) -> ParamMode:
         """
         Simplified version of __get_param_prop used internally to
         retrieve just param mode.
         """
         # See comment on __get_param_type
         # pylint: disable=W0212
-        value = self.__get_prop(slot, name, b'Mode', channel, ct.c_uint, ParamType._INVALID).value
-        if value == ParamType._INVALID:
+        value = self.__get_prop(slot, channel, name, b'Mode', ct.c_uint, ParamMode._INVALID).value
+        if value == ParamMode._INVALID:
             raise Error('Parameter not found', Error.Code.PARAMNOTFOUND.value, '__get_param_mode')
         return ParamMode(value)
 
@@ -1123,7 +870,7 @@ class Device:
         if self.system_type in (SystemType.SY1527, SystemType.SY2527):
             raise NotImplementedError('Legacy events not supported by this binding.')
 
-    def __library_event_thread(self) -> bool:
+    def __library_events_thread(self) -> bool:
         """
         Devices with polling thread within library
         """
@@ -1160,18 +907,18 @@ class Device:
         """
         Binding of CAENHV_Subscribe*Params()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
+        n_params = len(param_list)
+        if n_params == 0:
             return
         self.__init_events_server()
-        l_param_name_list = ':'.join(param_list).encode('ascii')
-        l_result_codes = (ct.c_char * param_list_len)()
+        l_param_list = ':'.join(param_list).encode('ascii')
+        l_result_codes = (ct.c_char * n_params)()
         if slot is None:
-            lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_list, n_params, l_result_codes)
         elif channel is None:
-            lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_list, n_params, l_result_codes)
         else:
-            lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_list, n_params, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT: zero always means
         # success, but other values are not consistent across all systems.
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
@@ -1182,17 +929,17 @@ class Device:
         """
         Binding of CAENHV_UnSubscribe*Params()
         """
-        param_list_len = len(param_list)
-        if param_list_len == 0:
+        n_params = len(param_list)
+        if n_params == 0:
             return
-        l_param_name_list = ':'.join(param_list).encode('ascii')
-        l_result_codes = (ct.c_char * param_list_len)()
+        l_param_list = ':'.join(param_list).encode('ascii')
+        l_result_codes = (ct.c_char * n_params)()
         if slot is None:
-            lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_list, n_params, l_result_codes)
         elif channel is None:
-            lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_list, n_params, l_result_codes)
         else:
-            lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_name_list, param_list_len, l_result_codes)
+            lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_list, n_params, l_result_codes)
         # See comment in __subscribe_params
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
@@ -1205,7 +952,7 @@ class Device:
         Socket will be compatible with both IPv6 and IPv4, if supported.
         """
         # If possible, bind to loopback to prevent ask for administator rights on Windows
-        bind_addr = '127.0.0.1' if self.__library_event_thread() else ''
+        bind_addr = '127.0.0.1' if self.__library_events_thread() else ''
         ports = self.__bind_tcp_ports
         for port in range(ports.first, ports.last):
             # Suppress OSError raised if bind fails
@@ -1245,7 +992,7 @@ class Device:
             self.__skt_client = socket.socket(fileno=l_value.value)
         else:
             self.__skt_client, addr_info = self.__skt_server.accept()
-            if self.__library_event_thread():
+            if self.__library_events_thread():
                 # If connecting to library event thread, ignore the first string
                 # that should contain the string used as InitSystem argument,
                 # except when connecting using TCPIP.
@@ -1270,7 +1017,7 @@ class Device:
             # Return (host, port) on IPv4 and (host, port, flowinfo, scopeid) on IPv6
             return self.__skt_server.getsockname()[1]
 
-    def __extended_get_param_type(self, slot: int, name: str, channel: Optional[int]) -> ParamType:
+    def __extended_get_param_type(self, slot: int, channel: Optional[int], name: str) -> ParamType:
         """
         Same of __get_param_type, with a workaround for Name: even if
         not being a real channel parameter, i.e. get_ch_param_prop does
@@ -1278,32 +1025,32 @@ class Device:
         """
         if channel is not None and name == 'Name':
             return ParamType.STRING
-        return self.__get_param_type(slot, name, channel)
+        return self.__get_param_type(slot, channel, name)
 
-    def __decode_event_value(self, event_type: EventType, board_index: int, channel_index: int, item_id: str, value: _IdValueRaw) -> Union[str, float, int]:
+    def __decode_event_value(self, event_type: EventType, slot: Optional[int], channel: Optional[int], item_id: str, value: _types.IdValueRaw) -> Union[str, float, int]:
         if event_type is not EventType.PARAMETER:
             return -1
-        if board_index == -1:
+        if slot is None:
             prop_type = self.get_sys_prop_info(item_id).type
             return _SYS_PROP_TYPE_EVENT_ARG[prop_type](value)
-        param_type = self.__extended_get_param_type(board_index, item_id, channel_index if channel_index != -1 else None)
+        param_type = self.__extended_get_param_type(slot, channel, item_id)
         return _PARAM_TYPE_EVENT_ARG[param_type](value)
 
     def __decode_event_data(self, event_data: ct._Pointer, n_events: int) -> Iterator[EventData]:
         for i in range(n_events):
-            event: _EventDataRaw = event_data[i]
+            event: _types.EventDataRaw = event_data[i]
             item_id = event.ItemID.decode('ascii')
             if not item_id:
                 # There could be empty events, expecially from library event thread, to be ignored.
-                assert self.__library_event_thread()
+                assert self.__library_events_thread()
                 continue
             event_type = EventType(event.Type)
             system_handle = event.SystemHandle
             assert system_handle == self.handle  # should always be the same
-            board_index = event.BoardIndex
-            channel_index = event.ChannelIndex
-            value = self.__decode_event_value(event_type, board_index, channel_index, item_id, event.Value)
-            yield EventData(event_type, item_id, board_index, channel_index, value)
+            slot = event.BoardIndex if event.BoardIndex != -1 else None
+            channel = event.ChannelIndex if event.ChannelIndex != -1 else None
+            value = self.__decode_event_value(event_type, slot, channel, item_id, event.Value)
+            yield EventData(event_type, item_id, slot, channel, value)
 
     # Python utilities
 

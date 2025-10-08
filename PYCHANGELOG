@@ -11,6 +11,33 @@
 -----------------------------------------------------------------------------
 
 
+v3.0.0 (08/10/2025)
+-------------------
+
+New features:
+- Support for CAEN Digitizer as `caendigitizer` (requires Python 3.10+).
+- Add `slot` field to `caenhvwrapper.Board` to get the slot directly from
+    the object returned by `caenhvwrapper.Device.get_crate_map` and
+    `caenhvwrapper.Device.test_bd_presence`.
+
+Fixes:
+- Fix error check in functions using `caenhvwrapper.lib.init_system`, i.e.
+    `caenhvwrapper.Device.open` and `caenhvwrapper.Device.connect`.
+- Fix `caencomm.vme_iack_cycle16` and `caencomm.vme_iack_cycle32`.
+
+Changes:
+- On `caenhvwrapper.EventData`, `board_index` and `channel_index` fields has
+    been renamed respectively `slot` and `channel`, and now their value is an
+    `Optional[int]`, and is set to None if the value of the underlying library
+    is -1. Old fields are kept as class property for backward compatibility.
+- Remove deprecated `ErrorCode` alias to `Error.Code` from all modules.
+- Change channel index hierarchy in `caendpplib` classes `PHAParams` and
+    `DgtzParams`: now channel-related parameters are stored in an internal
+    object `ch` that can be iterated. `DgtzParams.coinc_params` kept outside
+    channel object because it has an additional slot for external channel,
+    so it is always initialized to `MAX_NUMCHB_COINCIDENCE` elements.
+
+
 v2.2.0 (03/07/2025)
 -------------------
 

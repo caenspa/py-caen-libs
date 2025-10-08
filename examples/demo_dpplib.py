@@ -60,91 +60,92 @@ def my_configuration(n_channels: int, adc_nbits: int) -> dpp.DgtzParams:
     max_adc = 2 ** adc_nbits - 1
 
     # Define configuration
-    res = dpp.DgtzParams()
+    par = dpp.DgtzParams()
 
     # List mode parameters (ignored by GammaStream, see run_specifications below)
-    res.list_params.enabled = False
-    res.list_params.save_mode = dpp.ListSaveMode.FILE_BINARY
-    res.list_params.file_name = 'py_dpplib_demo.bin'
-    res.list_params.max_buff_num_events = 10
-    res.list_params.save_mask = dpp.DumpMask.ALL_
+    par.list_params.enabled = False
+    par.list_params.save_mode = dpp.ListSaveMode.FILE_BINARY
+    par.list_params.file_name = 'py_dpplib_demo.bin'
+    par.list_params.max_buff_num_events = 10
+    par.list_params.save_mask = dpp.DumpMask.ALL_
 
     # Board configuration
-    res.channel_mask = (0x1 << n_channels) - 1
-    res.event_aggr = 0
-    res.iolev = dpp.IOLevel.TTL
+    par.channel_mask = (0x1 << n_channels) - 1
+    par.event_aggr = 0
+    par.iolev = dpp.IOLevel.TTL
 
     # Waveform parameters
-    res.wf_params.dual_trace_mode = 1
-    res.wf_params.vp1 = dpp.VirtualProbe1.INPUT
-    res.wf_params.vp2 = dpp.VirtualProbe2.TRAP_BL_CORR
-    res.wf_params.dp1 = dpp.DigitalProbe1.PEAKING
-    res.wf_params.dp2 = dpp.DigitalProbe2.TRIGGER
-    res.wf_params.record_length = 1024
-    res.wf_params.pre_trigger = 100
-    res.wf_params.probe_self_trigger_val = 150
-    res.wf_params.probe_trigger = dpp.ProbeTrigger.MAIN_TRIG
+    par.wf_params.dual_trace_mode = 1
+    par.wf_params.vp1 = dpp.VirtualProbe1.INPUT
+    par.wf_params.vp2 = dpp.VirtualProbe2.TRAP_BL_CORR
+    par.wf_params.dp1 = dpp.DigitalProbe1.PEAKING
+    par.wf_params.dp2 = dpp.DigitalProbe2.TRIGGER
+    par.wf_params.record_length = 1024
+    par.wf_params.pre_trigger = 100
+    par.wf_params.probe_self_trigger_val = 150
+    par.wf_params.probe_trigger = dpp.ProbeTrigger.MAIN_TRIG
 
     # Parameters for Gamma Stream
-    res.run_specifications.run_name = 'py_dpplib_demo'
-    res.run_specifications.run_duration_sec = 0  # 0 means infinite
-    res.run_specifications.cycles_count = 1
-    res.run_specifications.save_lists = True
+    par.run_specifications.run_name = 'py_dpplib_demo'
+    par.run_specifications.run_duration_sec = 0  # 0 means infinite
+    par.run_specifications.cycles_count = 1
+    par.run_specifications.save_lists = True
 
-    res.resize(n_channels)
+    par.resize(n_channels)
 
     # Channel parameters
-    for i in range(n_channels):
+    for i, par_ch in enumerate(par.ch):
 
         # Channel parameters
-        res.dc_offset[i] = max_adc // 2
-        res.pulse_polarity[i] = dpp.PulsePolarity.POSITIVE
-
-        # Coicidence parameters between channels
-        res.coinc_params[i].coinc_ch_mask = 0x0
-        res.coinc_params[i].coinc_logic = dpp.CoincLogic.NONE
-        res.coinc_params[i].coinc_op = dpp.CoincOp.OR
-        res.coinc_params[i].maj_level = 0
-        res.coinc_params[i].trg_win = 0
-
-        # DPP parameters
-        res.dpp_params.m_[i] = 50000
-        res.dpp_params.m[i] = 1000
-        res.dpp_params.k[i] = 3000
-        res.dpp_params.ftd[i] = 800
-        res.dpp_params.a[i] = 4
-        res.dpp_params.b[i] = 200
-        res.dpp_params.thr[i] = 50
-        res.dpp_params.nsbl[i] = 3
-        res.dpp_params.nspk[i] = 0
-        res.dpp_params.pkho[i] = 0
-        res.dpp_params.blho[i] = 1000
-        res.dpp_params.dgain[i] = 0
-        res.dpp_params.enf[i] = 1.0
-        res.dpp_params.decimation[i] = 0
-        res.dpp_params.trgho[i] = 1000
+        par_ch.dc_offset = max_adc // 2
+        par_ch.pulse_polarity = dpp.PulsePolarity.POSITIVE
 
         # Reset Detector
-        res.reset_detector[i].enabled = False
-        res.reset_detector[i].reset_detection_mode = dpp.ResetDetectionMode.INTERNAL
-        res.reset_detector[i].thrhold = 2
-        res.reset_detector[i].reslenmin = 2
-        res.reset_detector[i].reslength = 2000
+        par_ch.reset_detector.enabled = False
+        par_ch.reset_detector.reset_detection_mode = dpp.ResetDetectionMode.INTERNAL
+        par_ch.reset_detector.thrhold = 2
+        par_ch.reset_detector.reslenmin = 2
+        par_ch.reset_detector.reslength = 2000
+
+        # Spectrum parameters
+        par_ch.spectrum_control.spectrum_mode = dpp.SpectrumMode.ENERGY
+        par_ch.spectrum_control.time_scale = 1
+
+        # Coincidence parameters between channels
+        par.coinc_params[i].coinc_ch_mask = 0x0
+        par.coinc_params[i].coinc_logic = dpp.CoincLogic.NONE
+        par.coinc_params[i].coinc_op = dpp.CoincOp.OR
+        par.coinc_params[i].maj_level = 0
+        par.coinc_params[i].trg_win = 0
+
+        # DPP parameters
+        par.dpp_params.ch[i].m_ = 50000
+        par.dpp_params.ch[i].m = 1000
+        par.dpp_params.ch[i].k = 3000
+        par.dpp_params.ch[i].ftd = 800
+        par.dpp_params.ch[i].a = 4
+        par.dpp_params.ch[i].b = 200
+        par.dpp_params.ch[i].thr = 50
+        par.dpp_params.ch[i].nsbl = 3
+        par.dpp_params.ch[i].nspk = 0
+        par.dpp_params.ch[i].pkho = 0
+        par.dpp_params.ch[i].blho = 1000
+        par.dpp_params.ch[i].dgain = 0
+        par.dpp_params.ch[i].enf = 1.0
+        par.dpp_params.ch[i].decimation = 0
+        par.dpp_params.ch[i].trgho = 1000
 
         # Parameters for X770
-        res.dpp_params.x770_extraparameters[i].cr_gain = 0
-        res.dpp_params.x770_extraparameters[i].input_impedance = dpp.InputImpedance.O_1K
-        res.dpp_params.x770_extraparameters[i].tr_gain = 0
-        res.dpp_params.x770_extraparameters[i].saturation_holdoff = 300
-        res.dpp_params.x770_extraparameters[i].energy_filter_mode = 0
-        res.dpp_params.x770_extraparameters[i].trig_k = 30
-        res.dpp_params.x770_extraparameters[i].trigm = 10
-        res.dpp_params.x770_extraparameters[i].trig_mode = 0
+        par.dpp_params.ch[i].x770_extraparameters.cr_gain = 0
+        par.dpp_params.ch[i].x770_extraparameters.input_impedance = dpp.InputImpedance.O_1K
+        par.dpp_params.ch[i].x770_extraparameters.tr_gain = 0
+        par.dpp_params.ch[i].x770_extraparameters.saturation_holdoff = 300
+        par.dpp_params.ch[i].x770_extraparameters.energy_filter_mode = 0
+        par.dpp_params.ch[i].x770_extraparameters.trig_k = 30
+        par.dpp_params.ch[i].x770_extraparameters.trigm = 10
+        par.dpp_params.ch[i].x770_extraparameters.trig_mode = 0
 
-        res.spectrum_control[i].spectrum_mode = dpp.SpectrumMode.ENERGY
-        res.spectrum_control[i].time_scale = 1
-
-    return res
+    return par
 
 
 def configure_hv(lib: dpp.Device, board_id: int, hv_ch: int) -> None:

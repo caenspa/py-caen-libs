@@ -2,6 +2,7 @@
 Official Python binding for:
 - CAEN VMELib
 - CAEN Comm
+- CAEN Digitizer
 - CAEN PLU
 - CAEN HV Wrapper
 - CAEN DPP Library

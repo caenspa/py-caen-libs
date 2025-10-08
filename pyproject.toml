@@ -3,7 +3,7 @@ name = "caen_libs"
 authors = [
 	{ name="Giovanni Cerretani" },
 ]
-description = "Official Python binding for CAEN VMELib, CAEN Comm, CAEN PLU, CAEN HV Wrapper and CAEN DPP Library."
+description = "Official Python binding for CAEN VMELib, CAEN Comm, CAEN Digitizer, CAEN PLU, CAEN HV Wrapper and CAEN DPP Library."
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
@@ -23,7 +23,7 @@ classifiers = [
 	"Typing :: Typed",
 ]
 dependencies = [
-	"numpy>=1.20",
+	"numpy>=2.0",
 ]
 dynamic = ["version"]
 
@@ -34,4 +34,4 @@ version = {attr = "caen_libs.__version__"}
 Homepage = "https://www.caen.it"
 Support = "https://www.caen.it/mycaen/support/"
 Source = "https://github.com/caenspa/py-caen-libs"
-Changelog  = "https://github.com/caenspa/py-caen-libs/blob/main/PYCHANGELOG"
+Changelog = "https://github.com/caenspa/py-caen-libs/blob/main/PYCHANGELOG"
