@@ -11,11 +11,11 @@
 -----------------------------------------------------------------------------
 
 
-v3.0.0 (XX/XX/2025)
+v3.0.0 (08/10/2025)
 -------------------
 
 New features:
-- Support for CAEN Digitizer as `caendigitizer`.
+- Support for CAEN Digitizer as `caendigitizer` (requires Python 3.10+).
 - Add `slot` field to `caenhvwrapper.Board` to get the slot directly from
     the object returned by `caenhvwrapper.Device.get_crate_map` and
     `caenhvwrapper.Device.test_bd_presence`.

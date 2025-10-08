@@ -1,6 +1,9 @@
+"""Tests for the caen_libs._utils module."""
+
 import unittest
 from unittest.mock import Mock
 from caen_libs._utils import Registers, version_to_tuple
+
 
 class TestVersionToTuple(unittest.TestCase):
     def test_version_to_tuple(self):
@@ -9,6 +12,7 @@ class TestVersionToTuple(unittest.TestCase):
         self.assertEqual(version_to_tuple("10.20.30"), (10, 20, 30))
         with self.assertRaises(ValueError):
             version_to_tuple("1.2.a")
+
 
 class TestRegisters(unittest.TestCase):
     def setUp(self):
@@ -54,6 +58,7 @@ class TestRegisters(unittest.TestCase):
     def test_setitem_slice(self):
         self.registers[0:2] = [99, 100]
         self.multi_setter.assert_called_once_with(range(0, 2), [99, 100])
+
 
 if __name__ == '__main__':
     unittest.main()

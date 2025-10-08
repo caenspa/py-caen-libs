@@ -25,6 +25,7 @@ from caen_libs._caenvmetypes import (  # pylint: disable=W0611
     BoardType,
     BusReqLevels,
     ContinuosRun,
+    DATA_WIDTH_TYPE as _DATA_WIDTH_TYPE,
     DataWidth,
     Display,
     InputSelect,
@@ -318,15 +319,15 @@ class Device:
         """
         Binding of CAENVME_ReadCycle()
         """
-        l_value = _types.DATA_WIDTH_TYPE[dw]()
+        l_value = _DATA_WIDTH_TYPE[dw]()
         lib.read_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
-    def rmw_cycle(self, address: int, value: int, am: AddressModifiers, dw: DataWidth) -> int:
+    def rmw_scycle(self, address: int, value: int, am: AddressModifiers, dw: DataWidth) -> int:
         """
         Binding of CAENVME_RMWCycle()
         """
-        l_value = _types.DATA_WIDTH_TYPE[dw](value)
+        l_value = _DATA_WIDTH_TYPE[dw](value)
         lib.rmw_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
@@ -334,7 +335,7 @@ class Device:
         """
         Binding of CAENVME_WriteCycle()
         """
-        l_value = _types.DATA_WIDTH_TYPE[dw](value)
+        l_value = _DATA_WIDTH_TYPE[dw](value)
         lib.write_cycle(self.handle, address, ct.byref(l_value), am, dw)
 
     def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> list[int]:
@@ -372,8 +373,8 @@ class Device:
         """
         Binding of CAENVME_BLTReadCycle()
         """
-        n_data = size // ct.sizeof(_types.DATA_WIDTH_TYPE[dw])
-        l_data = (_types.DATA_WIDTH_TYPE[dw] * n_data)()
+        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
         l_count = ct.c_int()
         lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_data[:l_count.value]  # type: ignore
@@ -382,8 +383,8 @@ class Device:
         """
         Binding of CAENVME_FIFOBLTReadCycle()
         """
-        n_data = size // ct.sizeof(_types.DATA_WIDTH_TYPE[dw])
-        l_data = (_types.DATA_WIDTH_TYPE[dw] * n_data)()
+        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
         l_count = ct.c_int()
         lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_data[:l_count.value]  # type: ignore
@@ -411,8 +412,8 @@ class Device:
         Binding of CAENVME_BLTWriteCycle()
         """
         n_data = len(data)
-        size = n_data * ct.sizeof(_types.DATA_WIDTH_TYPE[dw])  # in bytes
-        l_data = (_types.DATA_WIDTH_TYPE[dw] * n_data)(*data)
+        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
         l_count = ct.c_int()
         lib.blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_count.value
@@ -422,8 +423,8 @@ class Device:
         Binding of CAENVME_FIFOBLTWriteCycle()
         """
         n_data = len(data)
-        size = n_data * ct.sizeof(_types.DATA_WIDTH_TYPE[dw])  # in bytes
-        l_data = (_types.DATA_WIDTH_TYPE[dw] * n_data)(*data)
+        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
         l_count = ct.c_int()
         lib.fifo_blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
         return l_count.value
@@ -460,7 +461,7 @@ class Device:
         """
         Binding of CAENVME_IACKCycle()
         """
-        l_data = _types.DATA_WIDTH_TYPE[dw]()
+        l_data = _DATA_WIDTH_TYPE[dw]()
         lib.iack_cycle(self.handle, levels, l_data, dw)
         return l_data.value
 
@@ -891,8 +892,8 @@ class Device:
         """
         Binding of CAENVME_BLTReadAsync()
         """
-        n_data = size // ct.sizeof(_types.DATA_WIDTH_TYPE[dw])
-        l_data = (_types.DATA_WIDTH_TYPE[dw] * n_data)()
+        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
+        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
         lib.blt_read_async(self.handle, address, l_data, size, am, dw)
         return l_data[:]  # type: ignore
 

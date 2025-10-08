@@ -6,7 +6,7 @@ from unittest.mock import ANY, DEFAULT, patch
 import caen_libs.caenplu as plu
 
 
-class TestCaenPlu(unittest.TestCase):
+class TestDevice(unittest.TestCase):
     """Test the Device class."""
 
     def setUp(self):

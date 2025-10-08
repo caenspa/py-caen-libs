@@ -6,8 +6,8 @@ from unittest.mock import ANY, DEFAULT, patch
 import caen_libs.caenhvwrapper as hv
 
 
-class TestHVDevice(unittest.TestCase):
-    """Test the HVDevice class."""
+class TestDevice(unittest.TestCase):
+    """Test the Device class."""
 
     def setUp(self):
         patcher = patch('caen_libs.caenhvwrapper.lib', autospec=True)

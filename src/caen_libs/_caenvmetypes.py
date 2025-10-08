@@ -81,7 +81,7 @@ class DataWidth(IntEnum):
     D64_SWAP = D64 | _DSWAP  # 64 bit, swapped
 
 
-DATA_WIDTH_TYPE = {
+DATA_WIDTH_TYPE: dict[DataWidth, type[ct._SimpleCData]] = {
     DataWidth.D8:       ct.c_uint8,
     DataWidth.D16:      ct.c_uint16,
     DataWidth.D16_SWAP: ct.c_uint16,

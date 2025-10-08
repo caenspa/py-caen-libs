@@ -868,29 +868,29 @@ class PHAParams:
 
     @dataclass(**_utils.dataclass_slots)
     class _ChData:
-        m_: int = 0
-        m: int = 0
-        k: int = 0
-        ftd: int = 0
-        a: int = 0
-        b: int = 0
-        thr: int = 0
-        nsbl: int = 0
-        nspk: int = 0
-        pkho: int = 0
-        blho: int = 0
-        trgho: int = 0
-        dgain: int = 0
-        enf: float = 0.0
-        decimation: int = 0
-        enskim: int = 0
-        eskimlld: int = 0
-        eskimuld: int = 0
-        blrclip: int = 0
-        dcomp: int = 0
-        trapbsl: int = 0
-        pz_dac: int = 0
-        inh_length: int = 0
+        m_: int = field(default=0)
+        m: int = field(default=0)
+        k: int = field(default=0)
+        ftd: int = field(default=0)
+        a: int = field(default=0)
+        b: int = field(default=0)
+        thr: int = field(default=0)
+        nsbl: int = field(default=0)
+        nspk: int = field(default=0)
+        pkho: int = field(default=0)
+        blho: int = field(default=0)
+        trgho: int = field(default=0)
+        dgain: int = field(default=0)
+        enf: float = field(default=0.0)
+        decimation: int = field(default=0)
+        enskim: int = field(default=0)
+        eskimlld: int = field(default=0)
+        eskimuld: int = field(default=0)
+        blrclip: int = field(default=0)
+        dcomp: int = field(default=0)
+        trapbsl: int = field(default=0)
+        pz_dac: int = field(default=0)
+        inh_length: int = field(default=0)
         x770_extraparameters: ExtraParameters = field(default_factory=ExtraParameters)
 
     ch: list[_ChData] = field(default_factory=list)
