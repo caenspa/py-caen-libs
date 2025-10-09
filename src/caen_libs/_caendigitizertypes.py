@@ -1609,30 +1609,30 @@ class DPPPHAParams:
 
     @dataclass(**_utils.dataclass_slots)
     class _ChData:
-        m_: int = field(default=0)
-        m: int = field(default=0)
-        k: int = field(default=0)
-        ftd: int = field(default=0)
-        a: int = field(default=0)
-        b: int = field(default=0)
-        thr: int = field(default=0)
-        nsbl: int = field(default=0)
-        nspk: int = field(default=0)
-        pkho: int = field(default=0)
-        blho: int = field(default=0)
-        otrej: int = field(default=0)
-        trgho: int = field(default=0)
-        twwdt: int = field(default=0)
-        trgwin: int = field(default=0)
-        dgain: int = field(default=0)
-        enf: float = field(default=0.)
-        decimation: int = field(default=0)
-        enskim: bool = field(default=False)
-        eskimlld: int = field(default=0)
-        eskimuld: int = field(default=0)
-        blrclip: bool = field(default=False)
-        dcomp: bool = field(default=False)
-        trapbsl: int = field(default=0)
+        m_: int = 0
+        m: int = 0
+        k: int = 0
+        ftd: int = 0
+        a: int = 0
+        b: int = 0
+        thr: int = 0
+        nsbl: int = 0
+        nspk: int = 0
+        pkho: int = 0
+        blho: int = 0
+        otrej: int = 0
+        trgho: int = 0
+        twwdt: int = 0
+        trgwin: int = 0
+        dgain: int = 0
+        enf: float = 0.
+        decimation: int = 0
+        enskim: bool = False
+        eskimlld: int = 0
+        eskimuld: int = 0
+        blrclip: bool = False
+        dcomp: bool = False
+        trapbsl: int = 0
 
     ch: list[_ChData] = field(default_factory=list)
 
@@ -1721,24 +1721,24 @@ class DPPPSDParams:
 
     @dataclass(**_utils.dataclass_slots)
     class _ChData:
-        thr: int = field(default=0)
-        selft: bool = field(default=False)
-        csens: int = field(default=0)
-        sgate: int = field(default=0)
-        lgate: int = field(default=0)
-        pgate: int = field(default=0)
-        tvaw: int = field(default=0)
-        nsbl: int = field(default=0)
-        discr: bool = field(default=False)
-        cfdf: int = field(default=0)
-        cfdd: int = field(default=0)
-        trgc: DPPTriggerConfig = field(default=DPPTriggerConfig.PEAK)
+        thr: int = 0
+        selft: bool = False
+        csens: int = 0
+        sgate: int = 0
+        lgate: int = 0
+        pgate: int = 0
+        tvaw: int = 0
+        nsbl: int = 0
+        discr: bool = False
+        cfdf: int = 0
+        cfdd: int = 0
+        trgc: DPPTriggerConfig = DPPTriggerConfig.PEAK
 
-    blthr: int = field(default=0)
-    bltmo: int = field(default=0)
-    trgho: int = field(default=0)
-    purh: DPPPUR = field(default=DPPPUR.DETECT_ONLY)
-    purgap: int = field(default=0)
+    blthr: int = 0
+    bltmo: int = 0
+    trgho: int = 0
+    purh: DPPPUR = DPPPUR.DETECT_ONLY
+    purgap: int = 0
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -1795,20 +1795,20 @@ class DPPCIParams:
 
     @dataclass(**_utils.dataclass_slots)
     class _ChData:
-        thr: int = field(default=0)
-        selft: bool = field(default=False)
-        csens: int = field(default=0)
-        gate: int = field(default=0)
-        pgate: int = field(default=0)
-        tvaw: int = field(default=0)
-        nsbl: int = field(default=0)
-        trgc: DPPTriggerConfig = field(default=DPPTriggerConfig.PEAK)
+        thr: int = 0
+        selft: bool = False
+        csens: int = 0
+        gate: int = 0
+        pgate: int = 0
+        tvaw: int = 0
+        nsbl: int = 0
+        trgc: DPPTriggerConfig = DPPTriggerConfig.PEAK
 
-    purgap: int = field(default=0)
-    purh: DPPPUR = field(default=DPPPUR.DETECT_ONLY)
-    blthr: int = field(default=0)
-    bltmo: int = field(default=0)
-    trgho: int = field(default=0)
+    purgap: int = 0
+    purh: DPPPUR = DPPPUR.DETECT_ONLY
+    blthr: int = 0
+    bltmo: int = 0
+    trgho: int = 0
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -1856,15 +1856,15 @@ class ZLEParams751:
 
     @dataclass(**_utils.dataclass_slots)
     class _ChData:
-        nsamp_bck: int = field(default=0)
-        nsamp_ahe: int = field(default=0)
-        zle_upp_thr: int = field(default=0)
-        zle_und_thr: int = field(default=0)
-        sel_num_samp_bsl: int = field(default=0)
-        bsl_thrshld: int = field(default=0)
-        bsl_time_out: int = field(default=0)
+        nsamp_bck: int = 0
+        nsamp_ahe: int = 0
+        zle_upp_thr: int = 0
+        zle_und_thr: int = 0
+        sel_num_samp_bsl: int = 0
+        bsl_thrshld: int = 0
+        bsl_time_out: int = 0
 
-    pre_trgg: int = field(default=0)
+    pre_trgg: int = 0
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -1904,12 +1904,12 @@ class DPPX743Params:
 
     @dataclass(**_utils.dataclass_slots)
     class _ChData:
-        start_cell: int = field(default=0)
-        charge_length: int = field(default=0)
-        enable_charge_threshold: EnaDis = field(default=EnaDis.DISABLE)
-        charge_threshold: float = field(default=0.)
+        start_cell: int = 0
+        charge_length: int = 0
+        enable_charge_threshold: EnaDis = EnaDis.DISABLE
+        charge_threshold: float = 0.
 
-    disable_suppress_baseline: EnaDis = field(default=EnaDis.DISABLE)
+    disable_suppress_baseline: EnaDis = EnaDis.DISABLE
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -1956,22 +1956,22 @@ class DPPQDCParams:
 
     @dataclass(**_utils.dataclass_slots)
     class _ChData:
-        trgho: int = field(default=0)
-        gate_width: int = field(default=0)
-        pre_gate: int = field(default=0)
-        fixed_baseline: int = field(default=0)
-        dis_trig_hist: bool = field(default=False)
-        dis_self_trigger: bool = field(default=False)
-        baseline_mode: int = field(default=0)
-        trg_mode: int = field(default=0)
-        charge_sensitivity: int = field(default=0)
-        pulse_pol: PulsePolarity = field(default=PulsePolarity.POSITIVE)
-        en_charge_ped: bool = field(default=False)
-        test_pulses_rate: int = field(default=0)
-        en_test_pulses: bool = field(default=False)
-        input_smoothing: int = field(default=0)
+        trgho: int = 0
+        gate_width: int = 0
+        pre_gate: int = 0
+        fixed_baseline: int = 0
+        dis_trig_hist: bool = False
+        dis_self_trigger: bool = False
+        baseline_mode: int = 0
+        trg_mode: int = 0
+        charge_sensitivity: int = 0
+        pulse_pol: PulsePolarity = PulsePolarity.POSITIVE
+        en_charge_ped: bool = False
+        test_pulses_rate: int = 0
+        en_test_pulses: bool = False
+        input_smoothing: int = 0
 
-    enable_extended_time_stamp: bool = field(default=False)
+    enable_extended_time_stamp: bool = False
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):

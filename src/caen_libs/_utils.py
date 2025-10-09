@@ -12,7 +12,7 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, overload
 
 if sys.platform == 'win32':
@@ -120,10 +120,7 @@ def version_to_tuple(version: str) -> tuple[int, ...]:
 
 
 # Slots brings some performance improvements and memory savings.
-if sys.version_info >= (3, 10):
-    dataclass_slots = {'slots': True}
-else:
-    dataclass_slots = {}
+dataclass_slots = {'slots': True}
 
 
 # Weakref support is required by the cache manager.
@@ -142,8 +139,8 @@ class Registers:
 
     getter: Callable[[int], int]
     setter: Callable[[int, int], None]
-    multi_getter: Callable[[Sequence[int]], list[int]] | None = field(default=None)
-    multi_setter: Callable[[Sequence[int], Sequence[int]], None] | None = field(default=None)
+    multi_getter: Callable[[Sequence[int]], list[int]] | None = None
+    multi_setter: Callable[[Sequence[int], Sequence[int]], None] | None = None
 
     def get(self, address: int) -> int:
         """Get value"""

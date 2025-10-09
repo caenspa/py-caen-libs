@@ -4,7 +4,7 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum, unique
 import os
 from typing import TypeVar
@@ -262,15 +262,15 @@ class ParamProp:
     """
     type: ParamType
     mode: ParamMode
-    minval: float | None = field(default=None)
-    maxval: float | None = field(default=None)
-    unit: ParamUnit | None = field(default=None)
-    exp: int | None = field(default=None)
-    decimal: int | None = field(default=None)
-    resol: int | None = field(default=None)
-    onstate: str | None = field(default=None)
-    offstate: str | None = field(default=None)
-    enum: tuple[str, ...] | None = field(default=None)
+    minval: float | None = None
+    maxval: float | None = None
+    unit: ParamUnit | None = None
+    exp: int | None = None
+    decimal: int | None = None
+    resol: int | None = None
+    onstate: str | None = None
+    offstate: str | None = None
+    enum: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)
@@ -279,8 +279,8 @@ class TcpPorts:
     TCP port range to bind to for event handling. Range is exclusive,
     so that the ports used are [first, last).
     """
-    first: int = field(default=0)
-    last: int = field(default=1)
+    first: int = 0
+    last: int = 1
 
     def __post_init__(self) -> None:
         if self.first < 0 or self.first > 65535:

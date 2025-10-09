@@ -14,7 +14,7 @@ __license__ = 'MIT-0'
 # SPDX-License-Identifier: MIT-0
 __contact__ = 'https://www.caen.it/'
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import sys
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
@@ -45,9 +45,9 @@ class InteractiveDemo:
     device: vme.Device
 
     # Private fields
-    __vme_base_address: int = field(default=0)
-    __address_modifier: vme.AddressModifiers = field(default=vme.AddressModifiers.A32_U_DATA)
-    __data_width: vme.DataWidth = field(default=vme.DataWidth.D32)
+    __vme_base_address: int = 0
+    __address_modifier: vme.AddressModifiers = vme.AddressModifiers.A32_U_DATA
+    __data_width: vme.DataWidth = vme.DataWidth.D32
 
     def set_vme_baseaddress(self):
         """Set VME base address"""

@@ -76,9 +76,9 @@ class ConnectionParams:
     """
     link_type: ConnectionType
     link_num: int
-    conet_node: int = field(default=0)
-    vme_base_address: int = field(default=0)
-    eth_address: str = field(default='')
+    conet_node: int = 0
+    vme_base_address: int = 0
+    eth_address: str = ''
 
     def to_raw(self) -> ConnectionParamsRaw:
         """Convert to raw data"""
@@ -595,9 +595,9 @@ class TempCorrParams:
     """
     Binding of ::CAENDPP_TempCorrParams_t
     """
-    enabled: bool = field(default=False)
-    lld: int = field(default=0)
-    uld: int = field(default=0)
+    enabled: bool = False
+    lld: int = 0
+    uld: int = 0
 
     @classmethod
     def from_raw(cls, raw: TempCorrParamsRaw):
@@ -731,11 +731,11 @@ class GPIOConfig:
     Binding of ::CAENDPP_GPIOConfig_t
     """
     gpios: list[GPIO] = field(default_factory=list)
-    trg_control: TriggerControl = field(default=TriggerControl.INTERNAL)
-    gpio_logic: GPIOLogic = field(default=GPIOLogic.AND)
-    time_window: int = field(default=0)
-    trans_reset_length: int = field(default=0)
-    trans_reset_period: int = field(default=0)
+    trg_control: TriggerControl = TriggerControl.INTERNAL
+    gpio_logic: GPIOLogic = GPIOLogic.AND
+    time_window: int = 0
+    trans_reset_length: int = 0
+    trans_reset_period: int = 0
 
     @classmethod
     def from_raw(cls, raw: GPIOConfigRaw):
@@ -790,14 +790,14 @@ class ExtraParameters:
     """
     Binding of ::CAENDPP_ExtraParameters
     """
-    trig_k: int = field(default=0)
-    trigm: int = field(default=0)
-    trig_mode: int = field(default=0)
-    energy_filter_mode: int = field(default=0)
-    input_impedance: InputImpedance = field(default=InputImpedance.O_1K)
-    cr_gain: int = field(default=0)
-    tr_gain: int = field(default=0)
-    saturation_holdoff: int = field(default=0)
+    trig_k: int = 0
+    trigm: int = 0
+    trig_mode: int = 0
+    energy_filter_mode: int = 0
+    input_impedance: InputImpedance = InputImpedance.O_1K
+    cr_gain: int = 0
+    tr_gain: int = 0
+    saturation_holdoff: int = 0
     gpio_config: GPIOConfig = field(default_factory=GPIOConfig)
 
     @classmethod
@@ -868,29 +868,29 @@ class PHAParams:
 
     @dataclass(**_utils.dataclass_slots)
     class _ChData:
-        m_: int = field(default=0)
-        m: int = field(default=0)
-        k: int = field(default=0)
-        ftd: int = field(default=0)
-        a: int = field(default=0)
-        b: int = field(default=0)
-        thr: int = field(default=0)
-        nsbl: int = field(default=0)
-        nspk: int = field(default=0)
-        pkho: int = field(default=0)
-        blho: int = field(default=0)
-        trgho: int = field(default=0)
-        dgain: int = field(default=0)
-        enf: float = field(default=0.0)
-        decimation: int = field(default=0)
-        enskim: int = field(default=0)
-        eskimlld: int = field(default=0)
-        eskimuld: int = field(default=0)
-        blrclip: int = field(default=0)
-        dcomp: int = field(default=0)
-        trapbsl: int = field(default=0)
-        pz_dac: int = field(default=0)
-        inh_length: int = field(default=0)
+        m_: int = 0
+        m: int = 0
+        k: int = 0
+        ftd: int = 0
+        a: int = 0
+        b: int = 0
+        thr: int = 0
+        nsbl: int = 0
+        nspk: int = 0
+        pkho: int = 0
+        blho: int = 0
+        trgho: int = 0
+        dgain: int = 0
+        enf: float = 0.0
+        decimation: int = 0
+        enskim: int = 0
+        eskimlld: int = 0
+        eskimuld: int = 0
+        blrclip: int = 0
+        dcomp: int = 0
+        trapbsl: int = 0
+        pz_dac: int = 0
+        inh_length: int = 0
         x770_extraparameters: ExtraParameters = field(default_factory=ExtraParameters)
 
     ch: list[_ChData] = field(default_factory=list)
@@ -1002,15 +1002,15 @@ class WaveformParams:
     """
     Binding of ::CAENDPP_WaveformParams_t
     """
-    dual_trace_mode: int = field(default=0)
-    vp1: VirtualProbe1 = field(default=VirtualProbe1.INPUT)
-    vp2: VirtualProbe2 = field(default=VirtualProbe2.NONE)
-    dp1: DigitalProbe1 = field(default=DigitalProbe1.TRIGGER)
-    dp2: DigitalProbe2 = field(default=DigitalProbe2.PEAKING)
-    record_length: int = field(default=0)
-    pre_trigger: int = field(default=0)
-    probe_trigger: ProbeTrigger = field(default=ProbeTrigger.MAIN_TRIG)
-    probe_self_trigger_val: int = field(default=0)
+    dual_trace_mode: int = 0
+    vp1: VirtualProbe1 = VirtualProbe1.INPUT
+    vp2: VirtualProbe2 = VirtualProbe2.NONE
+    dp1: DigitalProbe1 = DigitalProbe1.TRIGGER
+    dp2: DigitalProbe2 = DigitalProbe2.PEAKING
+    record_length: int = 0
+    pre_trigger: int = 0
+    probe_trigger: ProbeTrigger = ProbeTrigger.MAIN_TRIG
+    probe_self_trigger_val: int = 0
 
     @classmethod
     def from_raw(cls, raw: WaveformParamsRaw):
@@ -1081,12 +1081,12 @@ class ListParams:
     """
     Binding of ::CAENDPP_ListParams_t
     """
-    enabled: bool = field(default=False)
-    save_mode: ListSaveMode = field(default=ListSaveMode.MEMORY)
-    file_name: str = field(default='py_dpplib_default.txt')
-    max_buff_num_events: int = field(default=0)
-    save_mask: DumpMask = field(default=DumpMask.TTT | DumpMask.ENERGY | DumpMask.EXTRAS)
-    enable_fakes: bool = field(default=False)
+    enabled: bool = False
+    save_mode: ListSaveMode = ListSaveMode.MEMORY
+    file_name: str = 'py_dpplib_default.txt'
+    max_buff_num_events: int = 0
+    save_mask: DumpMask = DumpMask.TTT | DumpMask.ENERGY | DumpMask.EXTRAS
+    enable_fakes: bool = False
 
     @classmethod
     def from_raw(cls, raw: ListParamsRaw):
@@ -1130,13 +1130,13 @@ class RunSpecs:
     """
     Binding of ::CAENDPP_RunSpecs_t
     """
-    run_name: str = field(default='py_dpplib_default')
-    run_duration_sec: int = field(default=0)
-    pause_sec: int = field(default=0)
-    cycles_count: int = field(default=1)
-    save_lists: bool = field(default=False)
-    gps_enable: bool = field(default=False)
-    clear_histos: bool = field(default=False)
+    run_name: str = 'py_dpplib_default'
+    run_duration_sec: int = 0
+    pause_sec: int = 0
+    cycles_count: int = 1
+    save_lists: bool = False
+    gps_enable: bool = False
+    clear_histos: bool = False
 
     @classmethod
     def from_raw(cls, raw: RunSpecsRaw):
@@ -1200,11 +1200,11 @@ class CoincParams:
     """
     Binding of ::CAENDPP_CoincParams_t
     """
-    coinc_ch_mask: int = field(default=0)
-    maj_level: int = field(default=0)
-    trg_win: int = field(default=0)
-    coinc_op: CoincOp = field(default=CoincOp.OR)
-    coinc_logic: CoincLogic = field(default=CoincLogic.NONE)
+    coinc_ch_mask: int = 0
+    maj_level: int = 0
+    trg_win: int = 0
+    coinc_op: CoincOp = CoincOp.OR
+    coinc_logic: CoincLogic = CoincLogic.NONE
 
     @classmethod
     def from_raw(cls, raw: CoincParamsRaw):
@@ -1261,10 +1261,10 @@ class GateParams:
     """
     Binding of ::CAENDPP_GateParams_t
     """
-    gate_enable: bool = field(default=False)
-    shape_time: int = field(default=0)
-    polarity: PulsePolarity = field(default=PulsePolarity.POSITIVE)
-    gate_logic: ExtLogic = field(default=ExtLogic.VETO)
+    gate_enable: bool = False
+    shape_time: int = 0
+    polarity: PulsePolarity = PulsePolarity.POSITIVE
+    gate_logic: ExtLogic = ExtLogic.VETO
 
     @classmethod
     def from_raw(cls, raw: GateParamsRaw):
@@ -1308,8 +1308,8 @@ class SpectrumControl:
     """
     Binding of ::CAENDPP_SpectrumControl
     """
-    spectrum_mode: SpectrumMode = field(default=SpectrumMode.ENERGY)
-    time_scale: int = field(default=0)
+    spectrum_mode: SpectrumMode = SpectrumMode.ENERGY
+    time_scale: int = 0
 
     @classmethod
     def from_raw(cls, raw: SpectrumControlRaw):
@@ -1347,11 +1347,11 @@ class TRReset:
     """
     Binding of ::CAENDPP_TRReset
     """
-    enabled: bool = field(default=False)
-    reset_detection_mode: ResetDetectionMode = field(default=ResetDetectionMode.INTERNAL)
-    thrhold: int = field(default=0)
-    reslenmin: int = field(default=0)
-    reslength: int = field(default=0)
+    enabled: bool = False
+    reset_detection_mode: ResetDetectionMode = ResetDetectionMode.INTERNAL
+    thrhold: int = 0
+    reslenmin: int = 0
+    reslength: int = 0
 
     @classmethod
     def from_raw(cls, raw: TRResetRaw):
@@ -1389,9 +1389,9 @@ class MonOutParams:
     """
     Binding of ::CAENDPP_MonOutParams_t
     """
-    channel: int = field(default=0)
-    enabled: bool = field(default=False)
-    probe: PHAMonOutProbe = field(default=PHAMonOutProbe.INPUT)
+    channel: int = 0
+    enabled: bool = False
+    probe: PHAMonOutProbe = PHAMonOutProbe.INPUT
 
     @classmethod
     def from_raw(cls, raw: MonOutParamsRaw):
@@ -1465,10 +1465,10 @@ class DgtzParams:
 
     @dataclass(frozen=True, **_utils.dataclass_slots)
     class _ChData:
-        pulse_polarity: PulsePolarity = field(default=PulsePolarity.POSITIVE)
-        dc_offset: int = field(default=0)
+        pulse_polarity: PulsePolarity = PulsePolarity.POSITIVE
+        dc_offset: int = 0
         temp_corr_parameters: TempCorrParams = field(default_factory=TempCorrParams)
-        input_coupling: INCoupling = field(default=INCoupling.DC)
+        input_coupling: INCoupling = INCoupling.DC
         gate_params: GateParams = field(default_factory=GateParams)
         spectrum_control: SpectrumControl = field(default_factory=SpectrumControl)
         reset_detector: TRReset = field(default_factory=TRReset)
@@ -1476,10 +1476,10 @@ class DgtzParams:
     gw_addr: list[int] = field(default_factory=list)
     gw_data: list[int] = field(default_factory=list)
     gw_mask: list[int] = field(default_factory=list)
-    channel_mask: int = field(default=0)
-    event_aggr: int = field(default=0)
+    channel_mask: int = 0
+    event_aggr: int = 0
     dpp_params: PHAParams = field(default_factory=PHAParams)
-    iolev: IOLevel = field(default=IOLevel.NIM)
+    iolev: IOLevel = IOLevel.NIM
     wf_params: WaveformParams = field(default_factory=WaveformParams)
     list_params: ListParams = field(default_factory=ListParams)
     run_specifications: RunSpecs = field(default_factory=RunSpecs)

@@ -323,7 +323,7 @@ class Device:
 
     # Public members
     handle: int
-    log_severity_mask: LogMask | None = field(default=None)
+    log_severity_mask: LogMask | None = None
 
     # Private members
     __opened: bool = field(default=True, repr=False)
