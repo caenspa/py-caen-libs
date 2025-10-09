@@ -623,7 +623,7 @@ class Device:
         """
         n_indexes = len(channel_list)
         if n_indexes == 0:
-            return []
+            return ()
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
         l_value = ct.create_string_buffer(self.__MAX_CH_NAME * n_allocated_values)
