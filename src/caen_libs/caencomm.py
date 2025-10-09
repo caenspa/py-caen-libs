@@ -12,7 +12,7 @@ from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import TypeVar, Union
+from typing import TypeVar
 
 from caen_libs import error, _utils
 
@@ -183,14 +183,15 @@ class _Lib(_utils.Lib):
 lib = _Lib('CAENComm')
 
 
-def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
-    if connection_type is ConnectionType.ETH_V4718:
-        assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode('ascii')
-    else:
-        l_link_number = int(arg)
-        l_link_number_ct = ct.c_uint32(l_link_number)
-        return ct.pointer(l_link_number_ct)
+def _get_l_arg(connection_type: ConnectionType, arg: int | str):
+    match connection_type:
+        case ConnectionType.ETH_V4718:
+            assert isinstance(arg, str), 'arg expected to be a string'
+            return arg.encode('ascii')
+        case _:
+            l_link_number = int(arg)
+            l_link_number_ct = ct.c_uint32(l_link_number)
+            return ct.pointer(l_link_number_ct)
 
 
 @dataclass(**_utils.dataclass_slots)
@@ -202,7 +203,7 @@ class Device:
     # Public members
     handle: int
     connection_type: ConnectionType
-    arg: Union[int, str]
+    arg: int | str
     conet_node: int
     vme_base_address: int
 
@@ -224,7 +225,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
+    def open(cls: type[_T], connection_type: ConnectionType, arg: int | str, conet_node: int, vme_base_address: int) -> _T:
         """
         Binding of CAENComm_OpenDevice2()
         """

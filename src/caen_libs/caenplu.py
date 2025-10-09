@@ -13,7 +13,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Sequence, TypeVar, Union
+from typing import Sequence, TypeVar
 
 from caen_libs import error, _string, _utils
 import caen_libs._caenplutypes as _types
@@ -167,18 +167,19 @@ else:
 lib = _Lib(_LIB_NAME)
 
 
-def _get_l_arg(connection_mode: ConnectionModes, arg: Union[int, str]):
-    if connection_mode in (ConnectionModes.DIRECT_ETH, ConnectionModes.VME_V4718_ETH):
-        assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode('ascii')
-    elif connection_mode in (ConnectionModes.DIRECT_USB, ConnectionModes.VME_V1718, ConnectionModes.VME_V2718):
-        l_link_number_i = int(arg)
-        l_link_number_i_ct = ct.c_int(l_link_number_i)
-        return ct.pointer(l_link_number_i_ct)
-    else:
-        l_link_number_u32 = int(arg)
-        l_link_number_u32_ct = ct.c_uint32(l_link_number_u32)
-        return ct.pointer(l_link_number_u32_ct)
+def _get_l_arg(connection_mode: ConnectionModes, arg: int | str):
+    match connection_mode:
+        case ConnectionModes.DIRECT_ETH | ConnectionModes.VME_V4718_ETH:
+            assert isinstance(arg, str), 'arg expected to be a string'
+            return arg.encode('ascii')
+        case ConnectionModes.DIRECT_USB | ConnectionModes.VME_V1718 | ConnectionModes.VME_V2718:
+            l_link_number_i = int(arg)
+            l_link_number_i_ct = ct.c_int(l_link_number_i)
+            return ct.pointer(l_link_number_i_ct)
+        case _:
+            l_link_number_u32 = int(arg)
+            l_link_number_u32_ct = ct.c_uint32(l_link_number_u32)
+            return ct.pointer(l_link_number_u32_ct)
 
 
 @dataclass(**_utils.dataclass_slots)
@@ -190,7 +191,7 @@ class Device:
     # Public members
     handle: int
     connection_mode: ConnectionModes
-    arg: Union[int, str]
+    arg: int | str
     conet_node: int
     vme_base_address: str
 
@@ -210,7 +211,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: type[_T], connection_mode: ConnectionModes, arg: Union[int, str], conet_node: int, vme_base_address: Union[int, str]) -> _T:
+    def open(cls: type[_T], connection_mode: ConnectionModes, arg: int | str, conet_node: int, vme_base_address: int | str) -> _T:
         """
         Binding of CAEN_PLU_OpenDevice2()
         """

@@ -7,10 +7,17 @@ import ctypes as ct
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 import os
-from typing import Optional, TypeVar, Union
+from typing import TypeVar
 import warnings
 
 from caen_libs import _utils
+
+
+# Constants from CAENHVWrapper.h
+MAX_PARAM_NAME = 10
+MAX_CH_NAME = 12
+MAX_ENUM_NAME = 15  # From library documentation
+MAX_ENUM_VALS = 10  # From library source code
 
 
 @unique
@@ -127,9 +134,9 @@ class EventData:
     """
     type: EventType
     item_id: str
-    slot: Optional[int]
-    channel: Optional[int]
-    value: Union[str, float, int]
+    slot: int | None
+    channel: int | None
+    value: str | float | int
 
     @property
     def board_index(self) -> int:
@@ -255,15 +262,15 @@ class ParamProp:
     """
     type: ParamType
     mode: ParamMode
-    minval: Optional[float] = field(default=None)
-    maxval: Optional[float] = field(default=None)
-    unit: Optional[ParamUnit] = field(default=None)
-    exp: Optional[int] = field(default=None)
-    decimal: Optional[int] = field(default=None)
-    resol: Optional[int] = field(default=None)
-    onstate: Optional[str] = field(default=None)
-    offstate: Optional[str] = field(default=None)
-    enum: Optional[tuple[str, ...]] = field(default=None)
+    minval: float | None = field(default=None)
+    maxval: float | None = field(default=None)
+    unit: ParamUnit | None = field(default=None)
+    exp: int | None = field(default=None)
+    decimal: int | None = field(default=None)
+    resol: int | None = field(default=None)
+    onstate: str | None = field(default=None)
+    offstate: str | None = field(default=None)
+    enum: tuple[str, ...] | None = field(default=None)
 
 
 @dataclass(frozen=True, **_utils.dataclass_slots)

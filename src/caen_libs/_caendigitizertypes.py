@@ -6,7 +6,7 @@ __license__ = 'LGPL-3.0-or-later'
 import ctypes as ct
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto, unique
-from typing import ClassVar, Generic, Optional, Protocol, TypeVar
+from typing import ClassVar, Generic, Protocol, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -515,7 +515,7 @@ class X742Event:
     raw: X742EventRaw = field(repr=False)
 
     @property
-    def data_group(self) -> list[Optional[X742Group]]:
+    def data_group(self) -> list[X742Group | None]:
         """Data group"""
         return [X742Group(self.raw.DataGroup[i].contents) if self.raw.GrPresent[i] else None for i in range(MAX_X742_GROUP_SIZE)]
 
@@ -626,7 +626,7 @@ class X743Event:
     raw: X743EventRaw = field(repr=False)
 
     @property
-    def data_group(self) -> list[Optional[X743Group]]:
+    def data_group(self) -> list[X743Group | None]:
         """Data group"""
         return [X743Group(self.raw.DataGroup[i].contents) if self.raw.GrPresent[i] else None for i in range(MAX_V1743_GROUP_SIZE)]
 
@@ -1019,7 +1019,7 @@ class ZLEEvent730:
         return self.raw.timeStamp
 
     @property
-    def channel(self) -> list[Optional[ZLEChannel730]]:
+    def channel(self) -> list[ZLEChannel730 | None]:
         """Channel"""
         return [ZLEChannel730(self.raw.Channel[i].contents) if (self.raw.chmask & (1 << i)) else None for i in range(MAX_V1730_CHANNEL_SIZE)]
 
@@ -1133,7 +1133,7 @@ class DPPDAWEvent:
         return self.raw.timeStamp
 
     @property
-    def channel(self) -> list[Optional[DPPDAWChannel]]:
+    def channel(self) -> list[DPPDAWChannel | None]:
         """Channel"""
         chmask: int = self.raw.chmask
         chmask_it = (bool((chmask >> i) & 1) for i in range(chmask.bit_length()))

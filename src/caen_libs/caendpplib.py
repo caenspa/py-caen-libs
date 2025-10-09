@@ -15,7 +15,7 @@ from enum import IntEnum, unique
 import os
 from pathlib import Path
 import sys
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import numpy as np
 
@@ -323,7 +323,7 @@ class Device:
 
     # Public members
     handle: int
-    log_severity_mask: Optional[LogMask] = field(default=None)
+    log_severity_mask: LogMask | None = field(default=None)
 
     # Private members
     __opened: bool = field(default=True, repr=False)

@@ -13,7 +13,7 @@ import sys
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union, overload
+from typing import Any, overload
 
 if sys.platform == 'win32':
     _LibNotFoundClass = FileNotFoundError
@@ -27,7 +27,7 @@ class Lib(ABC):
     public attributes using ctypes.
     """
 
-    def __init__(self, name: str, stdcall: bool = True, env: Optional[dict[str, str]] = None) -> None:
+    def __init__(self, name: str, stdcall: bool = True, env: dict[str, str] | None = None) -> None:
         self.__name = name
         self.__stdcall = stdcall  # Ignored on Linux
         self.__env = env
@@ -41,7 +41,7 @@ class Lib(ABC):
         """
         self.__lib_variadic: ct.CDLL
         if sys.platform == 'win32':
-            self.__lib: Union[ct.CDLL, ct.WinDLL]
+            self.__lib: ct.CDLL | ct.WinDLL
         else:
             self.__lib: ct.CDLL
 
@@ -142,8 +142,8 @@ class Registers:
 
     getter: Callable[[int], int]
     setter: Callable[[int, int], None]
-    multi_getter: Optional[Callable[[Sequence[int]], list[int]]] = field(default=None)
-    multi_setter: Optional[Callable[[Sequence[int], Sequence[int]], None]] = field(default=None)
+    multi_getter: Callable[[Sequence[int]], list[int]] | None = field(default=None)
+    multi_setter: Callable[[Sequence[int], Sequence[int]], None] | None = field(default=None)
 
     def get(self, address: int) -> int:
         """Get value"""

@@ -13,7 +13,7 @@ from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import TypeVar, Union
+from typing import TypeVar
 
 from caen_libs import error, _utils
 import caen_libs._caenvmetypes as _types
@@ -224,14 +224,15 @@ else:
 lib = _Lib(_LIB_NAME)
 
 
-def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
-    if board_type in (BoardType.ETH_V4718, BoardType.ETH_V4718_LOCAL):
-        assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode('ascii')
-    else:
-        l_link_number = int(arg)
-        l_link_number_ct = ct.c_uint32(l_link_number)
-        return ct.pointer(l_link_number_ct)
+def _get_l_arg(board_type: BoardType, arg: int | str):
+    match board_type:
+        case BoardType.ETH_V4718 | BoardType.ETH_V4718_LOCAL:
+            assert isinstance(arg, str), 'arg expected to be a string'
+            return arg.encode('ascii')
+        case _:
+            l_link_number = int(arg)
+            l_link_number_ct = ct.c_uint32(l_link_number)
+            return ct.pointer(l_link_number_ct)
 
 
 @dataclass(**_utils.dataclass_slots)
@@ -243,7 +244,7 @@ class Device:
     # Public members
     handle: int
     board_type: BoardType
-    arg: Union[int, str]
+    arg: int | str
     conet_node: int
 
     # Private members
@@ -262,7 +263,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: type[_T], board_type: BoardType, arg: Union[int, str], conet_node: int = 0) -> _T:
+    def open(cls: type[_T], board_type: BoardType, arg: int | str, conet_node: int = 0) -> _T:
         """
         Binding of CAENVME_Init2()
         """

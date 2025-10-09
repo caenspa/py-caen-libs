@@ -8,7 +8,6 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 from functools import _lru_cache_wrapper, lru_cache, wraps
-from typing import Optional
 from weakref import ReferenceType, ref
 
 
@@ -33,7 +32,7 @@ class Manager(list[_lru_cache_wrapper]):
 # Omitted because very verbose.
 
 
-def cached(cache_manager: Optional[Manager] = None, maxsize: int = 128, typed: bool = False):
+def cached(cache_manager: Manager | None = None, maxsize: int = 128, typed: bool = False):
     """
     LRU cache decorator that keeps a weak reference to self.
 

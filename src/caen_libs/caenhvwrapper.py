@@ -15,7 +15,7 @@ from collections.abc import Callable, Generator, Iterator, Sequence
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Any, ClassVar, Optional, TypeVar, Union
+from typing import Any, ClassVar, TypeVar
 
 from caen_libs import _cache, _string, _utils, error
 import caen_libs._caenhvwrappertypes as _types
@@ -28,6 +28,10 @@ from caen_libs._caenhvwrappertypes import (  # pylint: disable=W0611
     EventType,
     FwVersion,
     LinkType,
+    MAX_PARAM_NAME as _MAX_PARAM_NAME,
+    MAX_CH_NAME as _MAX_CH_NAME,
+    MAX_ENUM_NAME as _MAX_ENUM_NAME,
+    MAX_ENUM_VALS as _MAX_ENUM_VALS,
     ParamMode,
     ParamProp,
     ParamType,
@@ -183,7 +187,7 @@ _PARAM_TYPE_SET_ARG: dict[ParamType, Callable[[Any, int], Any]] = {
 }
 
 
-_SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_types.IdValueRaw], Union[str, float, int]]] = {
+_SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_types.IdValueRaw], str | float | int]] = {
     SysPropType.STR:        lambda v: v.StringValue.decode('ascii'),
     SysPropType.REAL:       lambda v: v.FloatValue,
     SysPropType.UINT2:      lambda v: v.IntValue,
@@ -194,7 +198,7 @@ _SYS_PROP_TYPE_EVENT_ARG: dict[SysPropType, Callable[[_types.IdValueRaw], Union[
 }
 
 
-_PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_types.IdValueRaw], Union[str, float, int]]] = {
+_PARAM_TYPE_EVENT_ARG: dict[ParamType, Callable[[_types.IdValueRaw], str | float | int]] = {
     ParamType.NUMERIC:      lambda v: v.FloatValue,
     ParamType.ONOFF:        lambda v: v.IntValue,
     ParamType.CHSTATUS:     lambda v: v.IntValue,
@@ -368,14 +372,8 @@ class Device:
 
     # Private members
     __opened: bool = field(default=True, repr=False)
-    __skt_server: Optional[socket.socket] = field(default=None, repr=False)
-    __skt_client: Optional[socket.socket] = field(default=None, repr=False)
-
-    # Private constants
-    __MAX_PARAM_NAME: ClassVar[int] = 10  # From CAENHVWrapper.h
-    __MAX_CH_NAME: ClassVar[int] = 12  # From CAENHVWrapper.h
-    __MAX_ENUM_NAME: ClassVar[int] = 15  # From library documentation
-    __MAX_ENUM_VALS: ClassVar[int] = 10  # From library source code
+    __skt_server: socket.socket | None = field(default=None, repr=False)
+    __skt_client: socket.socket | None = field(default=None, repr=False)
 
     # Static private members
     __cache_manager: ClassVar[_cache.Manager] = _cache.Manager()
@@ -436,7 +434,7 @@ class Device:
         self.__opened = False
 
     @_cache.clear(cache_manager=__cache_manager)
-    def get_crate_map(self) -> tuple[Optional[Board], ...]:
+    def get_crate_map(self) -> tuple[Board | None, ...]:
         """
         Binding of CAENHV_GetCrateMap()
 
@@ -486,21 +484,22 @@ class Device:
         lib.get_sys_prop_info(self.handle, name.encode('ascii'), l_prop_mode, l_prop_type)
         return SysProp(name, SysPropMode(l_prop_mode.value), SysPropType(l_prop_type.value))
 
-    def get_sys_prop(self, name: str) -> Union[str, float, int, bool]:
+    def get_sys_prop(self, name: str) -> str | float | int | bool:
         """
         Binding of CAENHV_GetSysProp()
         """
         prop_type = self.get_sys_prop_info(name).type
         l_data = _SYS_PROP_TYPE_GET_ARG[prop_type](1)
         lib.get_sys_prop(self.handle, name.encode('ascii'), l_data)
-        if prop_type is SysPropType.STR:
-            return next(_string.from_n_char_array(l_data, _STR_SIZE, 1))
-        elif prop_type is SysPropType.BOOLEAN:
-            return bool(l_data[0])
-        else:
-            return l_data[0]
+        match prop_type:
+            case SysPropType.STR:
+                return next(_string.from_n_char_array(l_data, _STR_SIZE, 1))
+            case SysPropType.BOOLEAN:
+                return bool(l_data[0])
+            case _:
+                return l_data[0]
 
-    def set_sys_prop(self, name: str, value: Union[str, float, int, bool]) -> None:
+    def set_sys_prop(self, name: str, value: str | float | int | bool) -> None:
         """
         Binding of CAENHV_SetSysProp()
         """
@@ -508,7 +507,7 @@ class Device:
         l_data = _SYS_PROP_TYPE_SET_ARG[prop_type](value, 1)
         lib.set_sys_prop(self.handle, name.encode('ascii'), l_data)
 
-    def get_bd_param(self, slot_list: Sequence[int], name: str) -> Union[list[str], list[float], list[int]]:
+    def get_bd_param(self, slot_list: Sequence[int], name: str) -> list[str] | list[float] | list[int]:
         """
         Binding of CAENHV_GetBdParam()
         """
@@ -536,7 +535,7 @@ class Device:
         else:
             return l_data[:]
 
-    def set_bd_param(self, slot_list: Sequence[int], name: str, value: Optional[Union[str, float, int]]) -> None:
+    def set_bd_param(self, slot_list: Sequence[int], name: str, value: str | float | int | None) -> None:
         """
         Binding of CAENHV_SetBdParam()
 
@@ -575,7 +574,7 @@ class Device:
         g_value = lib.auto_ptr(ct.c_char)
         with g_value as l_value:
             lib.get_bd_param_info(self.handle, slot, l_value)
-            return tuple(_string.from_char_array(l_value.contents, self.__MAX_PARAM_NAME))
+            return tuple(_string.from_char_array(l_value.contents, _MAX_PARAM_NAME))
 
     def test_bd_presence(self, slot: int) -> Board:
         """
@@ -615,7 +614,7 @@ class Device:
         with g_value as l_value:
             l_size = ct.c_int()
             lib.get_ch_param_info(self.handle, slot, channel, l_value, l_size)
-            return tuple(_string.from_n_char_array_p(l_value, self.__MAX_PARAM_NAME, l_size.value))
+            return tuple(_string.from_n_char_array_p(l_value, _MAX_PARAM_NAME, l_size.value))
 
     def get_ch_name(self, slot: int, channel_list: Sequence[int]) -> tuple[str, ...]:
         """
@@ -626,9 +625,9 @@ class Device:
             return ()
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         n_allocated_values = n_indexes + 1  # In case library tries to set an empty string after the last
-        l_value = ct.create_string_buffer(self.__MAX_CH_NAME * n_allocated_values)
+        l_value = ct.create_string_buffer(_MAX_CH_NAME * n_allocated_values)
         lib.get_ch_name(self.handle, slot, n_indexes, l_index_list, l_value)
-        return tuple(_string.from_n_char_array(l_value, self.__MAX_CH_NAME, n_indexes))
+        return tuple(_string.from_n_char_array(l_value, _MAX_CH_NAME, n_indexes))
 
     def set_ch_name(self, slot: int, channel_list: Sequence[int], name: str) -> None:
         """
@@ -640,7 +639,7 @@ class Device:
         l_index_list = (ct.c_ushort * n_indexes)(*channel_list)
         lib.set_ch_name(self.handle, slot, n_indexes, l_index_list, name.encode('ascii'))
 
-    def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> Union[list[str], list[float], list[int]]:
+    def get_ch_param(self, slot: int, channel_list: Sequence[int], name: str) -> list[str] | list[float] | list[int]:
         """
         Binding of CAENHV_GetChParam()
         """
@@ -668,7 +667,7 @@ class Device:
         else:
             return l_data[:]
 
-    def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: Optional[Union[str, float, int]]) -> None:
+    def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: str | float | int | None) -> None:
         """
         Binding of CAENHV_SetChParam()
 
@@ -775,7 +774,7 @@ class Device:
 
     # Private utilities
 
-    def __get_prop(self, slot: int, channel: Optional[int], name: str, prop_name: bytes, var_type: Callable[..., _R], *args, **kwargs) -> _R:
+    def __get_prop(self, slot: int, channel: int | None, name: str, prop_name: bytes, var_type: Callable[..., _R], *args, **kwargs) -> _R:
         """
         Get single parameter property.
 
@@ -798,7 +797,7 @@ class Device:
             raise ex
         return l_value
 
-    def __get_param_prop(self, slot: int, channel: Optional[int], name: str) -> ParamProp:
+    def __get_param_prop(self, slot: int, channel: int | None, name: str) -> ParamProp:
         """
         Get all parameter properties.
         Cannot be cached since minval/maxval may depend on the value of
@@ -809,30 +808,31 @@ class Device:
         param_mode = self.__get_param_mode(slot, channel, name)
         res = ParamProp(param_type, param_mode)
         # Optional values
-        if param_type is ParamType.NUMERIC:
-            # Always defined
-            res.unit = ParamUnit(self.__get_prop(slot, channel, name, b'Unit', ct.c_ushort).value)
-            res.exp = self.__get_prop(slot, channel, name, b'Exp', ct.c_short).value
-            # Not defined on some old systems
-            res.minval = self.__get_prop(slot, channel, name, b'Minval', ct.c_float, default=0.).value
-            res.maxval = self.__get_prop(slot, channel, name, b'Maxval', ct.c_float, default=0.).value
-            res.decimal = self.__get_prop(slot, channel, name, b'Decimal', ct.c_short, default=0).value
-            if self.__resol_param_prop():
-                res.resol = self.__get_prop(slot, channel, name, b'Resol', ct.c_short, default=1).value
-        elif param_type is ParamType.ONOFF:
-            res.onstate = self.__get_prop(slot, channel, name, b'Onstate', ct.c_char * _STR_SIZE).value.decode('ascii')
-            res.offstate = self.__get_prop(slot, channel, name, b'Offstate', ct.c_char * _STR_SIZE).value.decode('ascii')
-        elif param_type is ParamType.ENUM:
-            res.minval = self.__get_prop(slot, channel, name, b'Minval', ct.c_float).value
-            res.maxval = self.__get_prop(slot, channel, name, b'Maxval', ct.c_float).value
-            n_enums = int(res.maxval - res.minval + 1)
-            assert n_enums <= self.__MAX_ENUM_VALS
-            l_value = self.__get_prop(slot, channel, name, b'Enum', ct.c_char * (self.__MAX_ENUM_NAME * self.__MAX_ENUM_VALS))
-            res.enum = tuple(_string.from_n_char_array(l_value, self.__MAX_ENUM_NAME, n_enums))
+        match param_type:
+            case ParamType.NUMERIC:
+                # Always defined
+                res.unit = ParamUnit(self.__get_prop(slot, channel, name, b'Unit', ct.c_ushort).value)
+                res.exp = self.__get_prop(slot, channel, name, b'Exp', ct.c_short).value
+                # Not defined on some old systems
+                res.minval = self.__get_prop(slot, channel, name, b'Minval', ct.c_float, default=0.).value
+                res.maxval = self.__get_prop(slot, channel, name, b'Maxval', ct.c_float, default=0.).value
+                res.decimal = self.__get_prop(slot, channel, name, b'Decimal', ct.c_short, default=0).value
+                if self.__resol_param_prop():
+                    res.resol = self.__get_prop(slot, channel, name, b'Resol', ct.c_short, default=1).value
+            case ParamType.ONOFF:
+                res.onstate = self.__get_prop(slot, channel, name, b'Onstate', ct.c_char * _STR_SIZE).value.decode('ascii')
+                res.offstate = self.__get_prop(slot, channel, name, b'Offstate', ct.c_char * _STR_SIZE).value.decode('ascii')
+            case ParamType.ENUM:
+                res.minval = self.__get_prop(slot, channel, name, b'Minval', ct.c_float).value
+                res.maxval = self.__get_prop(slot, channel, name, b'Maxval', ct.c_float).value
+                n_enums = int(res.maxval - res.minval + 1)
+                assert n_enums <= _MAX_ENUM_VALS
+                l_value = self.__get_prop(slot, channel, name, b'Enum', ct.c_char * (_MAX_ENUM_NAME * _MAX_ENUM_VALS))
+                res.enum = tuple(_string.from_n_char_array(l_value, _MAX_ENUM_NAME, n_enums))
         return res
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
-    def __get_param_type(self, slot: int, channel: Optional[int], name: str) -> ParamType:
+    def __get_param_type(self, slot: int, channel: int | None, name: str) -> ParamType:
         """
         Simplified version of __get_param_prop used internally to
         retrieve just param type.
@@ -850,7 +850,7 @@ class Device:
         return ParamType(value)
 
     @_cache.cached(cache_manager=__cache_manager, maxsize=4096)
-    def __get_param_mode(self, slot: int, channel: Optional[int], name: str) -> ParamMode:
+    def __get_param_mode(self, slot: int, channel: int | None, name: str) -> ParamMode:
         """
         Simplified version of __get_param_prop used internally to
         retrieve just param mode.
@@ -903,7 +903,7 @@ class Device:
         """
         return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100)
 
-    def __subscribe_params(self, param_list: Sequence[str], slot: Optional[int], channel: Optional[int]) -> None:
+    def __subscribe_params(self, param_list: Sequence[str], slot: int | None, channel: int | None) -> None:
         """
         Binding of CAENHV_Subscribe*Params()
         """
@@ -913,19 +913,20 @@ class Device:
         self.__init_events_server()
         l_param_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * n_params)()
-        if slot is None:
-            lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_list, n_params, l_result_codes)
-        elif channel is None:
-            lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_list, n_params, l_result_codes)
-        else:
-            lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_list, n_params, l_result_codes)
+        match slot, channel:
+            case None, _:
+                lib.subscribe_system_params(self.handle, self.events_tcp_port, l_param_list, n_params, l_result_codes)
+            case _, None:
+                lib.subscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_list, n_params, l_result_codes)
+            case _, _:
+                lib.subscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_list, n_params, l_result_codes)
         # l_result_codes values are not instances of ::CAENHVRESULT: zero always means
         # success, but other values are not consistent across all systems.
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
             raise RuntimeError(f'subscribe failed at params {failed_params}')
 
-    def __unsubscribe_params(self, param_list: Sequence[str], slot: Optional[int], channel: Optional[int]) -> None:
+    def __unsubscribe_params(self, param_list: Sequence[str], slot: int | None, channel: int | None) -> None:
         """
         Binding of CAENHV_UnSubscribe*Params()
         """
@@ -934,12 +935,13 @@ class Device:
             return
         l_param_list = ':'.join(param_list).encode('ascii')
         l_result_codes = (ct.c_char * n_params)()
-        if slot is None:
-            lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_list, n_params, l_result_codes)
-        elif channel is None:
-            lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_list, n_params, l_result_codes)
-        else:
-            lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_list, n_params, l_result_codes)
+        match slot, channel:
+            case None, _:
+                lib.unsubscribe_system_params(self.handle, self.events_tcp_port, l_param_list, n_params, l_result_codes)
+            case _, None:
+                lib.unsubscribe_board_params(self.handle, self.events_tcp_port, slot, l_param_list, n_params, l_result_codes)
+            case _, _:
+                lib.unsubscribe_channel_params(self.handle, self.events_tcp_port, slot, channel, l_param_list, n_params, l_result_codes)
         # See comment in __subscribe_params
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
@@ -1017,7 +1019,7 @@ class Device:
             # Return (host, port) on IPv4 and (host, port, flowinfo, scopeid) on IPv6
             return self.__skt_server.getsockname()[1]
 
-    def __extended_get_param_type(self, slot: int, channel: Optional[int], name: str) -> ParamType:
+    def __extended_get_param_type(self, slot: int, channel: int | None, name: str) -> ParamType:
         """
         Same of __get_param_type, with a workaround for Name: even if
         not being a real channel parameter, i.e. get_ch_param_prop does
@@ -1027,7 +1029,7 @@ class Device:
             return ParamType.STRING
         return self.__get_param_type(slot, channel, name)
 
-    def __decode_event_value(self, event_type: EventType, slot: Optional[int], channel: Optional[int], item_id: str, value: _types.IdValueRaw) -> Union[str, float, int]:
+    def __decode_event_value(self, event_type: EventType, slot: int | None, channel: int | None, item_id: str, value: _types.IdValueRaw) -> str | float | int:
         if event_type is not EventType.PARAMETER:
             return -1
         if slot is None:
