@@ -1196,7 +1196,7 @@ class Device:
             raise RuntimeError('Not a DAW firmware')
         if self.__daw_events is None:
             return
-        # Free waveforms, with a workaround for a bug in the C API that will lead to a memory leak
+        # Free waveforms, with a workaround for a bug in the C API, fixed in v2.19.0, that will lead to a memory leak
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_DAW:
                 evts_p = ct.cast(self.__daw_events.data, self.__e.raw_p)
@@ -1205,7 +1205,7 @@ class Device:
                         try:
                             lib.free_dpp_waveforms(self.handle, ch.contents.Waveforms)
                         except Error as ex:
-                            if ex.code != Error.Code.FUNCTION_NOT_ALLOWED:
+                            if ex.code is not Error.Code.FUNCTION_NOT_ALLOWED or lib.ver_at_least((2, 19, 0)):
                                 raise
             case FirmwareCode.V1724_DPP_DAW:
                 raise RuntimeError('Firmware not supported by the C API')
@@ -1354,7 +1354,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_GetDPP_SupportedVirtualProbes()
         """
-        max_probes = len(DPPProbe)  # Assuming at most trace supports all probes
+        max_probes = len(DPPProbe)  # Assuming trace supports at most all probes
         l_value = (ct.c_int * max_probes)()
         l_num_probes = ct.c_int()
         lib.get_dpp_supported_virtual_probes(self.handle, trace, l_value, l_num_probes)
