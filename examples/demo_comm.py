@@ -44,11 +44,11 @@ with comm.Device.open(comm.ConnectionType[args.connectiontype], args.linknumber,
 
     # Assuming to be connected to a CAEN Digitizer 1.0
     serial = device.reg32[0xF080:0xF088:4]
-    serial_number = (serial[0] << 8) | serial[1]
+    serial_number = int.from_bytes(serial[:2], 'big')
     if serial_number == 0xFFFF:
         # Support for 32-bit serial number
         serial = device.reg32[0xF070:0xF080:4]
-        serial_number = (serial[3] << 24) | (serial[2] << 16) | (serial[1] << 8) | serial[0]
+        serial_number = int.from_bytes(serial[:4], 'little')
     print(f'Serial number: {serial_number})')
     # Read ROC revision register 0x8124
     fw_version = device.reg32[0x8124].to_bytes(4, 'little')

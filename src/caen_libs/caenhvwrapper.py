@@ -15,7 +15,7 @@ from collections.abc import Callable, Generator, Iterator, Sequence
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar, overload
 
 from caen_libs import _cache, _string, _utils, error
 import caen_libs._caenhvwrappertypes as _types
@@ -903,6 +903,13 @@ class Device:
         """
         return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100)
 
+    @overload
+    def __subscribe_params(self, param_list: Sequence[str], slot: None, channel: None) -> None: ...
+    @overload
+    def __subscribe_params(self, param_list: Sequence[str], slot: int, channel: None) -> None: ...
+    @overload
+    def __subscribe_params(self, param_list: Sequence[str], slot: int, channel: int) -> None: ...
+
     def __subscribe_params(self, param_list: Sequence[str], slot: int | None, channel: int | None) -> None:
         """
         Binding of CAENHV_Subscribe*Params()
@@ -925,6 +932,13 @@ class Device:
         failed_params = {par: ec for par, ec in zip(param_list, l_result_codes.raw) if ec}
         if failed_params:
             raise RuntimeError(f'subscribe failed at params {failed_params}')
+
+    @overload
+    def __unsubscribe_params(self, param_list: Sequence[str], slot: None, channel: None) -> None: ...
+    @overload
+    def __unsubscribe_params(self, param_list: Sequence[str], slot: int, channel: None) -> None: ...
+    @overload
+    def __unsubscribe_params(self, param_list: Sequence[str], slot: int, channel: int) -> None: ...
 
     def __unsubscribe_params(self, param_list: Sequence[str], slot: int | None, channel: int | None) -> None:
         """
@@ -1028,6 +1042,13 @@ class Device:
         if channel is not None and name == 'Name':
             return ParamType.STRING
         return self.__get_param_type(slot, channel, name)
+
+    @overload
+    def __decode_event_value(self, event_type: EventType, slot: None, channel: None, item_id: str, value: _types.IdValueRaw) -> str | float | int: ...
+    @overload
+    def __decode_event_value(self, event_type: EventType, slot: int, channel: None, item_id: str, value: _types.IdValueRaw) -> str | float | int: ...
+    @overload
+    def __decode_event_value(self, event_type: EventType, slot: int, channel: int, item_id: str, value: _types.IdValueRaw) -> str | float | int: ...
 
     def __decode_event_value(self, event_type: EventType, slot: int | None, channel: int | None, item_id: str, value: _types.IdValueRaw) -> str | float | int:
         if event_type is not EventType.PARAMETER:
