@@ -251,7 +251,7 @@ class DisplayRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Display:
     """
     Binding of ::CVDisplay

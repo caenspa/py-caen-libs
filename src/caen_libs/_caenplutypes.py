@@ -43,7 +43,7 @@ class USBDeviceRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class USBDevice:
     """
     Binding of ::tUSBDevice
@@ -95,7 +95,7 @@ class BoardInfoRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class BoardInfo:
     """
     Binding of ::tBOARDInfo

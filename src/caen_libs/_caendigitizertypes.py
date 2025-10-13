@@ -314,7 +314,7 @@ class BoardInfoRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class BoardInfo:
     """
     Binding of ::CAEN_DGTZ_BoardInfo_t
@@ -373,7 +373,7 @@ class EventInfoRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class EventInfo:
     """
     Binding of ::CAEN_DGTZ_EventInfo_t
@@ -403,7 +403,7 @@ class NeverRaw(ct.Structure):
     _fields_ = []
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Never:
     """
     A non-instantiable type, useful for typing when there is no waveform
@@ -428,7 +428,7 @@ def _safe_array(data: ct._Pointer, size: int) -> npt.NDArray:
     return np.ctypeslib.as_array(data, shape=(size,))
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Uint16Event:
     """
     Binding of ::CAEN_DGTZ_UINT16_EVENT_t
@@ -450,7 +450,7 @@ class Uint8EventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Uint8Event:
     """
     Binding of ::CAEN_DGTZ_UINT8_EVENT_t
@@ -474,7 +474,7 @@ class X742GroupRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class X742Group:
     """
     Binding of ::CAEN_DGTZ_X742_GROUP_t
@@ -506,7 +506,7 @@ class X742EventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class X742Event:
     """
     Binding of ::CAEN_DGTZ_X742_EVENT_t
@@ -539,7 +539,7 @@ class X743GroupRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class X743Group:
     """
     Binding of ::CAEN_DGTZ_X743_GROUP_t
@@ -617,7 +617,7 @@ class X743EventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class X743Event:
     """
     Binding of ::CAEN_DGTZ_X743_EVENT_t
@@ -643,7 +643,7 @@ class DPPPHAEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPPHAEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Event_t
@@ -692,7 +692,7 @@ class DPPPSDEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPPSDEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Event_t
@@ -752,7 +752,7 @@ class DPPCIEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPCIEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_CI_Event_t
@@ -797,7 +797,7 @@ class DPPQDCEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPQDCEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Event_t
@@ -860,7 +860,7 @@ class ZLEWaveforms751Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEWaveforms751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Waveforms_t
@@ -893,7 +893,7 @@ class ZLEEvent751Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEEvent751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Event_t
@@ -930,7 +930,7 @@ class ZLEWaveforms730Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEWaveforms730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Waveforms_t
@@ -960,7 +960,7 @@ class ZLEChannel730Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEChannel730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Channel_t
@@ -995,7 +995,7 @@ class ZLEEvent730Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEEvent730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Event_t
@@ -1031,7 +1031,7 @@ class DPPDAWWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPDAWWaveforms:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Waveforms_t
@@ -1059,7 +1059,7 @@ class DPPDAWChannelRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPDAWChannel:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Channel_t
@@ -1109,7 +1109,7 @@ class DPPDAWEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPDAWEvent:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Event_t
@@ -1148,7 +1148,7 @@ class DPPX743EventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPX743Event:
     """
     Binding of ::CAEN_DGTZ_DPP_X743_Event_t
@@ -1182,7 +1182,7 @@ class DPPPHAWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPPHAWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Waveforms_t
@@ -1253,7 +1253,7 @@ class DPPPSDWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPPSDWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Waveforms_t
@@ -1338,7 +1338,7 @@ class DPPQDCWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPQDCWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Waveforms_t
@@ -1601,13 +1601,13 @@ class DPPPHAParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPPHAParams:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
         m_: int = 0
         m: int = 0
@@ -1713,13 +1713,13 @@ class DPPPUR(IntEnum):
     ENABLED = 1
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPPSDParams:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
         thr: int = 0
         selft: bool = False
@@ -1787,13 +1787,13 @@ class DPPCIParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPCIParams:
     """
     Binding of ::CAEN_DGTZ_DPP_CI_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
         thr: int = 0
         selft: bool = False
@@ -1848,13 +1848,13 @@ class ZLEParams751Raw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class ZLEParams751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
         nsamp_bck: int = 0
         nsamp_ahe: int = 0
@@ -1896,13 +1896,13 @@ class DPPX743ParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPX743Params:
     """
     Binding of ::CAEN_DGTZ_DPP_X743_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
         start_cell: int = 0
         charge_length: int = 0
@@ -1948,13 +1948,13 @@ class DPPQDCParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPQDCParams:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
         trgho: int = 0
         gate_width: int = 0
@@ -2008,7 +2008,7 @@ class DRS4CorrectionRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DRS4Correction:
     """
     Binding of ::CAEN_DGTZ_DRS4Correction_t
@@ -2197,7 +2197,7 @@ class FirmwareType(Enum):
                 return cls.UNKNOWN
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Buffer:
     """
     Type returned by get_event_info, to be passed to decode_event
@@ -2207,7 +2207,7 @@ class Buffer:
     data: 'ct._Pointer[ct.c_char]'
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class ReadoutBuffer:
     """
     Internal representation of readout buffer
@@ -2228,7 +2228,7 @@ class ReadoutBuffer:
         return memoryview(array).toreadonly()
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class EventsBuffer:
     """
     Used to store internal buffers for ZLE and DAW firmwares, containing
@@ -2258,7 +2258,7 @@ class _HasRaw(Protocol):
 _THasRaw = TypeVar('_THasRaw', bound=_HasRaw)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class BindingType(Generic[_THasRaw]):
     """
     Convenience class to store a Python binding native type and its raw
@@ -2280,7 +2280,7 @@ _TEvent = TypeVar('_TEvent', bound=_HasRaw)
 _TWave = TypeVar('_TWave', bound=_HasRaw)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class EventTypes(Generic[_TEvent, _TWave]):
     """
     Used to store event types, their raw representations and pointers to

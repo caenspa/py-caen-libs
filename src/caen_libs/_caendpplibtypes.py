@@ -69,7 +69,7 @@ class ConnectionParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ConnectionParams:
     """
     Binding of ::CAENDPP_ConnectionParams_t
@@ -127,7 +127,7 @@ class Units(IntEnum):
     OHM = 6
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ParamInfo:
     """
     Binding of ::CAENDPP_ParamInfo_t
@@ -178,7 +178,7 @@ class HVRange(IntEnum):
     SD = 2
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class HVRangeInfo:
     """
     Binding of ::CAENDPP_HVRangeInfo_t
@@ -232,7 +232,7 @@ class HVFamilyCode(IntEnum):
     V6534 = 4
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class HVChannelInfo:
     """
     Binding of ::CAENDPP_HVChannelInfo_t
@@ -508,7 +508,7 @@ class PHAMonOutProbe(IntEnum):
     TRAP_BL_CORR = 3
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Info:
     """
     Binding of ::CAENDPP_Info_t
@@ -590,7 +590,7 @@ class TempCorrParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class TempCorrParams:
     """
     Binding of ::CAENDPP_TempCorrParams_t
@@ -659,7 +659,7 @@ class OutSignal(IntEnum):
     ANALOG_LAST = ANALOG_TRAP_CORRECTED
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class GPIO:
     """
     Binding of ::CAENDPP_GPIO_t
@@ -725,7 +725,7 @@ class GPIOLogic(IntEnum):
     OR = 1
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class GPIOConfig:
     """
     Binding of ::CAENDPP_GPIOConfig_t
@@ -785,7 +785,7 @@ class InputImpedance(IntEnum):
     O_1K = 1
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class ExtraParameters:
     """
     Binding of ::CAENDPP_ExtraParameters
@@ -860,13 +860,13 @@ class PHAParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class PHAParams:
     """
     Binding of ::CAENDPP_PHA_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
         m_: int = 0
         m: int = 0
@@ -997,7 +997,7 @@ class ProbeTrigger(IntEnum):
     FREE_RUNNING = 7
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class WaveformParams:
     """
     Binding of ::CAENDPP_WaveformParams_t
@@ -1076,7 +1076,7 @@ class DumpMask(IntFlag):
     ALL_ = TTT | ENERGY | EXTRAS | ENERGY_SHORT
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class ListParams:
     """
     Binding of ::CAENDPP_ListParams_t
@@ -1125,7 +1125,7 @@ class RunSpecsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class RunSpecs:
     """
     Binding of ::CAENDPP_RunSpecs_t
@@ -1195,7 +1195,7 @@ class CoincLogic(IntEnum):
     ANTICOINCIDENCE = 3
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class CoincParams:
     """
     Binding of ::CAENDPP_CoincParams_t
@@ -1256,7 +1256,7 @@ class ExtLogic(IntEnum):
     GATE = 1
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class GateParams:
     """
     Binding of ::CAENDPP_GateParams_t
@@ -1303,7 +1303,7 @@ class SpectrumMode(IntEnum):
     TIME = 1
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class SpectrumControl:
     """
     Binding of ::CAENDPP_SpectrumControl
@@ -1342,7 +1342,7 @@ class ResetDetectionMode(IntEnum):
     BOTH = 2
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class TRReset:
     """
     Binding of ::CAENDPP_TRReset
@@ -1384,7 +1384,7 @@ class MonOutParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class MonOutParams:
     """
     Binding of ::CAENDPP_MonOutParams_t
@@ -1457,13 +1457,13 @@ class IOLevel(IntEnum):
     TTL = 1
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DgtzParams:
     """
     Binding of ::CAENDPP_DgtzParams_t
     """
 
-    @dataclass(frozen=True, **_utils.dataclass_slots)
+    @dataclass(frozen=True, slots=True)
     class _ChData:
         pulse_polarity: PulsePolarity = PulsePolarity.POSITIVE
         dc_offset: int = 0
@@ -1558,7 +1558,7 @@ class ListEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ListEvent:
     """
     Binding of ::CAENDPP_ListEvent_t
@@ -1585,7 +1585,7 @@ class StatisticsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Statistics:
     """
     Binding of ::statistics_t
@@ -1646,7 +1646,7 @@ class GainStabilizationStatus(IntEnum):
     FOLLOWING = 4
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DAQInfo:
     """
     Binding of ::CAENDPP_DAQInfo_t
@@ -1696,7 +1696,7 @@ class PWDownMode(IntEnum):
     KILL = 1
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class HVChannelConfig:
     """
     Binding of ::CAENDPP_HVChannelConfig_t
@@ -1732,7 +1732,7 @@ class HVChannelConfig:
         )
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class HVChannelMonitoring:
     """
     Return value for ::CAENDPP_ReadHVChannelMonitoring binding
@@ -1741,7 +1741,7 @@ class HVChannelMonitoring:
     i_mon: float
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class HVChannelExternals:
     """
     Return value for ::CAENDPP_ReadHVChannelExternals binding
@@ -1775,7 +1775,7 @@ class COMStatus(IntEnum):
     BOOT_LOADER = 3
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class EnumerationSingleDevice:
     """
     Binding of ::CAENDPP_EnumerationSingleDevice_t
@@ -1812,7 +1812,7 @@ class EnumeratedDevicesRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class EnumeratedDevices:
     """
     Binding of ::CAENDPP_EnumeratedDevices_t
@@ -1896,7 +1896,7 @@ class StopCriteria(IntEnum):
     COUNTS = 3
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Waveforms:
     """
     Class to store waveforms data.
@@ -1914,7 +1914,7 @@ class Waveforms:
         self.dt2 = np.empty(self.samples, dtype=np.uint8)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Histogram:
     """
     Class to store histogram data.

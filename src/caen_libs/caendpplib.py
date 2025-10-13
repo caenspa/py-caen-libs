@@ -315,7 +315,7 @@ class _Lib(_utils.Lib):
 lib = _Lib('CAENDPPLib')
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Device:
     """
     Class representing a device.

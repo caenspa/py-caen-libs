@@ -78,7 +78,7 @@ class SystemStatusRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class SystemStatus:
     """
     Binding of ::CAENHV_SYSTEMSTATUS_t
@@ -127,7 +127,7 @@ class EventDataRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class EventData:
     """
     Binding of ::CAENHVEVENT_TYPE_t
@@ -149,7 +149,7 @@ class EventData:
         return -1 if self.channel is None else self.channel
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class FwVersion:
     """
     Firmware version
@@ -161,7 +161,7 @@ class FwVersion:
         return f'{self.major}.{self.minor}'
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Board:
     """
     Type returned by ::CAENHV_GetCrateMap and ::CAENHV_TestBdPresence
@@ -198,7 +198,7 @@ class SysPropMode(IntEnum):
     RDWR = 2
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class SysProp:
     """
     Type returned by ::CAENHV_GetSysPropInfo
@@ -255,7 +255,7 @@ class ParamUnit(IntEnum):
     APS = 12
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class ParamProp:
     """
     Type returned by ::CAENHV_GetBdParamProp
@@ -273,7 +273,7 @@ class ParamProp:
     enum: tuple[str, ...] | None = None
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class TcpPorts:
     """
     TCP port range to bind to for event handling. Range is exclusive,

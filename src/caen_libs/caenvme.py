@@ -235,7 +235,7 @@ def _get_l_arg(board_type: BoardType, arg: int | str):
             return ct.pointer(l_link_number_ct)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Device:
     """
     Class representing a device.

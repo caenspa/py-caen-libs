@@ -401,7 +401,7 @@ def _get_l_arg(connection_type: ConnectionType, arg: int | str):
             return ct.pointer(l_link_number_ct)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Device:
     """
     Class representing a device.
@@ -467,29 +467,29 @@ class Device:
         B = BoardFamilyCode
         match self.__info.firmware_code, self.__info.family_code:
             case F.STANDARD_FW, B.XX721 | B.XX731:
-                return _EventTypes[Uint8Event, _Never](Uint8Event, _Never)
+                return _EventTypes(Uint8Event, _Never)
             case F.STANDARD_FW, _:
-                return _EventTypes[Uint16Event, _Never](Uint16Event, _Never)
+                return _EventTypes(Uint16Event, _Never)
             case F.STANDARD_FW_X742, B.XX742:
-                return _EventTypes[X742Event, _Never](X742Event, _Never)
+                return _EventTypes(X742Event, _Never)
             case F.STANDARD_FW_X743, B.XX743:
-                return _EventTypes[X743Event, _Never](X743Event, _Never)
+                return _EventTypes(X743Event, _Never)
             case F.V1724_DPP_PHA | F.V1730_DPP_PHA, _:
-                return _EventTypes[DPPPHAEvent, DPPPHAWaveforms](DPPPHAEvent, DPPPHAWaveforms)
+                return _EventTypes(DPPPHAEvent, DPPPHAWaveforms)
             case F.V1720_DPP_PSD | F.V1730_DPP_PSD | F.V1751_DPP_PSD, _:
-                return _EventTypes[DPPPSDEvent, DPPPSDWaveforms](DPPPSDEvent, DPPPSDWaveforms)
+                return _EventTypes(DPPPSDEvent, DPPPSDWaveforms)
             case F.V1720_DPP_CI, _:
-                return _EventTypes[DPPCIEvent, DPPCIWaveforms](DPPCIEvent, DPPCIWaveforms)
+                return _EventTypes(DPPCIEvent, DPPCIWaveforms)
             case F.V1743_DPP_CI, _:
-                return _EventTypes[DPPX743Event, _Never](DPPX743Event, _Never)
+                return _EventTypes(DPPX743Event, _Never)
             case F.V1740_DPP_QDC, _:
-                return _EventTypes[DPPQDCEvent, DPPQDCWaveforms](DPPQDCEvent, DPPQDCWaveforms)
+                return _EventTypes(DPPQDCEvent, DPPQDCWaveforms)
             case F.V1730_DPP_ZLE, _:
-                return _EventTypes[ZLEEvent730, ZLEWaveforms730](ZLEEvent730, ZLEWaveforms730)
+                return _EventTypes(ZLEEvent730, ZLEWaveforms730)
             case F.V1751_DPP_ZLE, _:
-                return _EventTypes[ZLEEvent751, ZLEWaveforms751](ZLEEvent751, ZLEWaveforms751)
+                return _EventTypes(ZLEEvent751, ZLEWaveforms751)
             case F.V1724_DPP_DAW | F.V1730_DPP_DAW, _:
-                return _EventTypes[DPPDAWEvent, DPPDAWWaveforms](DPPDAWEvent, DPPDAWWaveforms)
+                return _EventTypes(DPPDAWEvent, DPPDAWWaveforms)
             case _:
                 raise RuntimeError('Unknown firmware')
 

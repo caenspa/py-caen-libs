@@ -182,7 +182,7 @@ def _get_l_arg(connection_mode: ConnectionModes, arg: int | str):
             return ct.pointer(l_link_number_u32_ct)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Device:
     """
     Class representing a device.
