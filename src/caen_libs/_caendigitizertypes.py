@@ -293,6 +293,41 @@ class Registers(IntEnum):
     ROM_VCXO_TYPE_ADD = 0xF088
 
 
+def input_dc_offset_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_InputDCOffsetReg_Ch
+    """
+    return Registers.CHANNEL_DAC_BASE_ADDRESS | (x << 8)
+
+
+def channel_fw_revision_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_ChannelFWRevisionReg_Ch
+    """
+    return Registers.CHANNEL_AMC_FPGA_FW_BASE_ADDRESS | (x << 8)
+
+
+def dpp1_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_DPP1Reg_Ch
+    """
+    return 0x1024 | (x << 8)
+
+
+def dpp2_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_DPP2Reg_Ch
+    """
+    return 0x1028 | (x << 8)
+
+
+def dpp3_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_DPP3Reg_Ch
+    """
+    return 0x102C | (x << 8)
+
+
 class BoardInfoRaw(ct.Structure):
     """Raw view of ::CAEN_DGTZ_BoardInfo_t"""
     _fields_ = [

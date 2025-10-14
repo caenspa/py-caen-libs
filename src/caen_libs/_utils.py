@@ -168,7 +168,7 @@ class Registers:
             self.set(a, v)
 
     @staticmethod
-    def __get_addresses(key: slice) -> Sequence[int]:
+    def __addr(key: slice) :
         if key.start is None or key.stop is None:
             raise ValueError('Both start and stop must be specified.')
         step = 1 if key.step is None else key.step
@@ -180,12 +180,14 @@ class Registers:
     def __getitem__(self, address: slice) -> list[int]: ...
 
     def __getitem__(self, address):
-        if isinstance(address, int):
-            return self.get(address)
-        if isinstance(address, slice):
-            addresses = self.__get_addresses(address)
-            return self.multi_get(addresses)
-        raise TypeError('Invalid argument type.')
+        match address:
+            case int():
+                return self.get(address)
+            case slice() as s:
+                addresses = self.__addr(s)
+                return self.multi_get(addresses)
+            case _:
+                raise TypeError('Invalid argument type.')
 
     @overload
     def __setitem__(self, address: int, value: int) -> None: ...
@@ -193,11 +195,11 @@ class Registers:
     def __setitem__(self, address: slice, value: Sequence[int]) -> None: ...
 
     def __setitem__(self, address, value):
-        if isinstance(address, int):
-            return self.set(address, value)
-        if isinstance(address, slice) and isinstance(value, Sequence):
-            addresses = self.__get_addresses(address)
-            if len(value) != len(addresses):
-                raise ValueError('Invalid value size.')
-            return self.multi_set(addresses, value)
-        raise TypeError('Invalid argument type.')
+        match address, value:
+            case int(), int():
+                return self.set(address, value)
+            case slice(), Sequence():
+                addresses = self.__addr(address)
+                return self.multi_set(addresses, value)
+            case _:
+                raise TypeError('Invalid argument type.')
