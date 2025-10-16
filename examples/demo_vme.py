@@ -150,8 +150,7 @@ class InteractiveDemo:
             print(f'Failed: {ex}')
             return
         print('Buffer:')
-        for value in buffer:
-            print(value)
+        print(buffer)
 
 
 def _quit():

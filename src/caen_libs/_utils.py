@@ -161,14 +161,13 @@ class Registers:
         return self.__multi_set_fallback(addresses, values)
 
     def __multi_get_fallback(self, addresses: Sequence[int]) -> list[int]:
-        return [self.get(a) for a in addresses]
+        return list(map(self.get, addresses))
 
     def __multi_set_fallback(self, addresses: Sequence[int], values: Sequence[int]) -> None:
-        for a, v in zip(addresses, values):
-            self.set(a, v)
+        list(map(self.set, addresses, values))
 
     @staticmethod
-    def __addr(key: slice) :
+    def __addr(key: slice):
         if key.start is None or key.stop is None:
             raise ValueError('Both start and stop must be specified.')
         step = 1 if key.step is None else key.step

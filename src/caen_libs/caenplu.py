@@ -360,7 +360,7 @@ class Device:
         l_data_length = length // ct.sizeof(ct.c_uint32)
         l_data = (ct.c_uint32 * l_data_length)()
         lib.read_flash_data(self.handle, fpga, address, l_data, l_data_length)
-        return bytes(l_data)
+        return ct.string_at(l_data, length)
 
     def get_info(self) -> BoardInfo:
         """

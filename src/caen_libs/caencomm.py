@@ -348,23 +348,23 @@ class Device:
         """Utility to simplify 16-bit register access"""
         return self.__reg16
 
-    def blt_read(self, address: int, blt_size: int) -> list[int]:
+    def blt_read(self, address: int, blt_size: int) -> bytes:
         """
         Binding of CAENComm_BLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
         lib.blt_read(self.handle, address, l_data, blt_size, l_nw)
-        return l_data[:l_nw.value]
+        return ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32))
 
-    def mblt_read(self, address: int, blt_size: int) -> list[int,]:
+    def mblt_read(self, address: int, blt_size: int) -> bytes:
         """
         Binding of CAENComm_MBLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
         lib.mblt_read(self.handle, address, l_data, blt_size, l_nw)
-        return l_data[:l_nw.value]
+        return ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32))
 
     def irq_disable(self, mask: int) -> None:
         """

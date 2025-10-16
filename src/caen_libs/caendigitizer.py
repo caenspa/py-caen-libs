@@ -1710,7 +1710,7 @@ class Device:
         """
         buf = (ct.c_ubyte * num_bytes)()
         lib.read_eeprom(self.handle, eeprom_index, add, num_bytes, buf)
-        return bytes(buf)
+        return ct.string_at(buf, num_bytes)
 
     def write_eeprom(self, eeprom_index: int, add: int, data: bytes) -> None:
         """

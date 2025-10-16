@@ -370,25 +370,27 @@ class Device:
         if failed_cycles:
             raise RuntimeError(f'multi_write failed at cycles {failed_cycles}')
 
-    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> list[int]:
+    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> bytes:
         """
         Binding of CAENVME_BLTReadCycle()
         """
-        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
+        data_type = _DATA_WIDTH_TYPE[dw]
+        n_data = size // ct.sizeof(data_type)
+        l_data = (data_type * n_data)()
         l_count = ct.c_int()
         lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_data[:l_count.value]  # type: ignore
+        return ct.string_at(l_data, l_count.value * ct.sizeof(data_type))
 
-    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> list[int]:
+    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> bytes:
         """
         Binding of CAENVME_FIFOBLTReadCycle()
         """
-        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
+        data_type = _DATA_WIDTH_TYPE[dw]
+        n_data = size // ct.sizeof(data_type)
+        l_data = (data_type * n_data)()
         l_count = ct.c_int()
         lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_data[:l_count.value]  # type: ignore
+        return ct.string_at(l_data, l_count.value * ct.sizeof(data_type))
 
     def mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
@@ -397,7 +399,7 @@ class Device:
         l_data = (ct.c_ubyte * size)()
         l_count = ct.c_int()
         lib.mblt_read_cycle(self.handle, address, l_data, size, am, l_count)
-        return bytes(l_data[:l_count.value])
+        return ct.string_at(l_data, l_count.value)
 
     def fifo_mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
@@ -406,28 +408,22 @@ class Device:
         l_data = (ct.c_ubyte * size)()
         l_count = ct.c_int()
         lib.fifo_mblt_read_cycle(self.handle, address, l_data, size, am, l_count)
-        return bytes(l_data[:l_count.value])
+        return ct.string_at(l_data, l_count.value)
 
-    def blt_write_cycle(self, address: int, data: Sequence[int], am: AddressModifiers, dw: DataWidth) -> int:
+    def blt_write_cycle(self, address: int, data: bytes, am: AddressModifiers, dw: DataWidth) -> int:
         """
         Binding of CAENVME_BLTWriteCycle()
         """
-        n_data = len(data)
-        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
         l_count = ct.c_int()
-        lib.blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
+        lib.blt_write_cycle(self.handle, address, data, len(data), am, dw, l_count)
         return l_count.value
 
-    def fifo_blt_write_cycle(self, address: int, data: Sequence[int], am: AddressModifiers, dw: DataWidth) -> int:
+    def fifo_blt_write_cycle(self, address: int, data: bytes, am: AddressModifiers, dw: DataWidth) -> int:
         """
         Binding of CAENVME_FIFOBLTWriteCycle()
         """
-        n_data = len(data)
-        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
         l_count = ct.c_int()
-        lib.fifo_blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
+        lib.fifo_blt_write_cycle(self.handle, address, data, len(data), am, dw, l_count)
         return l_count.value
 
     def mblt_write_cycle(self, address: int, data: bytes, am: AddressModifiers) -> int:
@@ -747,7 +743,7 @@ class Device:
         # Allocate maximum size, there is no way to get the read size from API
         l_data = (ct.c_ubyte * 264)()
         lib.read_flash_page(self.handle, l_data, page_num)
-        return bytes(l_data)
+        return ct.string_at(l_data, 264)
 
     def erase_flash_page(self, page_num: int) -> None:
         """

@@ -127,7 +127,8 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.blt_read_cycle.side_effect = side_effect
         values = self.device.blt_read_cycle(address, size, address_modifier, data_width)
-        self.assertEqual(values, data)
+        values_decoded = [int.from_bytes(values[i:i + 4], 'little') for i in range(0, len(values), 4)]
+        self.assertEqual(values_decoded, data)
         self.mock_lib.blt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
 
     def test_fifo_blt_read_cycle(self):
@@ -143,7 +144,8 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.fifo_blt_read_cycle.side_effect = side_effect
         values = self.device.fifo_blt_read_cycle(address, size, address_modifier, data_width)
-        self.assertEqual(values, data)
+        values_decoded = [int.from_bytes(values[i:i + 4], 'little') for i in range(0, len(values), 4)]
+        self.assertEqual(values_decoded, data)
         self.mock_lib.fifo_blt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
 
     def test_mblt_read_cycle(self):
@@ -179,8 +181,7 @@ class TestDevice(unittest.TestCase):
     def test_blt_write_cycle(self):
         """Test blt_write_cycle"""
         address = 0x1000
-        data = [0x1234, 0x5678]
-        size = len(data) * 4
+        data = b'\x00\x01\x02\x03\x04\x05\x06\x07'
         address_modifier = vme.AddressModifiers.A32_U_DATA
         data_width = vme.DataWidth.D32
         res = 10
@@ -190,13 +191,12 @@ class TestDevice(unittest.TestCase):
         self.mock_lib.blt_write_cycle.side_effect = side_effect
         count = self.device.blt_write_cycle(address, data, address_modifier, data_width)
         self.assertEqual(count, res)
-        self.mock_lib.blt_write_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
+        self.mock_lib.blt_write_cycle.assert_called_once_with(self.device.handle, address, ANY, len(data), address_modifier, data_width, ANY)
 
     def test_fifo_blt_write_cycle(self):
         """Test fifo_blt_write_cycle"""
         address = 0x1000
-        data = [0x1234, 0x5678]
-        size = len(data) * 4
+        data = b'\x12\x34\x56\x78'
         address_modifier = vme.AddressModifiers.A32_U_DATA
         data_width = vme.DataWidth.D32
         res = 10
@@ -206,7 +206,7 @@ class TestDevice(unittest.TestCase):
         self.mock_lib.fifo_blt_write_cycle.side_effect = side_effect
         count = self.device.fifo_blt_write_cycle(address, data, address_modifier, vme.DataWidth.D32)
         self.assertEqual(count, res)
-        self.mock_lib.fifo_blt_write_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
+        self.mock_lib.fifo_blt_write_cycle.assert_called_once_with(self.device.handle, address, ANY, len(data), address_modifier, data_width, ANY)
 
     def test_mblt_write_cycle(self):
         """Test mblt_write_cycle"""
