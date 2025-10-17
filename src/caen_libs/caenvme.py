@@ -401,7 +401,7 @@ class Device:
         """
         Binding of CAENVME_FIFOMBLTReadCycle()
         """
-        l_data = (ct.c_char * size)()
+        l_data = (ct.c_ubyte * size)()
         l_nb = ct.c_int()
         lib.fifo_mblt_read_cycle(self.handle, address, l_data, size, am, l_nb)
         return ct.string_at(l_data, l_nb.value)
@@ -410,33 +410,33 @@ class Device:
         """
         Binding of CAENVME_BLTWriteCycle()
         """
-        l_count = ct.c_int()
-        lib.blt_write_cycle(self.handle, address, data, len(data), am, dw, l_count)
-        return l_count.value
+        l_nb = ct.c_int()
+        lib.blt_write_cycle(self.handle, address, data, len(data), am, dw, l_nb)
+        return l_nb.value
 
     def fifo_blt_write_cycle(self, address: int, data: bytes, am: AddressModifiers, dw: DataWidth) -> int:
         """
         Binding of CAENVME_FIFOBLTWriteCycle()
         """
-        l_count = ct.c_int()
-        lib.fifo_blt_write_cycle(self.handle, address, data, len(data), am, dw, l_count)
-        return l_count.value
+        l_nb = ct.c_int()
+        lib.fifo_blt_write_cycle(self.handle, address, data, len(data), am, dw, l_nb)
+        return l_nb.value
 
     def mblt_write_cycle(self, address: int, data: bytes, am: AddressModifiers) -> int:
         """
         Binding of CAENVME_MBLTWriteCycle()
         """
-        l_count = ct.c_int()
-        lib.mblt_write_cycle(self.handle, address, data, len(data), am, l_count)
-        return l_count.value
+        l_nb = ct.c_int()
+        lib.mblt_write_cycle(self.handle, address, data, len(data), am, l_nb)
+        return l_nb.value
 
     def fifo_mblt_write_cycle(self, address: int, data: bytes, am: AddressModifiers) -> int:
         """
         Binding of CAENVME_FIFOMBLTWriteCycle()
         """
-        l_count = ct.c_int()
-        lib.fifo_mblt_write_cycle(self.handle, address, data, len(data), am, l_count)
-        return l_count.value
+        l_nb = ct.c_int()
+        lib.fifo_mblt_write_cycle(self.handle, address, data, len(data), am, l_nb)
+        return l_nb.value
 
     def ado_cycle(self, address: int, am: AddressModifiers) -> None:
         """
