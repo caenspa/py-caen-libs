@@ -11,22 +11,26 @@
 -----------------------------------------------------------------------------
 
 
-v3.1.0 (08/10/2025)
+v3.1.0 (XX/XX/2025)
 -------------------
 
 Fixes:
 - Fix return type of `caenhvwrapper.Device.get_ch_name` in case of empty
     channel list.
+- Fixed the data size returned by `blt_read_cycle` and `fifo_blt_read_cycle`.
+    Note that the return type has also changed; see the following points for
+    details.
 
 Changes:
 - To improve performance, some functions now return a `bytes` object instead
-    of a `list[int]`: `blt_read_cycle` and `fifo_blt_read_cycle` on `caenvme`
+    of a `list[int]`: `blt_read_cycle` and `fifo_blt_read_cycle` on `caenvme`,
     and `blt_read` and `mblt_read` on `caencomm`. This is a breaking change:
     the library now returns a raw byte view, not repacked by data width. For
     `caenvme`, each value corresponds to the number of bytes specified by the
     data width. For `caencomm`, the data width is always `D32`, so each value
     corresponds to 4 bytes. This change also makes these functions consistent
-    with `mblt_read_cycle` and `fifo_mblt_read_cycle` on `caenvme`.
+    with `mblt_read_cycle` and `fifo_mblt_read_cycle` on `caenvme`. Note also
+    that return size of these two functions was broken in previous versions.
 - For the same reason, two functions on `caenvme` (`blt_write_cycle` and
     `fifo_blt_write_cycle`) now takes a `bytes` object as argument instead of
     a `Sequence[int]`. Also this is a breaking change.

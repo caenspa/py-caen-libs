@@ -120,15 +120,14 @@ class TestDevice(unittest.TestCase):
         size = 256
         address_modifier = vme.AddressModifiers.A32_U_DATA
         data_width = vme.DataWidth.D32
-        data = list(i for i in range(size // 4))
+        data = list(i for i in range(size))
         def side_effect(*args):
             args[2][:] = data
             args[6].value = len(data)
             return DEFAULT
         self.mock_lib.blt_read_cycle.side_effect = side_effect
         values = self.device.blt_read_cycle(address, size, address_modifier, data_width)
-        values_decoded = [int.from_bytes(values[i:i + 4], 'little') for i in range(0, len(values), 4)]
-        self.assertEqual(values_decoded, data)
+        self.assertEqual(list(values), data)
         self.mock_lib.blt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
 
     def test_fifo_blt_read_cycle(self):
@@ -137,15 +136,14 @@ class TestDevice(unittest.TestCase):
         size = 256
         address_modifier = vme.AddressModifiers.A32_U_DATA
         data_width = vme.DataWidth.D32
-        data = list(i for i in range(size // 4))
+        data = list(i for i in range(size))
         def side_effect(*args):
             args[2][:] = data
             args[6].value = len(data)
             return DEFAULT
         self.mock_lib.fifo_blt_read_cycle.side_effect = side_effect
         values = self.device.fifo_blt_read_cycle(address, size, address_modifier, data_width)
-        values_decoded = [int.from_bytes(values[i:i + 4], 'little') for i in range(0, len(values), 4)]
-        self.assertEqual(values_decoded, data)
+        self.assertEqual(list(values), data)
         self.mock_lib.fifo_blt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
 
     def test_mblt_read_cycle(self):

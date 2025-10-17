@@ -374,41 +374,37 @@ class Device:
         """
         Binding of CAENVME_BLTReadCycle()
         """
-        data_type = _DATA_WIDTH_TYPE[dw]
-        n_data = size // ct.sizeof(data_type)
-        l_data = (data_type * n_data)()
-        l_count = ct.c_int()
-        lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return ct.string_at(l_data, l_count.value * ct.sizeof(data_type))
+        l_data = (ct.c_ubyte * size)()
+        l_nb = ct.c_int()
+        lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_nb)
+        return ct.string_at(l_data, l_nb.value)
 
     def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> bytes:
         """
         Binding of CAENVME_FIFOBLTReadCycle()
         """
-        data_type = _DATA_WIDTH_TYPE[dw]
-        n_data = size // ct.sizeof(data_type)
-        l_data = (data_type * n_data)()
-        l_count = ct.c_int()
-        lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return ct.string_at(l_data, l_count.value * ct.sizeof(data_type))
+        l_data = (ct.c_ubyte * size)()
+        l_nb = ct.c_int()
+        lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_nb)
+        return ct.string_at(l_data, l_nb.value)
 
     def mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
         Binding of CAENVME_MBLTReadCycle()
         """
         l_data = (ct.c_ubyte * size)()
-        l_count = ct.c_int()
-        lib.mblt_read_cycle(self.handle, address, l_data, size, am, l_count)
-        return ct.string_at(l_data, l_count.value)
+        l_nb = ct.c_int()
+        lib.mblt_read_cycle(self.handle, address, l_data, size, am, l_nb)
+        return ct.string_at(l_data, l_nb.value)
 
     def fifo_mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
         Binding of CAENVME_FIFOMBLTReadCycle()
         """
-        l_data = (ct.c_ubyte * size)()
-        l_count = ct.c_int()
-        lib.fifo_mblt_read_cycle(self.handle, address, l_data, size, am, l_count)
-        return ct.string_at(l_data, l_count.value)
+        l_data = (ct.c_char * size)()
+        l_nb = ct.c_int()
+        lib.fifo_mblt_read_cycle(self.handle, address, l_data, size, am, l_nb)
+        return ct.string_at(l_data, l_nb.value)
 
     def blt_write_cycle(self, address: int, data: bytes, am: AddressModifiers, dw: DataWidth) -> int:
         """
