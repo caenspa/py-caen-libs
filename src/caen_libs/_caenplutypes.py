@@ -7,8 +7,6 @@ import ctypes as ct
 from dataclasses import dataclass
 from enum import IntEnum, unique
 
-from caen_libs import _utils
-
 
 @unique
 class ConnectionModes(IntEnum):

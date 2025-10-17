@@ -10,8 +10,6 @@ import os
 from typing import TypeVar
 import warnings
 
-from caen_libs import _utils
-
 
 # Constants from CAENHVWrapper.h
 MAX_PARAM_NAME = 10

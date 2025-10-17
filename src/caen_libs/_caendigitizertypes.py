@@ -6,12 +6,10 @@ __license__ = 'LGPL-3.0-or-later'
 import ctypes as ct
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto, unique
-from typing import ClassVar, Generic, Protocol, TypeVar
+from typing import ClassVar, Generic, Protocol, TypeAlias, TypeVar
 
 import numpy as np
 import numpy.typing as npt
-
-from caen_libs import _utils
 
 
 # Constants from CAENDigitizerType.h
@@ -1352,8 +1350,8 @@ class DPPPSDWaveforms:
         return np.ctypeslib.as_array(self.raw.DTrace4, shape=(self.ns,))
 
 
-DPPCIWaveformsRaw = DPPPSDWaveformsRaw
-DPPCIWaveforms = DPPPSDWaveforms
+DPPCIWaveformsRaw: TypeAlias = DPPPSDWaveformsRaw
+DPPCIWaveforms: TypeAlias = DPPPSDWaveforms
 
 
 class DPPQDCWaveformsRaw(ct.Structure):
