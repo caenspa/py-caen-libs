@@ -867,41 +867,41 @@ class Device:
         SY1527/SY2527 have a legacy version of events not supported by
         this binding
         """
-        if self.system_type in (SystemType.SY1527, SystemType.SY2527):
+        if self.system_type in {SystemType.SY1527, SystemType.SY2527}:
             raise NotImplementedError('Legacy events not supported by this binding.')
 
     def __library_events_thread(self) -> bool:
         """
         Devices with polling thread within library
         """
-        return self.system_type not in (SystemType.SY4527, SystemType.SY5527, SystemType.R6060)
+        return self.system_type not in {SystemType.SY4527, SystemType.SY5527, SystemType.R6060}
 
     def __resol_param_prop(self) -> bool:
         """
         Devices with weird Resol parameter property on numeric data
         """
-        return self.system_type in (SystemType.V8100,)
+        return self.system_type in {SystemType.V8100}
 
     def __new_events_format(self) -> bool:
         """
         Devices with new events format, with socket opened within the
         library
         """
-        return self.system_type in (SystemType.R6060,)
+        return self.system_type in {SystemType.R6060}
 
     def __char_p_p_str_bd_param_arg(self) -> bool:
         """
         Devices that requires a char** as argument of get_bd_param of
         type STRING
         """
-        return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E)
+        return self.system_type in {SystemType.N1068, SystemType.N1168, SystemType.N568E}
 
     def __char_p_p_str_ch_param_arg(self) -> bool:
         """
         Devices that requires a char** as argument of get_ch_param of
         type STRING
         """
-        return self.system_type in (SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100)
+        return self.system_type in {SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100}
 
     @overload
     def __subscribe_params(self, param_list: Sequence[str], slot: None, channel: None) -> None: ...
