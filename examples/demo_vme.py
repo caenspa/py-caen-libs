@@ -14,6 +14,7 @@ __license__ = 'MIT-0'
 # SPDX-License-Identifier: MIT-0
 __contact__ = 'https://www.caen.it/'
 
+from collections.abc import Callable
 from dataclasses import dataclass
 import sys
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
@@ -159,11 +160,15 @@ def _quit():
     sys.exit()
 
 
-with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetnode) as device:
+board_type = vme.BoardType[args.boardtype]
+link_number = args.linknumber
+conet_node = args.conetnode
+
+with vme.Device.open(board_type, link_number, conet_node) as device:
 
     demo = InteractiveDemo(device)
 
-    menu_items = {
+    menu_items: dict[str, Callable[[], None]] = {
         'b': demo.set_vme_baseaddress,
         'a': demo.set_address_modifier,
         'd': demo.set_data_width,
@@ -176,9 +181,9 @@ with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetn
     }
 
     while True:
-        print('------------------------------------------------------------------------------------')
+        print('----------------------------------------------------------------------------------')
         print('Menu')
-        print('------------------------------------------------------------------------------------')
+        print('----------------------------------------------------------------------------------')
         for k, function in menu_items.items():
             print(k, function.__doc__)
         selection = input('Please enter your selection: ')

@@ -326,7 +326,13 @@ plt.title('CAEN Digitizer Python demo')
 plt.xlabel('Samples')
 plt.ylabel('ADC counts')
 
-with dgtz.Device.open(dgtz.ConnectionType[args.connectiontype], args.linknumber, args.conetnode, args.vmebaseaddress) as device:
+
+connection_type = dgtz.ConnectionType[args.connectiontype]
+link_number = args.linknumber
+conet_node = args.conetnode
+vme_base_address = args.vmebaseaddress
+
+with dgtz.Device.open(connection_type, link_number, conet_node, vme_base_address) as device:
 
     device.reset()
 

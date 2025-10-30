@@ -25,8 +25,8 @@ parser = ArgumentParser(
 )
 
 # Shared parser for subcommands
-parser.add_argument('-c', '--connectiontype', type=str, help='connection type', required=True, choices=tuple(i.name for i in plu.ConnectionModes))
-parser.add_argument('-l', '--linknumber', type=str, help='link number, PID or hostname (depending on connectiontype)', required=True)
+parser.add_argument('-c', '--connectionmode', type=str, help='connection mode', required=True, choices=tuple(i.name for i in plu.ConnectionModes))
+parser.add_argument('-l', '--linknumber', type=str, help='link number, PID or hostname (depending on connectionmode)', required=True)
 parser.add_argument('-n', '--conetnode', type=int, help='CONET node', default=0)
 parser.add_argument('-b', '--vmebaseaddress', type=partial(int, base=16), help='VME base address (as hex)', default=0)
 
@@ -36,7 +36,12 @@ print('-------------------------------------------------------------------------
 print('CAEN PLULib binding loaded')
 print('------------------------------------------------------------------------------------')
 
-with plu.Device.open(plu.ConnectionModes[args.connectiontype], args.linknumber, args.conetnode, args.vmebaseaddress) as device:
+connection_mode = plu.ConnectionModes[args.connectionmode]
+link_number = args.linknumber
+conet_node = args.conetnode
+vme_base_address = args.vmebaseaddress
+
+with plu.Device.open(connection_mode, link_number, conet_node, vme_base_address) as device:
     pcb_revision = device.registers[0x814C]
     print(f'PCB Revision = {pcb_revision}')
     fw_version = device.registers[0x8200].to_bytes(2, 'little')

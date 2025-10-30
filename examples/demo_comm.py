@@ -38,7 +38,12 @@ print('-------------------------------------------------------------------------
 print(f'CAEN Comm binding loaded (lib version {comm.lib.sw_release()})')
 print('------------------------------------------------------------------------------------')
 
-with comm.Device.open(comm.ConnectionType[args.connectiontype], args.linknumber, args.conetnode, args.vmebaseaddress) as device:
+connection_type = comm.ConnectionType[args.connectiontype]
+link_number = args.linknumber
+conet_node = args.conetnode
+vme_base_address = args.vmebaseaddress
+
+with comm.Device.open(connection_type, link_number, conet_node, vme_base_address) as device:
 
     print('Connected with Digitizer')
 
