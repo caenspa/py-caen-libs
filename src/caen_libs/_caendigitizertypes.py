@@ -502,7 +502,7 @@ class X742EventRaw(ct.Structure):
     """Raw view of ::CAEN_DGTZ_X742_EVENT_t"""
     _fields_ = [
         ('GrPresent', ct.c_uint8 * MAX_X742_GROUP_SIZE),
-        ('DataGroup', ct.POINTER(X742GroupRaw) * MAX_X742_GROUP_SIZE),
+        ('DataGroup', X742GroupRaw * MAX_X742_GROUP_SIZE),
     ]
 
 
@@ -517,7 +517,7 @@ class X742Event:
     @property
     def data_group(self) -> list[Optional[X742Group]]:
         """Data group"""
-        return [X742Group(self.raw.DataGroup[i].contents) if self.raw.GrPresent[i] else None for i in range(MAX_X742_GROUP_SIZE)]
+        return [X742Group(self.raw.DataGroup[i]) if self.raw.GrPresent[i] else None for i in range(MAX_X742_GROUP_SIZE)]
 
 
 class X743GroupRaw(ct.Structure):
@@ -613,7 +613,7 @@ class X743EventRaw(ct.Structure):
     """Raw view of ::CAEN_DGTZ_X743_EVENT_t"""
     _fields_ = [
         ('GrPresent', ct.c_uint8 * MAX_V1743_GROUP_SIZE),
-        ('DataGroup', ct.POINTER(X743GroupRaw) * MAX_V1743_GROUP_SIZE),
+        ('DataGroup', X743GroupRaw * MAX_V1743_GROUP_SIZE),
     ]
 
 
@@ -628,7 +628,7 @@ class X743Event:
     @property
     def data_group(self) -> list[Optional[X743Group]]:
         """Data group"""
-        return [X743Group(self.raw.DataGroup[i].contents) if self.raw.GrPresent[i] else None for i in range(MAX_V1743_GROUP_SIZE)]
+        return [X743Group(self.raw.DataGroup[i]) if self.raw.GrPresent[i] else None for i in range(MAX_V1743_GROUP_SIZE)]
 
 
 class DPPPHAEventRaw(ct.Structure):

@@ -11,10 +11,11 @@
 -----------------------------------------------------------------------------
 
 
-v3.0.1 (08/10/2025)
+v3.0.1 (30/10/2025)
 -------------------
 
 Fixes:
+- Fix decode of `X742Event` and `X743Event` on `caendigitizer`.
 - Fix return type of `caenhvwrapper.Device.get_ch_name` in case of empty
     channel list.
 
