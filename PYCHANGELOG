@@ -15,8 +15,6 @@ v3.1.0 (XX/XX/2025)
 -------------------
 
 Fixes:
-- Fix return type of `caenhvwrapper.Device.get_ch_name` in case of empty
-    channel list.
 - Fixed the data size returned by `blt_read_cycle` and `fifo_blt_read_cycle`.
     Note that the return type has also changed; see the following points for
     details.
@@ -34,6 +32,15 @@ Changes:
 - For the same reason, two functions on `caenvme` (`blt_write_cycle` and
     `fifo_blt_write_cycle`) now takes a `bytes` object as argument instead of
     a `Sequence[int]`. Also this is a breaking change.
+
+
+v3.0.1 (30/10/2025)
+-------------------
+
+Fixes:
+- Fix decode of `X742Event` and `X743Event` on `caendigitizer`.
+- Fix return type of `caenhvwrapper.Device.get_ch_name` in case of empty
+    channel list.
 
 
 v3.0.0 (08/10/2025)
