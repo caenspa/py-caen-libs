@@ -11,6 +11,14 @@
 -----------------------------------------------------------------------------
 
 
+v3.0.2 (XX/XX/2025)
+-------------------
+
+Fixes:
+- Size of list returned by `DPPDAWEvent.channel` on `caendigitizer` now
+    is fixed and matches the maximum number of channel for the device (16).
+
+
 v3.0.1 (30/10/2025)
 -------------------
 
