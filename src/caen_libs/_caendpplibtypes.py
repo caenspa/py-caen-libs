@@ -10,8 +10,6 @@ from enum import IntEnum, IntFlag, unique
 import numpy as np
 import numpy.typing as npt
 
-from caen_libs import _utils
-
 
 # Constants from CAENDPPLibTypes.h
 MAX_BRDNAME_LEN = 12

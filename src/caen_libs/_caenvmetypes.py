@@ -8,7 +8,6 @@ import sys
 from dataclasses import dataclass
 from enum import IntEnum, IntFlag, unique
 
-from caen_libs import _utils
 
 @unique
 class BoardType(IntEnum):

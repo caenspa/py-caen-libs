@@ -1571,6 +1571,7 @@ class ReadMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_ReadMode_t
     """
+    # pylint: disable=C0103
     SLAVE_TERMINATED_READOUT_MBLT = 0
     SLAVE_TERMINATED_READOUT_2eVME = 1
     SLAVE_TERMINATED_READOUT_2eSST = 2
@@ -2147,6 +2148,7 @@ class DRS4Frequency(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DRS4Frequency_t
     """
+    # pylint: disable=C0103
     F_5GHz = 0
     F_2_5GHz = 1
     F_1GHz = 2
@@ -2193,6 +2195,7 @@ class SAMFrequency(IntEnum):
     """
     Binding of ::CAEN_DGTZ_SAMFrequency_t
     """
+    # pylint: disable=C0103
     F_3_2GHz = 0
     F_1_6GHz = 1
     F_800MHz = 2
