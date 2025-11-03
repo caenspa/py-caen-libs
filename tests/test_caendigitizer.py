@@ -489,8 +489,8 @@ class _TestDevice(unittest.TestCase):
 
     def test_load_drs4_correction_data(self):
         """Test load_drs4_correction_data"""
-        self.device.load_drs4_correction_data()
-        self.mock_lib.load_drs4_correction_data.assert_called_once_with(self.device.handle)
+        self.device.load_drs4_correction_data(dgtz.DRS4Frequency.F_1GHz)
+        self.mock_lib.load_drs4_correction_data.assert_called_once_with(self.device.handle, dgtz.DRS4Frequency.F_1GHz)
 
     def test_get_correction_tables(self):
         """Test get_correction_tables"""

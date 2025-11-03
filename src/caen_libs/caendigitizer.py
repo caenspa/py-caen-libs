@@ -1487,11 +1487,11 @@ class Device:
         lib.get_fast_trigger_mode(self.handle, l_value)
         return TriggerMode(l_value.value)
 
-    def load_drs4_correction_data(self) -> None:
+    def load_drs4_correction_data(self, frequency: DRS4Frequency) -> None:
         """
         Binding of CAEN_DGTZ_LoadDRS4CorrectionData()
         """
-        lib.load_drs4_correction_data(self.handle)
+        lib.load_drs4_correction_data(self.handle, frequency)
 
     def get_correction_tables(self, frequency: DRS4Frequency) -> DRS4Correction:
         """
