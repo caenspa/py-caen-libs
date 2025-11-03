@@ -1136,8 +1136,7 @@ class DPPDAWEvent:
     def channel(self) -> list[Optional[DPPDAWChannel]]:
         """Channel"""
         chmask: int = self.raw.chmask
-        chmask_it = (bool((chmask >> i) & 1) for i in range(chmask.bit_length()))
-        return [DPPDAWChannel(ch.contents) if en else None for ch, en in zip(self.raw.Channel, chmask_it)]
+        return [DPPDAWChannel(ch.contents) if (chmask & (1 << i)) else None for i, ch in enumerate(self.raw.Channel)]
 
 
 class DPPX743EventRaw(ct.Structure):
