@@ -20,6 +20,7 @@ import caen_libs._caendigitizertypes as _types
 # Add some types to the module namespace
 from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     AcqMode,
+    AcquisitionMode,
     AnalogMonitorInspectorInverter,
     AnalogMonitorMagnify,
     AnalogMonitorOutputMode,
@@ -782,18 +783,18 @@ class Device:
         lib.get_channel_dc_offset(self.handle, channel, l_value)
         return l_value.value
 
-    def set_group_dc_offset(self, channel: int, value: int) -> None:
+    def set_group_dc_offset(self, group: int, value: int) -> None:
         """
         Binding of CAEN_DGTZ_SetGroupDCOffset()
         """
-        lib.set_group_dc_offset(self.handle, channel, value)
+        lib.set_group_dc_offset(self.handle, group, value)
 
-    def get_group_dc_offset(self, channel: int) -> int:
+    def get_group_dc_offset(self, group: int) -> int:
         """
         Binding of CAEN_DGTZ_GetGroupDCOffset()
         """
         l_value = ct.c_uint32()
-        lib.get_group_dc_offset(self.handle, channel, l_value)
+        lib.get_group_dc_offset(self.handle, group, l_value)
         return l_value.value
 
     def set_channel_trigger_threshold(self, channel: int, value: int) -> None:
@@ -824,32 +825,32 @@ class Device:
         lib.get_channel_pulse_polarity(self.handle, channel, l_value)
         return PulsePolarity(l_value.value)
 
-    def set_group_trigger_threshold(self, channel: int, value: int) -> None:
+    def set_group_trigger_threshold(self, group: int, value: int) -> None:
         """
         Binding of CAEN_DGTZ_SetGroupTriggerThreshold()
         """
-        lib.set_group_trigger_threshold(self.handle, channel, value)
+        lib.set_group_trigger_threshold(self.handle, group, value)
 
-    def get_group_trigger_threshold(self, channel: int) -> int:
+    def get_group_trigger_threshold(self, group: int) -> int:
         """
         Binding of CAEN_DGTZ_GetGroupTriggerThreshold()
         """
         l_value = ct.c_uint32()
-        lib.get_group_trigger_threshold(self.handle, channel, l_value)
+        lib.get_group_trigger_threshold(self.handle, group, l_value)
         return l_value.value
 
-    def set_zero_suppression_mode(self, channel: int, mode: ZSMode) -> None:
+    def set_zero_suppression_mode(self, mode: ZSMode) -> None:
         """
         Binding of CAEN_DGTZ_SetZeroSuppressionMode()
         """
-        lib.set_zero_suppression_mode(self.handle, channel, mode)
+        lib.set_zero_suppression_mode(self.handle, mode)
 
-    def get_zero_suppression_mode(self, channel: int) -> ZSMode:
+    def get_zero_suppression_mode(self) -> ZSMode:
         """
         Binding of CAEN_DGTZ_GetZeroSuppressionMode()
         """
         l_value = ct.c_int()
-        lib.get_zero_suppression_mode(self.handle, channel, l_value)
+        lib.get_zero_suppression_mode(self.handle, l_value)
         return ZSMode(l_value.value)
 
     def set_channel_zs_params(self, channel: int, weight: ThresholdWeight, threshold: int, n_samples: int) -> None:
@@ -896,18 +897,18 @@ class Device:
         lib.get_run_synchronization_mode(self.handle, l_value)
         return RunSyncMode(l_value.value)
 
-    def set_analog_mon_output(self, channel: int, mode: AnalogMonitorOutputMode) -> None:
+    def set_analog_mon_output(self, mode: AnalogMonitorOutputMode) -> None:
         """
         Binding of CAEN_DGTZ_SetAnalogMonOutput()
         """
-        lib.set_analog_mon_output(self.handle, channel, mode)
+        lib.set_analog_mon_output(self.handle, mode)
 
-    def get_analog_mon_output(self, channel: int) -> AnalogMonitorOutputMode:
+    def get_analog_mon_output(self) -> AnalogMonitorOutputMode:
         """
         Binding of CAEN_DGTZ_GetAnalogMonOutput()
         """
         l_value = ct.c_int()
-        lib.get_analog_mon_output(self.handle, channel, l_value)
+        lib.get_analog_mon_output(self.handle, l_value)
         return AnalogMonitorOutputMode(l_value.value)
 
     def set_analog_inspection_mon_params(self, channel_mask: int, offset: int, mf: AnalogMonitorMagnify, ami: AnalogMonitorInspectorInverter) -> None:
@@ -916,14 +917,16 @@ class Device:
         """
         lib.set_analog_inspection_mon_params(self.handle, channel_mask, offset, mf, ami)
 
-    def get_analog_inspection_mon_params(self, channel_mask: int, offset: int) -> tuple[AnalogMonitorMagnify, AnalogMonitorInspectorInverter]:
+    def get_analog_inspection_mon_params(self) -> tuple[int, int, AnalogMonitorMagnify, AnalogMonitorInspectorInverter]:
         """
         Binding of CAEN_DGTZ_GetAnalogInspectionMonParams()
         """
+        l_channel_mask = ct.c_uint32()
+        l_offset = ct.c_uint32()
         l_mf = ct.c_int()
         l_ami = ct.c_int()
-        lib.get_analog_inspection_mon_params(self.handle, channel_mask, offset, l_mf, l_ami)
-        return AnalogMonitorMagnify(l_mf.value), AnalogMonitorInspectorInverter(l_ami.value)
+        lib.get_analog_inspection_mon_params(self.handle, l_channel_mask, l_offset, l_mf, l_ami)
+        return l_channel_mask.value, l_offset.value, AnalogMonitorMagnify(l_mf.value), AnalogMonitorInspectorInverter(l_ami.value)
 
     def disable_event_aligned_readout(self) -> None:
         """
@@ -1735,19 +1738,19 @@ class Device:
         """
         lib.send_sam_pulse(self.handle)
 
-    def set_sam_acquisition_mode(self, mode: AcqMode) -> None:
+    def set_sam_acquisition_mode(self, mode: AcquisitionMode) -> None:
         """
         Binding of CAEN_DGTZ_SetSAMAcquisitionMode()
         """
         lib.set_sam_acquisition_mode(self.handle, mode)
 
-    def get_sam_acquisition_mode(self) -> AcqMode:
+    def get_sam_acquisition_mode(self) -> AcquisitionMode:
         """
         Binding of CAEN_DGTZ_GetSAMAcquisitionMode()
         """
         l_value = ct.c_int()
         lib.get_sam_acquisition_mode(self.handle, l_value)
-        return AcqMode(l_value.value)
+        return AcquisitionMode(l_value.value)
 
     def set_trigger_logic(self, logic: TriggerLogic, majority_level: int) -> None:
         """

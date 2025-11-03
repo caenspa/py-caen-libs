@@ -11,6 +11,17 @@
 -----------------------------------------------------------------------------
 
 
+v3.0.3 (03/11/2025)
+-------------------
+
+Fixes:
+- On `caendigitizer.Device`, fix the following bindings:
+    `set_zero_suppression_mode`, `get_zero_suppression_mode`,
+    `set_analog_mon_output`, `get_analog_mon_output`,
+    `get_analog_inspection_mon_params`, `set_sam_acquisition_mode` and
+    `get_sam_acquisition_mode`.
+
+
 v3.0.2 (03/11/2025)
 -------------------
 
