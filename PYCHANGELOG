@@ -34,12 +34,13 @@ Changes:
     a `Sequence[int]`. Also this is a breaking change.
 
 
-v3.0.2 (XX/XX/2025)
+v3.0.2 (03/11/2025)
 -------------------
 
 Fixes:
 - Size of list returned by `DPPDAWEvent.channel` on `caendigitizer` now
     is fixed and matches the maximum number of channel for the device (16).
+- Fix argument missing on `caendigitizer.Device.load_drs4_correction_data`.
 
 
 v3.0.1 (30/10/2025)
