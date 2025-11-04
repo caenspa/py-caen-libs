@@ -279,13 +279,13 @@ class _TestDevice(unittest.TestCase):
 
     def test_set_zero_suppression_mode(self):
         """Test set_zero_suppression_mode"""
-        self.device.set_zero_suppression_mode(1, dgtz.ZSMode.AMP)
-        self.mock_lib.set_zero_suppression_mode.assert_called_once_with(self.device.handle, 1, dgtz.ZSMode.AMP)
+        self.device.set_zero_suppression_mode(dgtz.ZSMode.AMP)
+        self.mock_lib.set_zero_suppression_mode.assert_called_once_with(self.device.handle, dgtz.ZSMode.AMP)
 
     def test_get_zero_suppression_mode(self):
         """Test get_zero_suppression_mode"""
-        self.device.get_zero_suppression_mode(1)
-        self.mock_lib.get_zero_suppression_mode.assert_called_once_with(self.device.handle, 1, ANY)
+        self.device.get_zero_suppression_mode()
+        self.mock_lib.get_zero_suppression_mode.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_channel_zs_params(self):
         """Test set_channel_zs_params"""
@@ -309,13 +309,13 @@ class _TestDevice(unittest.TestCase):
 
     def test_set_analog_mon_output(self):
         """Test set_analog_mon_output"""
-        self.device.set_analog_mon_output(1, dgtz.AnalogMonitorOutputMode.ANALOG_INSPECTION)
-        self.mock_lib.set_analog_mon_output.assert_called_once_with(self.device.handle, 1, dgtz.AnalogMonitorOutputMode.ANALOG_INSPECTION)
+        self.device.set_analog_mon_output(dgtz.AnalogMonitorOutputMode.ANALOG_INSPECTION)
+        self.mock_lib.set_analog_mon_output.assert_called_once_with(self.device.handle, dgtz.AnalogMonitorOutputMode.ANALOG_INSPECTION)
 
     def test_get_analog_mon_output(self):
         """Test get_analog_mon_output"""
-        self.device.get_analog_mon_output(1)
-        self.mock_lib.get_analog_mon_output.assert_called_once_with(self.device.handle, 1, ANY)
+        self.device.get_analog_mon_output()
+        self.mock_lib.get_analog_mon_output.assert_called_once_with(self.device.handle, ANY)
 
     def test_set_analog_inspection_mon_params(self):
         """Test set_analog_inspection_mon_params"""
@@ -324,8 +324,8 @@ class _TestDevice(unittest.TestCase):
 
     def test_get_analog_inspection_mon_params(self):
         """Test get_analog_inspection_mon_params"""
-        self.device.get_analog_inspection_mon_params(1, 2)
-        self.mock_lib.get_analog_inspection_mon_params.assert_called_once_with(self.device.handle, 1, 2, ANY, ANY)
+        self.device.get_analog_inspection_mon_params()
+        self.mock_lib.get_analog_inspection_mon_params.assert_called_once_with(self.device.handle, ANY, ANY, ANY, ANY)
 
     def test_disable_event_aligned_readout(self):
         """Test disable_event_aligned_readout"""
@@ -574,8 +574,8 @@ class _TestDevice(unittest.TestCase):
 
     def test_set_sam_acquisition_mode(self):
         """Test set_sam_acquisition_mode"""
-        self.device.set_sam_acquisition_mode(dgtz.AcqMode.FIRST_TRG_CONTROLLED)
-        self.mock_lib.set_sam_acquisition_mode.assert_called_once_with(self.device.handle, dgtz.AcqMode.FIRST_TRG_CONTROLLED)
+        self.device.set_sam_acquisition_mode(dgtz.AcquisitionMode.STANDARD)
+        self.mock_lib.set_sam_acquisition_mode.assert_called_once_with(self.device.handle, dgtz.AcquisitionMode.STANDARD)
 
     def test_get_sam_acquisition_mode(self):
         """Test get_sam_acquisition_mode"""

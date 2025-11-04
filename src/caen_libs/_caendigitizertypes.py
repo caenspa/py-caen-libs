@@ -2191,6 +2191,15 @@ class SAMPulseSourceType(IntEnum):
 
 
 @unique
+class AcquisitionMode(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_AcquisitionMode_t
+    """
+    STANDARD = 0
+    DPP_CI = 1
+
+
+@unique
 class SAMFrequency(IntEnum):
     """
     Binding of ::CAEN_DGTZ_SAMFrequency_t
