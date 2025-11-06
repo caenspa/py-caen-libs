@@ -170,7 +170,8 @@ lib = _Lib(_LIB_NAME)
 def _get_l_arg(connection_mode: ConnectionModes, arg: int | str):
     match connection_mode:
         case ConnectionModes.DIRECT_ETH | ConnectionModes.VME_V4718_ETH:
-            assert isinstance(arg, str), 'arg expected to be a string'
+            if not isinstance(arg, str):
+                raise TypeError(f'arg expected to be a string for {connection_mode.name} connection mode')
             return arg.encode('ascii')
         case ConnectionModes.DIRECT_USB | ConnectionModes.VME_V1718 | ConnectionModes.VME_V2718:
             l_link_number_i = int(arg)

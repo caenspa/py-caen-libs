@@ -25,7 +25,6 @@ from caen_libs._caenvmetypes import (  # pylint: disable=W0611
     BoardType,
     BusReqLevels,
     ContinuosRun,
-    DATA_WIDTH_TYPE as _DATA_WIDTH_TYPE,
     DataWidth,
     Display,
     InputSelect,
@@ -227,7 +226,8 @@ lib = _Lib(_LIB_NAME)
 def _get_l_arg(board_type: BoardType, arg: int | str):
     match board_type:
         case BoardType.ETH_V4718 | BoardType.ETH_V4718_LOCAL:
-            assert isinstance(arg, str), 'arg expected to be a string'
+            if not isinstance(arg, str):
+                raise TypeError(f'arg expected to be a string for {board_type.name} board type')
             return arg.encode('ascii')
         case _:
             l_link_number = int(arg)
@@ -320,7 +320,7 @@ class Device:
         """
         Binding of CAENVME_ReadCycle()
         """
-        l_value = _DATA_WIDTH_TYPE[dw]()
+        l_value = _types.DATA_WIDTH_TYPE[dw]()
         lib.read_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
@@ -328,7 +328,7 @@ class Device:
         """
         Binding of CAENVME_RMWCycle()
         """
-        l_value = _DATA_WIDTH_TYPE[dw](value)
+        l_value = _types.DATA_WIDTH_TYPE[dw](value)
         lib.rmw_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
@@ -336,7 +336,7 @@ class Device:
         """
         Binding of CAENVME_WriteCycle()
         """
-        l_value = _DATA_WIDTH_TYPE[dw](value)
+        l_value = _types.DATA_WIDTH_TYPE[dw](value)
         lib.write_cycle(self.handle, address, ct.byref(l_value), am, dw)
 
     def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> list[int]:
@@ -454,7 +454,7 @@ class Device:
         """
         Binding of CAENVME_IACKCycle()
         """
-        l_data = _DATA_WIDTH_TYPE[dw]()
+        l_data = _types.DATA_WIDTH_TYPE[dw]()
         lib.iack_cycle(self.handle, levels, l_data, dw)
         return l_data.value
 
@@ -885,8 +885,8 @@ class Device:
         """
         Binding of CAENVME_BLTReadAsync()
         """
-        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
+        n_data = size // ct.sizeof(_types.DATA_WIDTH_TYPE[dw])
+        l_data = (_types.DATA_WIDTH_TYPE[dw] * n_data)()
         lib.blt_read_async(self.handle, address, l_data, size, am, dw)
         return l_data[:]  # type: ignore
 

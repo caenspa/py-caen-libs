@@ -394,7 +394,8 @@ lib = _Lib('CAENDigitizer')
 def _get_l_arg(connection_type: ConnectionType, arg: int | str):
     match connection_type:
         case ConnectionType.ETH_V4718:
-            assert isinstance(arg, str), 'arg expected to be a string'
+            if not isinstance(arg, str):
+                raise TypeError(f'arg expected to be a string for {connection_type.name} connection type')
             return arg.encode('ascii')
         case _:
             l_link_number = int(arg)

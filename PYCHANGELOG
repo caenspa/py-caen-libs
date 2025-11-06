@@ -14,10 +14,13 @@
 v3.1.0 (XX/XX/2025)
 -------------------
 
+New features:
+- Dropped support for Python 3.9.
+
 Fixes:
-- Fixed the data size returned by `blt_read_cycle` and `fifo_blt_read_cycle`.
-    Note that the return type has also changed; see the following points for
-    details.
+- Fixed the data size returned by `blt_read_cycle` and `fifo_blt_read_cycle`
+    on `caenvme`. Note that the return type has also changed; see the
+    following points for details.
 
 Changes:
 - To improve performance, some functions now return a `bytes` object instead
