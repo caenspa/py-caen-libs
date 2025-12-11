@@ -151,7 +151,7 @@ class Registers:
 
     def set(self, address: int, value: int) -> None:
         """Set value"""
-        return self.setter(address, value)
+        self.setter(address, value)
 
     def multi_get(self, addresses: Sequence[int]) -> list[int]:
         """Get multiple value"""
@@ -162,8 +162,9 @@ class Registers:
     def multi_set(self, addresses: Sequence[int], values: Sequence[int]) -> None:
         """Set multiple value"""
         if self.multi_setter is not None:
-            return self.multi_setter(addresses, values)
-        return self.__multi_set_fallback(addresses, values)
+            self.multi_setter(addresses, values)
+        else:
+            self.__multi_set_fallback(addresses, values)
 
     def __multi_get_fallback(self, addresses: Sequence[int]) -> list[int]:
         return [self.get(a) for a in addresses]
@@ -199,10 +200,11 @@ class Registers:
 
     def __setitem__(self, address, value):
         if isinstance(address, int):
-            return self.set(address, value)
-        if isinstance(address, slice) and isinstance(value, Sequence):
+            self.set(address, value)
+        elif isinstance(address, slice) and isinstance(value, Sequence):
             addresses = self.__get_addresses(address)
             if len(value) != len(addresses):
                 raise ValueError('Invalid value size.')
-            return self.multi_set(addresses, value)
-        raise TypeError('Invalid argument type.')
+            self.multi_set(addresses, value)
+        else:
+            raise TypeError('Invalid argument type.')
