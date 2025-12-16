@@ -7,6 +7,7 @@ test-mypy:
   stage: test
   when: manual
   script:
+    - pip install mypy --quiet
     - mypy src
 
 test-pylint:
@@ -14,7 +15,15 @@ test-pylint:
   stage: test
   when: manual
   script:
+    - pip install pylint --quiet
     - pylint src
+
+test-pytest:
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
+  stage: test
+  script:
+    - pip install pytest --quiet
+    - pytest tests/
 
 pypi-upload:
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
