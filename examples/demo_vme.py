@@ -14,7 +14,8 @@ __license__ = 'MIT-0'
 # SPDX-License-Identifier: MIT-0
 __contact__ = 'https://www.caen.it/'
 
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 import sys
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
@@ -45,9 +46,9 @@ class InteractiveDemo:
     device: vme.Device
 
     # Private fields
-    __vme_base_address: int = field(default=0)
-    __address_modifier: vme.AddressModifiers = field(default=vme.AddressModifiers.A32_U_DATA)
-    __data_width: vme.DataWidth = field(default=vme.DataWidth.D32)
+    __vme_base_address: int = 0
+    __address_modifier: vme.AddressModifiers = vme.AddressModifiers.A32_U_DATA
+    __data_width: vme.DataWidth = vme.DataWidth.D32
 
     def set_vme_baseaddress(self):
         """Set VME base address"""
@@ -150,8 +151,7 @@ class InteractiveDemo:
             print(f'Failed: {ex}')
             return
         print('Buffer:')
-        for value in buffer:
-            print(value)
+        print(buffer)
 
 
 def _quit():
@@ -160,11 +160,15 @@ def _quit():
     sys.exit()
 
 
-with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetnode) as device:
+board_type = vme.BoardType[args.boardtype]
+link_number = args.linknumber
+conet_node = args.conetnode
+
+with vme.Device.open(board_type, link_number, conet_node) as device:
 
     demo = InteractiveDemo(device)
 
-    menu_items = {
+    menu_items: dict[str, Callable[[], None]] = {
         'b': demo.set_vme_baseaddress,
         'a': demo.set_address_modifier,
         'd': demo.set_data_width,
@@ -177,9 +181,9 @@ with vme.Device.open(vme.BoardType[args.boardtype], args.linknumber, args.conetn
     }
 
     while True:
-        print('------------------------------------------------------------------------------------')
+        print('----------------------------------------------------------------------------------')
         print('Menu')
-        print('------------------------------------------------------------------------------------')
+        print('----------------------------------------------------------------------------------')
         for k, function in menu_items.items():
             print(k, function.__doc__)
         selection = input('Please enter your selection: ')

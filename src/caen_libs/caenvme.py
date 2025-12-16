@@ -13,7 +13,7 @@ from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import TypeVar, Union
+from typing import TypeVar
 
 from caen_libs import error, _utils
 import caen_libs._caenvmetypes as _types
@@ -25,7 +25,6 @@ from caen_libs._caenvmetypes import (  # pylint: disable=W0611
     BoardType,
     BusReqLevels,
     ContinuosRun,
-    DATA_WIDTH_TYPE as _DATA_WIDTH_TYPE,
     DataWidth,
     Display,
     InputSelect,
@@ -224,17 +223,19 @@ else:
 lib = _Lib(_LIB_NAME)
 
 
-def _get_l_arg(board_type: BoardType, arg: Union[int, str]):
-    if board_type in (BoardType.ETH_V4718, BoardType.ETH_V4718_LOCAL):
-        assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode('ascii')
-    else:
-        l_link_number = int(arg)
-        l_link_number_ct = ct.c_uint32(l_link_number)
-        return ct.pointer(l_link_number_ct)
+def _get_l_arg(board_type: BoardType, arg: int | str):
+    match board_type:
+        case BoardType.ETH_V4718 | BoardType.ETH_V4718_LOCAL:
+            if not isinstance(arg, str):
+                raise TypeError(f'arg expected to be a string for {board_type.name} board type')
+            return arg.encode('ascii')
+        case _:
+            l_link_number = int(arg)
+            l_link_number_ct = ct.c_uint32(l_link_number)
+            return ct.pointer(l_link_number_ct)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Device:
     """
     Class representing a device.
@@ -243,7 +244,7 @@ class Device:
     # Public members
     handle: int
     board_type: BoardType
-    arg: Union[int, str]
+    arg: int | str
     conet_node: int
 
     # Private members
@@ -262,7 +263,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: type[_T], board_type: BoardType, arg: Union[int, str], conet_node: int = 0) -> _T:
+    def open(cls: type[_T], board_type: BoardType, arg: int | str, conet_node: int = 0) -> _T:
         """
         Binding of CAENVME_Init2()
         """
@@ -319,7 +320,7 @@ class Device:
         """
         Binding of CAENVME_ReadCycle()
         """
-        l_value = _DATA_WIDTH_TYPE[dw]()
+        l_value = _types.DATA_WIDTH_TYPE[dw]()
         lib.read_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
@@ -327,7 +328,7 @@ class Device:
         """
         Binding of CAENVME_RMWCycle()
         """
-        l_value = _DATA_WIDTH_TYPE[dw](value)
+        l_value = _types.DATA_WIDTH_TYPE[dw](value)
         lib.rmw_cycle(self.handle, address, ct.byref(l_value), am, dw)
         return l_value.value
 
@@ -335,7 +336,7 @@ class Device:
         """
         Binding of CAENVME_WriteCycle()
         """
-        l_value = _DATA_WIDTH_TYPE[dw](value)
+        l_value = _types.DATA_WIDTH_TYPE[dw](value)
         lib.write_cycle(self.handle, address, ct.byref(l_value), am, dw)
 
     def multi_read(self, addrs: Sequence[int], ams: Sequence[AddressModifiers], dws: Sequence[DataWidth]) -> list[int]:
@@ -369,81 +370,73 @@ class Device:
         if failed_cycles:
             raise RuntimeError(f'multi_write failed at cycles {failed_cycles}')
 
-    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> list[int]:
+    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> bytes:
         """
         Binding of CAENVME_BLTReadCycle()
         """
-        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
-        l_count = ct.c_int()
-        lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_data[:l_count.value]  # type: ignore
+        l_data = (ct.c_ubyte * size)()
+        l_nb = ct.c_int()
+        lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_nb)
+        return ct.string_at(l_data, l_nb.value)
 
-    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> list[int]:
+    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> bytes:
         """
         Binding of CAENVME_FIFOBLTReadCycle()
         """
-        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
-        l_count = ct.c_int()
-        lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_data[:l_count.value]  # type: ignore
+        l_data = (ct.c_ubyte * size)()
+        l_nb = ct.c_int()
+        lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_nb)
+        return ct.string_at(l_data, l_nb.value)
 
     def mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
         Binding of CAENVME_MBLTReadCycle()
         """
         l_data = (ct.c_ubyte * size)()
-        l_count = ct.c_int()
-        lib.mblt_read_cycle(self.handle, address, l_data, size, am, l_count)
-        return bytes(l_data[:l_count.value])
+        l_nb = ct.c_int()
+        lib.mblt_read_cycle(self.handle, address, l_data, size, am, l_nb)
+        return ct.string_at(l_data, l_nb.value)
 
     def fifo_mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
         """
         Binding of CAENVME_FIFOMBLTReadCycle()
         """
         l_data = (ct.c_ubyte * size)()
-        l_count = ct.c_int()
-        lib.fifo_mblt_read_cycle(self.handle, address, l_data, size, am, l_count)
-        return bytes(l_data[:l_count.value])
+        l_nb = ct.c_int()
+        lib.fifo_mblt_read_cycle(self.handle, address, l_data, size, am, l_nb)
+        return ct.string_at(l_data, l_nb.value)
 
-    def blt_write_cycle(self, address: int, data: Sequence[int], am: AddressModifiers, dw: DataWidth) -> int:
+    def blt_write_cycle(self, address: int, data: bytes, am: AddressModifiers, dw: DataWidth) -> int:
         """
         Binding of CAENVME_BLTWriteCycle()
         """
-        n_data = len(data)
-        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
-        l_count = ct.c_int()
-        lib.blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_count.value
+        l_nb = ct.c_int()
+        lib.blt_write_cycle(self.handle, address, data, len(data), am, dw, l_nb)
+        return l_nb.value
 
-    def fifo_blt_write_cycle(self, address: int, data: Sequence[int], am: AddressModifiers, dw: DataWidth) -> int:
+    def fifo_blt_write_cycle(self, address: int, data: bytes, am: AddressModifiers, dw: DataWidth) -> int:
         """
         Binding of CAENVME_FIFOBLTWriteCycle()
         """
-        n_data = len(data)
-        size = n_data * ct.sizeof(_DATA_WIDTH_TYPE[dw])  # in bytes
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)(*data)
-        l_count = ct.c_int()
-        lib.fifo_blt_write_cycle(self.handle, address, l_data, size, am, dw, l_count)
-        return l_count.value
+        l_nb = ct.c_int()
+        lib.fifo_blt_write_cycle(self.handle, address, data, len(data), am, dw, l_nb)
+        return l_nb.value
 
     def mblt_write_cycle(self, address: int, data: bytes, am: AddressModifiers) -> int:
         """
         Binding of CAENVME_MBLTWriteCycle()
         """
-        l_count = ct.c_int()
-        lib.mblt_write_cycle(self.handle, address, data, len(data), am, l_count)
-        return l_count.value
+        l_nb = ct.c_int()
+        lib.mblt_write_cycle(self.handle, address, data, len(data), am, l_nb)
+        return l_nb.value
 
     def fifo_mblt_write_cycle(self, address: int, data: bytes, am: AddressModifiers) -> int:
         """
         Binding of CAENVME_FIFOMBLTWriteCycle()
         """
-        l_count = ct.c_int()
-        lib.fifo_mblt_write_cycle(self.handle, address, data, len(data), am, l_count)
-        return l_count.value
+        l_nb = ct.c_int()
+        lib.fifo_mblt_write_cycle(self.handle, address, data, len(data), am, l_nb)
+        return l_nb.value
 
     def ado_cycle(self, address: int, am: AddressModifiers) -> None:
         """
@@ -461,7 +454,7 @@ class Device:
         """
         Binding of CAENVME_IACKCycle()
         """
-        l_data = _DATA_WIDTH_TYPE[dw]()
+        l_data = _types.DATA_WIDTH_TYPE[dw]()
         lib.iack_cycle(self.handle, levels, l_data, dw)
         return l_data.value
 
@@ -746,7 +739,7 @@ class Device:
         # Allocate maximum size, there is no way to get the read size from API
         l_data = (ct.c_ubyte * 264)()
         lib.read_flash_page(self.handle, l_data, page_num)
-        return bytes(l_data)
+        return ct.string_at(l_data, 264)
 
     def erase_flash_page(self, page_num: int) -> None:
         """
@@ -892,8 +885,8 @@ class Device:
         """
         Binding of CAENVME_BLTReadAsync()
         """
-        n_data = size // ct.sizeof(_DATA_WIDTH_TYPE[dw])
-        l_data = (_DATA_WIDTH_TYPE[dw] * n_data)()
+        n_data = size // ct.sizeof(_types.DATA_WIDTH_TYPE[dw])
+        l_data = (_types.DATA_WIDTH_TYPE[dw] * n_data)()
         lib.blt_read_async(self.handle, address, l_data, size, am, dw)
         return l_data[:]  # type: ignore
 

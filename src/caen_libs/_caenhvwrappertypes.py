@@ -4,13 +4,18 @@ __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 import ctypes as ct
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum, unique
 import os
-from typing import Optional, TypeVar, Union
+from typing import TypeVar
 import warnings
 
-from caen_libs import _utils
+
+# Constants from CAENHVWrapper.h
+MAX_PARAM_NAME = 10
+MAX_CH_NAME = 12
+MAX_ENUM_NAME = 15  # From library documentation
+MAX_ENUM_VALS = 10  # From library source code
 
 
 @unique
@@ -71,7 +76,7 @@ class SystemStatusRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class SystemStatus:
     """
     Binding of ::CAENHV_SYSTEMSTATUS_t
@@ -120,16 +125,16 @@ class EventDataRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class EventData:
     """
     Binding of ::CAENHVEVENT_TYPE_t
     """
     type: EventType
     item_id: str
-    slot: Optional[int]
-    channel: Optional[int]
-    value: Union[str, float, int]
+    slot: int | None
+    channel: int | None
+    value: str | float | int
 
     @property
     def board_index(self) -> int:
@@ -142,7 +147,7 @@ class EventData:
         return -1 if self.channel is None else self.channel
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class FwVersion:
     """
     Firmware version
@@ -154,7 +159,7 @@ class FwVersion:
         return f'{self.major}.{self.minor}'
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Board:
     """
     Type returned by ::CAENHV_GetCrateMap and ::CAENHV_TestBdPresence
@@ -191,7 +196,7 @@ class SysPropMode(IntEnum):
     RDWR = 2
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class SysProp:
     """
     Type returned by ::CAENHV_GetSysPropInfo
@@ -248,32 +253,32 @@ class ParamUnit(IntEnum):
     APS = 12
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class ParamProp:
     """
     Type returned by ::CAENHV_GetBdParamProp
     """
     type: ParamType
     mode: ParamMode
-    minval: Optional[float] = field(default=None)
-    maxval: Optional[float] = field(default=None)
-    unit: Optional[ParamUnit] = field(default=None)
-    exp: Optional[int] = field(default=None)
-    decimal: Optional[int] = field(default=None)
-    resol: Optional[int] = field(default=None)
-    onstate: Optional[str] = field(default=None)
-    offstate: Optional[str] = field(default=None)
-    enum: Optional[tuple[str, ...]] = field(default=None)
+    minval: float | None = None
+    maxval: float | None = None
+    unit: ParamUnit | None = None
+    exp: int | None = None
+    decimal: int | None = None
+    resol: int | None = None
+    onstate: str | None = None
+    offstate: str | None = None
+    enum: tuple[str, ...] | None = None
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class TcpPorts:
     """
     TCP port range to bind to for event handling. Range is exclusive,
     so that the ports used are [first, last).
     """
-    first: int = field(default=0)
-    last: int = field(default=1)
+    first: int = 0
+    last: int = 1
 
     def __post_init__(self) -> None:
         if self.first < 0 or self.first > 65535:

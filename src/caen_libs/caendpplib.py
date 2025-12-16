@@ -15,7 +15,7 @@ from enum import IntEnum, unique
 import os
 from pathlib import Path
 import sys
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import numpy as np
 
@@ -315,7 +315,7 @@ class _Lib(_utils.Lib):
 lib = _Lib('CAENDPPLib')
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Device:
     """
     Class representing a device.
@@ -323,7 +323,7 @@ class Device:
 
     # Public members
     handle: int
-    log_severity_mask: Optional[LogMask] = field(default=None)
+    log_severity_mask: LogMask | None = None
 
     # Private members
     __opened: bool = field(default=True, repr=False)

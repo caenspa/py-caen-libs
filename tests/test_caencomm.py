@@ -128,7 +128,7 @@ class TestDevice(unittest.TestCase):
         address = 0x1000
         blt_size = 256
         values = self.device.blt_read(address, blt_size)
-        self.assertEqual(values, [])
+        self.assertEqual(values, b'')
         self.mock_lib.blt_read.assert_called_once_with(self.device.handle, address, ANY, blt_size, ANY)
 
     def test_mblt_read(self):
@@ -136,7 +136,7 @@ class TestDevice(unittest.TestCase):
         address = 0x1000
         blt_size = 256
         values = self.device.mblt_read(address, blt_size)
-        self.assertEqual(values, [])
+        self.assertEqual(values, b'')
         self.mock_lib.mblt_read.assert_called_once_with(self.device.handle, address, ANY, blt_size, ANY)
 
     def test_irq_disable(self):

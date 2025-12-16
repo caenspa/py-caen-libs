@@ -12,7 +12,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Optional, TypeVar, Union
+from typing import TypeVar
 
 from caen_libs import error, _utils
 import caen_libs._caendigitizertypes as _types
@@ -391,17 +391,19 @@ class _Lib(_utils.Lib):
 lib = _Lib('CAENDigitizer')
 
 
-def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
-    if connection_type is ConnectionType.ETH_V4718:
-        assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode('ascii')
-    else:
-        l_link_number = int(arg)
-        l_link_number_ct = ct.c_uint32(l_link_number)
-        return ct.pointer(l_link_number_ct)
+def _get_l_arg(connection_type: ConnectionType, arg: int | str):
+    match connection_type:
+        case ConnectionType.ETH_V4718:
+            if not isinstance(arg, str):
+                raise TypeError(f'arg expected to be a string for {connection_type.name} connection type')
+            return arg.encode('ascii')
+        case _:
+            l_link_number = int(arg)
+            l_link_number_ct = ct.c_uint32(l_link_number)
+            return ct.pointer(l_link_number_ct)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Device:
     """
     Class representing a device.
@@ -410,14 +412,14 @@ class Device:
     # Public members
     handle: int
     connection_type: ConnectionType
-    arg: Union[int, str]
+    arg: int | str
     conet_node: int
     vme_base_address: int
 
     # Private members
     __opened: bool = field(default=True, repr=False)
     __registers: _utils.Registers = field(init=False, repr=False)
-    __ro_buff: Optional[_types.ReadoutBuffer] = field(default=None, repr=False)
+    __ro_buff: _types.ReadoutBuffer | None = field(default=None, repr=False)
     __info: BoardInfo = field(init=False, repr=False)
     __firmware_type: _FirmwareType = field(init=False, repr=False)
 
@@ -425,12 +427,12 @@ class Device:
     __types: _EventTypes = field(init=False, repr=False)
 
     # Private members for internal firmware-specific memory management
-    __scope_event: Optional[ct.c_void_p] = field(default=None, repr=False)  # Standard firmware
-    __dpp_events: Optional[ct.Array[ct.c_void_p]] = field(default=None, repr=False)  # DPP
-    __dpp_waveforms: Optional[ct.c_void_p] = field(default=None, repr=False)  # DPP
-    __daw_events: Optional[_EventsBuffer] = field(default=None, repr=False)  # DAW firmware
-    __zle_events: Optional[_EventsBuffer] = field(default=None, repr=False)  # ZLE firmware
-    __zle_waveforms: Optional[ct.Array[ct.Structure]] = field(default=None, repr=False)  # 751 ZLE firmware
+    __scope_event: ct.c_void_p | None = field(default=None, repr=False)  # Standard firmware
+    __dpp_events: ct.Array[ct.c_void_p] | None = field(default=None, repr=False)  # DPP
+    __dpp_waveforms: ct.c_void_p | None = field(default=None, repr=False)  # DPP
+    __daw_events: _EventsBuffer | None = field(default=None, repr=False)  # DAW firmware
+    __zle_events: _EventsBuffer | None = field(default=None, repr=False)  # ZLE firmware
+    __zle_waveforms: ct.Array[ct.Structure] | None = field(default=None, repr=False)  # 751 ZLE firmware
 
     def __post_init__(self) -> None:
         self.__registers = _utils.Registers(self.read_register, self.write_register)
@@ -467,29 +469,29 @@ class Device:
         B = BoardFamilyCode
         match self.__info.firmware_code, self.__info.family_code:
             case F.STANDARD_FW, B.XX721 | B.XX731:
-                return _EventTypes[Uint8Event, _Never](Uint8Event, _Never)
+                return _EventTypes(Uint8Event, _Never)
             case F.STANDARD_FW, _:
-                return _EventTypes[Uint16Event, _Never](Uint16Event, _Never)
+                return _EventTypes(Uint16Event, _Never)
             case F.STANDARD_FW_X742, B.XX742:
-                return _EventTypes[X742Event, _Never](X742Event, _Never)
+                return _EventTypes(X742Event, _Never)
             case F.STANDARD_FW_X743, B.XX743:
-                return _EventTypes[X743Event, _Never](X743Event, _Never)
+                return _EventTypes(X743Event, _Never)
             case F.V1724_DPP_PHA | F.V1730_DPP_PHA, _:
-                return _EventTypes[DPPPHAEvent, DPPPHAWaveforms](DPPPHAEvent, DPPPHAWaveforms)
+                return _EventTypes(DPPPHAEvent, DPPPHAWaveforms)
             case F.V1720_DPP_PSD | F.V1730_DPP_PSD | F.V1751_DPP_PSD, _:
-                return _EventTypes[DPPPSDEvent, DPPPSDWaveforms](DPPPSDEvent, DPPPSDWaveforms)
+                return _EventTypes(DPPPSDEvent, DPPPSDWaveforms)
             case F.V1720_DPP_CI, _:
-                return _EventTypes[DPPCIEvent, DPPCIWaveforms](DPPCIEvent, DPPCIWaveforms)
+                return _EventTypes(DPPCIEvent, DPPCIWaveforms)
             case F.V1743_DPP_CI, _:
-                return _EventTypes[DPPX743Event, _Never](DPPX743Event, _Never)
+                return _EventTypes(DPPX743Event, _Never)
             case F.V1740_DPP_QDC, _:
-                return _EventTypes[DPPQDCEvent, DPPQDCWaveforms](DPPQDCEvent, DPPQDCWaveforms)
+                return _EventTypes(DPPQDCEvent, DPPQDCWaveforms)
             case F.V1730_DPP_ZLE, _:
-                return _EventTypes[ZLEEvent730, ZLEWaveforms730](ZLEEvent730, ZLEWaveforms730)
+                return _EventTypes(ZLEEvent730, ZLEWaveforms730)
             case F.V1751_DPP_ZLE, _:
-                return _EventTypes[ZLEEvent751, ZLEWaveforms751](ZLEEvent751, ZLEWaveforms751)
+                return _EventTypes(ZLEEvent751, ZLEWaveforms751)
             case F.V1724_DPP_DAW | F.V1730_DPP_DAW, _:
-                return _EventTypes[DPPDAWEvent, DPPDAWWaveforms](DPPDAWEvent, DPPDAWWaveforms)
+                return _EventTypes(DPPDAWEvent, DPPDAWWaveforms)
             case _:
                 raise RuntimeError('Unknown firmware')
 
@@ -498,7 +500,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
+    def open(cls: type[_T], connection_type: ConnectionType, arg: int | str, conet_node: int, vme_base_address: int) -> _T:
         """
         Binding of CAEN_DGTZ_OpenDigitizer2()
         """
@@ -525,6 +527,8 @@ class Device:
     def close(self) -> None:
         """
         Binding of CAEN_DGTZ_CloseDigitizer()
+
+        Also frees all allocated resources.
         """
         match self.__firmware_type:
             case _FirmwareType.STANDARD:
@@ -635,7 +639,7 @@ class Device:
         lib.get_des_mode(self.handle, l_value)
         return l_value.value
 
-    def set_record_length(self, value: int, channel: Optional[int] = None) -> None:
+    def set_record_length(self, value: int, channel: int | None = None) -> None:
         """
         Binding of CAEN_DGTZ_SetRecordLength()
         """
@@ -645,7 +649,7 @@ class Device:
             l_channel = ct.c_int32(channel)
             lib.set_record_length(self.handle, value, l_channel)
 
-    def get_record_length(self, channel: Optional[int] = None) -> int:
+    def get_record_length(self, channel: int | None = None) -> int:
         """
         Binding of CAEN_DGTZ_GetRecordLength()
         """
@@ -1048,7 +1052,7 @@ class Device:
         event_info = EventInfo.from_raw(l_event_info)
         return event_info, _Buffer(l_event_p)
 
-    def decode_event(self, event_data: _Buffer) -> Union[Uint16Event, Uint8Event, X742Event, X743Event]:
+    def decode_event(self, event_data: _Buffer) -> Uint16Event | Uint8Event | X742Event | X743Event:
         """
         Binding of CAEN_DGTZ_DecodeEvent()
 
@@ -1075,7 +1079,7 @@ class Device:
         lib.free_event(self.handle, self.__scope_event)
         self.__scope_event = None
 
-    def get_dpp_events(self) -> Union[list[list[DPPPHAEvent]], list[list[DPPPSDEvent]], list[list[DPPCIEvent]], list[list[DPPX743Event]], list[list[DPPQDCEvent]]]:
+    def get_dpp_events(self) -> list[list[DPPPHAEvent]] | list[list[DPPPSDEvent]] | list[list[DPPCIEvent]] | list[list[DPPX743Event]] | list[list[DPPQDCEvent]]:
         """
         Binding of CAEN_DGTZ_GetDPPEvents() for DPP only
 
@@ -1196,7 +1200,7 @@ class Device:
             raise RuntimeError('Not a DAW firmware')
         if self.__daw_events is None:
             return
-        # Free waveforms, with a workaround for a bug in the C API that will lead to a memory leak
+        # Free waveforms, with a workaround for a bug in the C API, fixed in v2.19.0, that will lead to a memory leak
         match self.__info.firmware_code:
             case FirmwareCode.V1730_DPP_DAW:
                 evts_p = ct.cast(self.__daw_events.data, self.__e.raw_p)
@@ -1205,7 +1209,7 @@ class Device:
                         try:
                             lib.free_dpp_waveforms(self.handle, ch.contents.Waveforms)
                         except Error as ex:
-                            if ex.code != Error.Code.FUNCTION_NOT_ALLOWED:
+                            if ex.code is not Error.Code.FUNCTION_NOT_ALLOWED or lib.ver_at_least((2, 19, 0)):
                                 raise
             case FirmwareCode.V1724_DPP_DAW:
                 raise RuntimeError('Firmware not supported by the C API')
@@ -1244,7 +1248,7 @@ class Device:
         lib.free_dpp_waveforms(self.handle, self.__dpp_waveforms)
         self.__dpp_waveforms = None
 
-    def decode_dpp_waveforms(self, ch: int, evt_id: int) -> Union[DPPPHAWaveforms, DPPPSDWaveforms, DPPCIWaveforms, DPPQDCWaveforms]:
+    def decode_dpp_waveforms(self, ch: int, evt_id: int) -> DPPPHAWaveforms | DPPPSDWaveforms | DPPCIWaveforms | DPPQDCWaveforms:
         """
         Binding of CAEN_DGTZ_DecodeDPPWaveforms() for DPP only
 
@@ -1300,7 +1304,7 @@ class Device:
         """
         lib.set_dpp_event_aggregation(self.handle, threshold, max_size)
 
-    def set_dpp_parameters(self, channel_mask: int, params: Union[DPPPHAParams, DPPPSDParams, DPPCIParams, DPPQDCParams, DPPX743Params]) -> None:
+    def set_dpp_parameters(self, channel_mask: int, params: DPPPHAParams | DPPPSDParams | DPPCIParams | DPPQDCParams | DPPX743Params) -> None:
         """
         Binding of CAEN_DGTZ_SetDPPParameters()
         """
@@ -1354,7 +1358,7 @@ class Device:
         """
         Binding of CAEN_DGTZ_GetDPP_SupportedVirtualProbes()
         """
-        max_probes = len(DPPProbe)  # Assuming at most trace supports all probes
+        max_probes = len(DPPProbe)  # Assuming trace supports at most all probes
         l_value = (ct.c_int * max_probes)()
         l_num_probes = ct.c_int()
         lib.get_dpp_supported_virtual_probes(self.handle, trace, l_value, l_num_probes)
@@ -1608,7 +1612,7 @@ class Device:
                 raise RuntimeError('Not a ZLE firmware')
         self.__zle_events = _EventsBuffer(l_zle_events, n_events)
 
-    def get_zle_events(self) -> Union[list[ZLEEvent730], list[ZLEEvent751]]:
+    def get_zle_events(self) -> list[ZLEEvent730] | list[ZLEEvent751]:
         """
         Binding of CAEN_DGTZ_GetZLEEvents()
 
@@ -1643,7 +1647,7 @@ class Device:
             case _:
                 raise RuntimeError('Not a ZLE firmware')
 
-    def set_zle_parameters(self, channel_mask: int, params: Union[ZLEParams751]) -> None:
+    def set_zle_parameters(self, channel_mask: int, params: ZLEParams751) -> None:
         """
         Binding of CAEN_DGTZ_SetZLEParameters()
         """
@@ -1710,7 +1714,7 @@ class Device:
         """
         buf = (ct.c_ubyte * num_bytes)()
         lib.read_eeprom(self.handle, eeprom_index, add, num_bytes, buf)
-        return bytes(buf)
+        return ct.string_at(buf, num_bytes)
 
     def write_eeprom(self, eeprom_index: int, add: int, data: bytes) -> None:
         """
