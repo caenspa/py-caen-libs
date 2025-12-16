@@ -6,12 +6,10 @@ __license__ = 'LGPL-3.0-or-later'
 import ctypes as ct
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto, unique
-from typing import ClassVar, Generic, Optional, Protocol, TypeVar
+from typing import ClassVar, Generic, Protocol, TypeAlias, TypeVar
 
 import numpy as np
 import numpy.typing as npt
-
-from caen_libs import _utils
 
 
 # Constants from CAENDigitizerType.h
@@ -293,6 +291,41 @@ class Registers(IntEnum):
     ROM_VCXO_TYPE_ADD = 0xF088
 
 
+def input_dc_offset_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_InputDCOffsetReg_Ch
+    """
+    return Registers.CHANNEL_DAC_BASE_ADDRESS | (x << 8)
+
+
+def channel_fw_revision_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_ChannelFWRevisionReg_Ch
+    """
+    return Registers.CHANNEL_AMC_FPGA_FW_BASE_ADDRESS | (x << 8)
+
+
+def dpp1_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_DPP1Reg_Ch
+    """
+    return 0x1024 | (x << 8)
+
+
+def dpp2_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_DPP2Reg_Ch
+    """
+    return 0x1028 | (x << 8)
+
+
+def dpp3_reg_ch(x: int) -> int:
+    """
+    Binding of CAEN_DGTZ_DPP3Reg_Ch
+    """
+    return 0x102C | (x << 8)
+
+
 class BoardInfoRaw(ct.Structure):
     """Raw view of ::CAEN_DGTZ_BoardInfo_t"""
     _fields_ = [
@@ -314,7 +347,7 @@ class BoardInfoRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class BoardInfo:
     """
     Binding of ::CAEN_DGTZ_BoardInfo_t
@@ -373,7 +406,7 @@ class EventInfoRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class EventInfo:
     """
     Binding of ::CAEN_DGTZ_EventInfo_t
@@ -403,7 +436,7 @@ class NeverRaw(ct.Structure):
     _fields_ = []
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Never:
     """
     A non-instantiable type, useful for typing when there is no waveform
@@ -428,7 +461,7 @@ def _safe_array(data: ct._Pointer, size: int) -> npt.NDArray:
     return np.ctypeslib.as_array(data, shape=(size,))
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Uint16Event:
     """
     Binding of ::CAEN_DGTZ_UINT16_EVENT_t
@@ -450,7 +483,7 @@ class Uint8EventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Uint8Event:
     """
     Binding of ::CAEN_DGTZ_UINT8_EVENT_t
@@ -474,7 +507,7 @@ class X742GroupRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class X742Group:
     """
     Binding of ::CAEN_DGTZ_X742_GROUP_t
@@ -506,7 +539,7 @@ class X742EventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class X742Event:
     """
     Binding of ::CAEN_DGTZ_X742_EVENT_t
@@ -515,7 +548,7 @@ class X742Event:
     raw: X742EventRaw = field(repr=False)
 
     @property
-    def data_group(self) -> list[Optional[X742Group]]:
+    def data_group(self) -> list[X742Group | None]:
         """Data group"""
         return [X742Group(self.raw.DataGroup[i]) if self.raw.GrPresent[i] else None for i in range(MAX_X742_GROUP_SIZE)]
 
@@ -539,7 +572,7 @@ class X743GroupRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class X743Group:
     """
     Binding of ::CAEN_DGTZ_X743_GROUP_t
@@ -617,7 +650,7 @@ class X743EventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class X743Event:
     """
     Binding of ::CAEN_DGTZ_X743_EVENT_t
@@ -626,7 +659,7 @@ class X743Event:
     raw: X743EventRaw = field(repr=False)
 
     @property
-    def data_group(self) -> list[Optional[X743Group]]:
+    def data_group(self) -> list[X743Group | None]:
         """Data group"""
         return [X743Group(self.raw.DataGroup[i]) if self.raw.GrPresent[i] else None for i in range(MAX_V1743_GROUP_SIZE)]
 
@@ -643,7 +676,7 @@ class DPPPHAEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPPHAEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Event_t
@@ -692,7 +725,7 @@ class DPPPSDEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPPSDEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Event_t
@@ -752,7 +785,7 @@ class DPPCIEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPCIEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_CI_Event_t
@@ -797,7 +830,7 @@ class DPPQDCEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPQDCEvent:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Event_t
@@ -860,7 +893,7 @@ class ZLEWaveforms751Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEWaveforms751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Waveforms_t
@@ -893,7 +926,7 @@ class ZLEEvent751Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEEvent751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Event_t
@@ -930,7 +963,7 @@ class ZLEWaveforms730Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEWaveforms730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Waveforms_t
@@ -960,7 +993,7 @@ class ZLEChannel730Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEChannel730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Channel_t
@@ -995,7 +1028,7 @@ class ZLEEvent730Raw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class ZLEEvent730:
     """
     Binding of ::CAEN_DGTZ_730_ZLE_Event_t
@@ -1019,7 +1052,7 @@ class ZLEEvent730:
         return self.raw.timeStamp
 
     @property
-    def channel(self) -> list[Optional[ZLEChannel730]]:
+    def channel(self) -> list[ZLEChannel730 | None]:
         """Channel"""
         return [ZLEChannel730(self.raw.Channel[i].contents) if (self.raw.chmask & (1 << i)) else None for i in range(MAX_V1730_CHANNEL_SIZE)]
 
@@ -1031,7 +1064,7 @@ class DPPDAWWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPDAWWaveforms:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Waveforms_t
@@ -1059,7 +1092,7 @@ class DPPDAWChannelRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPDAWChannel:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Channel_t
@@ -1109,7 +1142,7 @@ class DPPDAWEventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPDAWEvent:
     """
     Binding of ::CAEN_DGTZ_730_DAW_Event_t
@@ -1133,7 +1166,7 @@ class DPPDAWEvent:
         return self.raw.timeStamp
 
     @property
-    def channel(self) -> list[Optional[DPPDAWChannel]]:
+    def channel(self) -> list[DPPDAWChannel | None]:
         """Channel"""
         chmask: int = self.raw.chmask
         return [DPPDAWChannel(ch.contents) if (chmask & (1 << i)) else None for i, ch in enumerate(self.raw.Channel)]
@@ -1147,7 +1180,7 @@ class DPPX743EventRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPX743Event:
     """
     Binding of ::CAEN_DGTZ_DPP_X743_Event_t
@@ -1181,7 +1214,7 @@ class DPPPHAWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPPHAWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Waveforms_t
@@ -1252,7 +1285,7 @@ class DPPPSDWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPPSDWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Waveforms_t
@@ -1316,8 +1349,8 @@ class DPPPSDWaveforms:
         return np.ctypeslib.as_array(self.raw.DTrace4, shape=(self.ns,))
 
 
-DPPCIWaveformsRaw = DPPPSDWaveformsRaw
-DPPCIWaveforms = DPPPSDWaveforms
+DPPCIWaveformsRaw: TypeAlias = DPPPSDWaveformsRaw
+DPPCIWaveforms: TypeAlias = DPPPSDWaveforms
 
 
 class DPPQDCWaveformsRaw(ct.Structure):
@@ -1337,7 +1370,7 @@ class DPPQDCWaveformsRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DPPQDCWaveforms:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Waveforms_t
@@ -1538,6 +1571,7 @@ class ReadMode(IntEnum):
     """
     Binding of ::CAEN_DGTZ_ReadMode_t
     """
+    # pylint: disable=C0103
     SLAVE_TERMINATED_READOUT_MBLT = 0
     SLAVE_TERMINATED_READOUT_2eVME = 1
     SLAVE_TERMINATED_READOUT_2eSST = 2
@@ -1600,38 +1634,38 @@ class DPPPHAParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPPHAParams:
     """
     Binding of ::CAEN_DGTZ_DPP_PHA_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
-        m_: int = field(default=0)
-        m: int = field(default=0)
-        k: int = field(default=0)
-        ftd: int = field(default=0)
-        a: int = field(default=0)
-        b: int = field(default=0)
-        thr: int = field(default=0)
-        nsbl: int = field(default=0)
-        nspk: int = field(default=0)
-        pkho: int = field(default=0)
-        blho: int = field(default=0)
-        otrej: int = field(default=0)
-        trgho: int = field(default=0)
-        twwdt: int = field(default=0)
-        trgwin: int = field(default=0)
-        dgain: int = field(default=0)
-        enf: float = field(default=0.)
-        decimation: int = field(default=0)
-        enskim: bool = field(default=False)
-        eskimlld: int = field(default=0)
-        eskimuld: int = field(default=0)
-        blrclip: bool = field(default=False)
-        dcomp: bool = field(default=False)
-        trapbsl: int = field(default=0)
+        m_: int = 0
+        m: int = 0
+        k: int = 0
+        ftd: int = 0
+        a: int = 0
+        b: int = 0
+        thr: int = 0
+        nsbl: int = 0
+        nspk: int = 0
+        pkho: int = 0
+        blho: int = 0
+        otrej: int = 0
+        trgho: int = 0
+        twwdt: int = 0
+        trgwin: int = 0
+        dgain: int = 0
+        enf: float = 0.
+        decimation: int = 0
+        enskim: bool = False
+        eskimlld: int = 0
+        eskimuld: int = 0
+        blrclip: bool = False
+        dcomp: bool = False
+        trapbsl: int = 0
 
     ch: list[_ChData] = field(default_factory=list)
 
@@ -1712,32 +1746,32 @@ class DPPPUR(IntEnum):
     ENABLED = 1
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPPSDParams:
     """
     Binding of ::CAEN_DGTZ_DPP_PSD_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
-        thr: int = field(default=0)
-        selft: bool = field(default=False)
-        csens: int = field(default=0)
-        sgate: int = field(default=0)
-        lgate: int = field(default=0)
-        pgate: int = field(default=0)
-        tvaw: int = field(default=0)
-        nsbl: int = field(default=0)
-        discr: bool = field(default=False)
-        cfdf: int = field(default=0)
-        cfdd: int = field(default=0)
-        trgc: DPPTriggerConfig = field(default=DPPTriggerConfig.PEAK)
+        thr: int = 0
+        selft: bool = False
+        csens: int = 0
+        sgate: int = 0
+        lgate: int = 0
+        pgate: int = 0
+        tvaw: int = 0
+        nsbl: int = 0
+        discr: bool = False
+        cfdf: int = 0
+        cfdd: int = 0
+        trgc: DPPTriggerConfig = DPPTriggerConfig.PEAK
 
-    blthr: int = field(default=0)
-    bltmo: int = field(default=0)
-    trgho: int = field(default=0)
-    purh: DPPPUR = field(default=DPPPUR.DETECT_ONLY)
-    purgap: int = field(default=0)
+    blthr: int = 0
+    bltmo: int = 0
+    trgho: int = 0
+    purh: DPPPUR = DPPPUR.DETECT_ONLY
+    purgap: int = 0
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -1786,28 +1820,28 @@ class DPPCIParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPCIParams:
     """
     Binding of ::CAEN_DGTZ_DPP_CI_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
-        thr: int = field(default=0)
-        selft: bool = field(default=False)
-        csens: int = field(default=0)
-        gate: int = field(default=0)
-        pgate: int = field(default=0)
-        tvaw: int = field(default=0)
-        nsbl: int = field(default=0)
-        trgc: DPPTriggerConfig = field(default=DPPTriggerConfig.PEAK)
+        thr: int = 0
+        selft: bool = False
+        csens: int = 0
+        gate: int = 0
+        pgate: int = 0
+        tvaw: int = 0
+        nsbl: int = 0
+        trgc: DPPTriggerConfig = DPPTriggerConfig.PEAK
 
-    purgap: int = field(default=0)
-    purh: DPPPUR = field(default=DPPPUR.DETECT_ONLY)
-    blthr: int = field(default=0)
-    bltmo: int = field(default=0)
-    trgho: int = field(default=0)
+    purgap: int = 0
+    purh: DPPPUR = DPPPUR.DETECT_ONLY
+    blthr: int = 0
+    bltmo: int = 0
+    trgho: int = 0
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -1847,23 +1881,23 @@ class ZLEParams751Raw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class ZLEParams751:
     """
     Binding of ::CAEN_DGTZ_751_ZLE_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
-        nsamp_bck: int = field(default=0)
-        nsamp_ahe: int = field(default=0)
-        zle_upp_thr: int = field(default=0)
-        zle_und_thr: int = field(default=0)
-        sel_num_samp_bsl: int = field(default=0)
-        bsl_thrshld: int = field(default=0)
-        bsl_time_out: int = field(default=0)
+        nsamp_bck: int = 0
+        nsamp_ahe: int = 0
+        zle_upp_thr: int = 0
+        zle_und_thr: int = 0
+        sel_num_samp_bsl: int = 0
+        bsl_thrshld: int = 0
+        bsl_time_out: int = 0
 
-    pre_trgg: int = field(default=0)
+    pre_trgg: int = 0
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -1895,20 +1929,20 @@ class DPPX743ParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPX743Params:
     """
     Binding of ::CAEN_DGTZ_DPP_X743_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
-        start_cell: int = field(default=0)
-        charge_length: int = field(default=0)
-        enable_charge_threshold: EnaDis = field(default=EnaDis.DISABLE)
-        charge_threshold: float = field(default=0.)
+        start_cell: int = 0
+        charge_length: int = 0
+        enable_charge_threshold: EnaDis = EnaDis.DISABLE
+        charge_threshold: float = 0.
 
-    disable_suppress_baseline: EnaDis = field(default=EnaDis.DISABLE)
+    disable_suppress_baseline: EnaDis = EnaDis.DISABLE
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -1947,30 +1981,30 @@ class DPPQDCParamsRaw(ct.Structure):
     ]
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class DPPQDCParams:
     """
     Binding of ::CAEN_DGTZ_DPP_QDC_Params_t
     """
 
-    @dataclass(**_utils.dataclass_slots)
+    @dataclass(slots=True)
     class _ChData:
-        trgho: int = field(default=0)
-        gate_width: int = field(default=0)
-        pre_gate: int = field(default=0)
-        fixed_baseline: int = field(default=0)
-        dis_trig_hist: bool = field(default=False)
-        dis_self_trigger: bool = field(default=False)
-        baseline_mode: int = field(default=0)
-        trg_mode: int = field(default=0)
-        charge_sensitivity: int = field(default=0)
-        pulse_pol: PulsePolarity = field(default=PulsePolarity.POSITIVE)
-        en_charge_ped: bool = field(default=False)
-        test_pulses_rate: int = field(default=0)
-        en_test_pulses: bool = field(default=False)
-        input_smoothing: int = field(default=0)
+        trgho: int = 0
+        gate_width: int = 0
+        pre_gate: int = 0
+        fixed_baseline: int = 0
+        dis_trig_hist: bool = False
+        dis_self_trigger: bool = False
+        baseline_mode: int = 0
+        trg_mode: int = 0
+        charge_sensitivity: int = 0
+        pulse_pol: PulsePolarity = PulsePolarity.POSITIVE
+        en_charge_ped: bool = False
+        test_pulses_rate: int = 0
+        en_test_pulses: bool = False
+        input_smoothing: int = 0
 
-    enable_extended_time_stamp: bool = field(default=False)
+    enable_extended_time_stamp: bool = False
     ch: list[_ChData] = field(default_factory=list)
 
     def resize(self, n_channels: int):
@@ -2007,7 +2041,7 @@ class DRS4CorrectionRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class DRS4Correction:
     """
     Binding of ::CAEN_DGTZ_DRS4Correction_t
@@ -2114,6 +2148,7 @@ class DRS4Frequency(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DRS4Frequency_t
     """
+    # pylint: disable=C0103
     F_5GHz = 0
     F_2_5GHz = 1
     F_1GHz = 2
@@ -2169,6 +2204,7 @@ class SAMFrequency(IntEnum):
     """
     Binding of ::CAEN_DGTZ_SAMFrequency_t
     """
+    # pylint: disable=C0103
     F_3_2GHz = 0
     F_1_6GHz = 1
     F_800MHz = 2
@@ -2205,7 +2241,7 @@ class FirmwareType(Enum):
                 return cls.UNKNOWN
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Buffer:
     """
     Type returned by get_event_info, to be passed to decode_event
@@ -2215,7 +2251,7 @@ class Buffer:
     data: 'ct._Pointer[ct.c_char]'
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class ReadoutBuffer:
     """
     Internal representation of readout buffer
@@ -2236,7 +2272,7 @@ class ReadoutBuffer:
         return memoryview(array).toreadonly()
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class EventsBuffer:
     """
     Used to store internal buffers for ZLE and DAW firmwares, containing
@@ -2266,7 +2302,7 @@ class _HasRaw(Protocol):
 _THasRaw = TypeVar('_THasRaw', bound=_HasRaw)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class BindingType(Generic[_THasRaw]):
     """
     Convenience class to store a Python binding native type and its raw
@@ -2288,7 +2324,7 @@ _TEvent = TypeVar('_TEvent', bound=_HasRaw)
 _TWave = TypeVar('_TWave', bound=_HasRaw)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class EventTypes(Generic[_TEvent, _TWave]):
     """
     Used to store event types, their raw representations and pointers to

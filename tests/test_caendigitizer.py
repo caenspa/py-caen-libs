@@ -847,7 +847,7 @@ class TestDeviceZLE(_TestDevice):
 TEST_CASES = (TestDeviceStandard, TestDeviceDPP, TestDeviceDAW, TestDeviceZLE)
 
 
-def load_tests(loader: unittest.TestLoader, standard_tests, pattern):
+def load_tests(loader: unittest.TestLoader, _standard_tests, _pattern):
     """
     Protocol for unittest test discovery:
     Manually create the test suite to avoid running _TestDevice

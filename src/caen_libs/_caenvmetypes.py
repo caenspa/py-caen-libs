@@ -8,7 +8,6 @@ import sys
 from dataclasses import dataclass
 from enum import IntEnum, IntFlag, unique
 
-from caen_libs import _utils
 
 @unique
 class BoardType(IntEnum):
@@ -251,7 +250,7 @@ class DisplayRaw(ct.Structure):
     ]
 
 
-@dataclass(frozen=True, **_utils.dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Display:
     """
     Binding of ::CVDisplay

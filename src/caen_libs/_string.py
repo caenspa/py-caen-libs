@@ -9,10 +9,9 @@ __license__ = 'LGPL-3.0-or-later'
 
 import ctypes as ct
 from collections.abc import Iterator
-from typing import Union
 
 
-def from_char(data: Union[ct.c_char, ct.Array[ct.c_char]], n_str: int) -> Iterator[str]:
+def from_char(data: ct.c_char | ct.Array[ct.c_char], n_str: int) -> Iterator[str]:
     """
     Split a buffer into a list of N string.
     Strings are separated by the null terminator:
@@ -36,7 +35,7 @@ def from_char_p(data: 'ct._Pointer[ct.c_char]', n_str: int) -> Iterator[str]:
         yield from from_char(data.contents, n_str)
 
 
-def from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int) -> Iterator[str]:
+def from_char_array(data: ct.c_char | ct.Array[ct.c_char], str_size: int) -> Iterator[str]:
     """
     Split a buffer of fixed size string.
     Size is deduced by the first zero size string found:
@@ -52,7 +51,7 @@ def from_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int) 
         yield value.decode('ascii')
 
 
-def from_n_char_array(data: Union[ct.c_char, ct.Array[ct.c_char]], str_size: int, n_str: int) -> Iterator[str]:
+def from_n_char_array(data: ct.c_char | ct.Array[ct.c_char], str_size: int, n_str: int) -> Iterator[str]:
     """
     Split a buffer of fixed size string.
     Size is passed as parameter:

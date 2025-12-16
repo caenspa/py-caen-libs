@@ -12,8 +12,8 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
-from typing import Any, Optional, Union, overload
+from dataclasses import dataclass
+from typing import Any, overload
 
 if sys.platform == 'win32':
     _LibNotFoundClass = FileNotFoundError
@@ -27,7 +27,7 @@ class Lib(ABC):
     public attributes using ctypes.
     """
 
-    def __init__(self, name: str, stdcall: bool = True, env: Optional[dict[str, str]] = None) -> None:
+    def __init__(self, name: str, stdcall: bool = True, env: dict[str, str] | None = None) -> None:
         self.__name = name
         self.__stdcall = stdcall  # Ignored on Linux
         self.__env = env
@@ -41,7 +41,7 @@ class Lib(ABC):
         """
         self.__lib_variadic: ct.CDLL
         if sys.platform == 'win32':
-            self.__lib: Union[ct.CDLL, ct.WinDLL]
+            self.__lib: ct.CDLL | ct.WinDLL
         else:
             self.__lib: ct.CDLL
 
@@ -120,20 +120,15 @@ def version_to_tuple(version: str) -> tuple[int, ...]:
 
 
 # Slots brings some performance improvements and memory savings.
-if sys.version_info >= (3, 10):
-    dataclass_slots = {'slots': True}
-else:
-    dataclass_slots = {}
-
-
-# Weakref support is required by the cache manager.
+# Weakref support is required by the cache manager, but not available
+# in Python < 3.11.
 if sys.version_info >= (3, 11):
-    dataclass_slots_weakref = dataclass_slots | {'weakref_slot': True}
+    dataclass_slots_weakref = {'slots': True, 'weakref_slot': True}
 else:
     dataclass_slots_weakref = {}
 
 
-@dataclass(frozen=True, **dataclass_slots)
+@dataclass(frozen=True, slots=True)
 class Registers:
     """
     Class to simplify syntax for registers access with square brackets
@@ -142,8 +137,8 @@ class Registers:
 
     getter: Callable[[int], int]
     setter: Callable[[int, int], None]
-    multi_getter: Optional[Callable[[Sequence[int]], list[int]]] = field(default=None)
-    multi_setter: Optional[Callable[[Sequence[int], Sequence[int]], None]] = field(default=None)
+    multi_getter: Callable[[Sequence[int]], list[int]] | None = None
+    multi_setter: Callable[[Sequence[int], Sequence[int]], None] | None = None
 
     def get(self, address: int) -> int:
         """Get value"""
@@ -166,14 +161,13 @@ class Registers:
         return self.__multi_set_fallback(addresses, values)
 
     def __multi_get_fallback(self, addresses: Sequence[int]) -> list[int]:
-        return [self.get(a) for a in addresses]
+        return list(map(self.get, addresses))
 
     def __multi_set_fallback(self, addresses: Sequence[int], values: Sequence[int]) -> None:
-        for a, v in zip(addresses, values):
-            self.set(a, v)
+        list(map(self.set, addresses, values))
 
     @staticmethod
-    def __get_addresses(key: slice) -> Sequence[int]:
+    def __addr(key: slice):
         if key.start is None or key.stop is None:
             raise ValueError('Both start and stop must be specified.')
         step = 1 if key.step is None else key.step
@@ -185,12 +179,14 @@ class Registers:
     def __getitem__(self, address: slice) -> list[int]: ...
 
     def __getitem__(self, address):
-        if isinstance(address, int):
-            return self.get(address)
-        if isinstance(address, slice):
-            addresses = self.__get_addresses(address)
-            return self.multi_get(addresses)
-        raise TypeError('Invalid argument type.')
+        match address:
+            case int():
+                return self.get(address)
+            case slice() as s:
+                addresses = self.__addr(s)
+                return self.multi_get(addresses)
+            case _:
+                raise TypeError('Invalid argument type.')
 
     @overload
     def __setitem__(self, address: int, value: int) -> None: ...
@@ -198,11 +194,11 @@ class Registers:
     def __setitem__(self, address: slice, value: Sequence[int]) -> None: ...
 
     def __setitem__(self, address, value):
-        if isinstance(address, int):
-            return self.set(address, value)
-        if isinstance(address, slice) and isinstance(value, Sequence):
-            addresses = self.__get_addresses(address)
-            if len(value) != len(addresses):
-                raise ValueError('Invalid value size.')
-            return self.multi_set(addresses, value)
-        raise TypeError('Invalid argument type.')
+        match address, value:
+            case int(), int():
+                return self.set(address, value)
+            case slice(), Sequence():
+                addresses = self.__addr(address)
+                return self.multi_set(addresses, value)
+            case _:
+                raise TypeError('Invalid argument type.')

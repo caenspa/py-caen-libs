@@ -12,7 +12,7 @@ from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import TypeVar, Union
+from typing import TypeVar
 
 from caen_libs import error, _utils
 
@@ -183,17 +183,19 @@ class _Lib(_utils.Lib):
 lib = _Lib('CAENComm')
 
 
-def _get_l_arg(connection_type: ConnectionType, arg: Union[int, str]):
-    if connection_type is ConnectionType.ETH_V4718:
-        assert isinstance(arg, str), 'arg expected to be a string'
-        return arg.encode('ascii')
-    else:
-        l_link_number = int(arg)
-        l_link_number_ct = ct.c_uint32(l_link_number)
-        return ct.pointer(l_link_number_ct)
+def _get_l_arg(connection_type: ConnectionType, arg: int | str):
+    match connection_type:
+        case ConnectionType.ETH_V4718:
+            if not isinstance(arg, str):
+                raise TypeError(f'arg expected to be a string for {connection_type.name} connection type')
+            return arg.encode('ascii')
+        case _:
+            l_link_number = int(arg)
+            l_link_number_ct = ct.c_uint32(l_link_number)
+            return ct.pointer(l_link_number_ct)
 
 
-@dataclass(**_utils.dataclass_slots)
+@dataclass(slots=True)
 class Device:
     """
     Class representing a device.
@@ -202,7 +204,7 @@ class Device:
     # Public members
     handle: int
     connection_type: ConnectionType
-    arg: Union[int, str]
+    arg: int | str
     conet_node: int
     vme_base_address: int
 
@@ -224,7 +226,7 @@ class Device:
     _T = TypeVar('_T', bound='Device')
 
     @classmethod
-    def open(cls: type[_T], connection_type: ConnectionType, arg: Union[int, str], conet_node: int, vme_base_address: int) -> _T:
+    def open(cls: type[_T], connection_type: ConnectionType, arg: int | str, conet_node: int, vme_base_address: int) -> _T:
         """
         Binding of CAENComm_OpenDevice2()
         """
@@ -347,23 +349,23 @@ class Device:
         """Utility to simplify 16-bit register access"""
         return self.__reg16
 
-    def blt_read(self, address: int, blt_size: int) -> list[int]:
+    def blt_read(self, address: int, blt_size: int) -> bytes:
         """
         Binding of CAENComm_BLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
         lib.blt_read(self.handle, address, l_data, blt_size, l_nw)
-        return l_data[:l_nw.value]
+        return ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32))
 
-    def mblt_read(self, address: int, blt_size: int) -> list[int,]:
+    def mblt_read(self, address: int, blt_size: int) -> bytes:
         """
         Binding of CAENComm_MBLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
         lib.mblt_read(self.handle, address, l_data, blt_size, l_nw)
-        return l_data[:l_nw.value]
+        return ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32))
 
     def irq_disable(self, mask: int) -> None:
         """

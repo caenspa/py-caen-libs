@@ -35,7 +35,13 @@ print('-------------------------------------------------------------------------
 print(f'CAEN HV Wrapper binding loaded (lib version {hv.lib.sw_release()})')
 print('------------------------------------------------------------------------------------')
 
-with hv.Device.open(hv.SystemType[args.systemtype], hv.LinkType[args.linktype], args.arg, args.username, args.password) as device:
+system_type = hv.SystemType[args.systemtype]
+link_type = hv.LinkType[args.linktype]
+arg = args.arg
+username = args.username
+password = args.password
+
+with hv.Device.open(system_type, link_type, arg, username, password) as device:
 
     slots = device.get_crate_map()  # initialize internal stuff
 
