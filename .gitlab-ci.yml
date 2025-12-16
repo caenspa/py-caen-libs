@@ -22,7 +22,7 @@ test-pytest:
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
   stage: test
   script:
-    - pip install pytest --quiet
+    - pip install -e . pytest --quiet
     - pytest tests/
 
 pypi-upload:
