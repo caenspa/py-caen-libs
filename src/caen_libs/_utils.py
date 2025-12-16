@@ -123,9 +123,9 @@ def version_to_tuple(version: str) -> tuple[int, ...]:
 # Weakref support is required by the cache manager, but not available
 # in Python < 3.11.
 if sys.version_info >= (3, 11):
-    dataclass_slots_weakref = {'slots': True, 'weakref_slot': True}
+    dataclass_slots_weakref: dict[str, bool] = {'slots': True, 'weakref_slot': True}
 else:
-    dataclass_slots_weakref = {}
+    dataclass_slots_weakref: dict[str, bool] = {}
 
 
 @dataclass(frozen=True, slots=True)

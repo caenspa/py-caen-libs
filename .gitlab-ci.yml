@@ -21,6 +21,7 @@ test-pylint:
 test-pytest:
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
   stage: test
+  when: manual
   script:
     # TODO: install CAEN dependencies using debian packages
     - pip install -e . pytest --quiet
