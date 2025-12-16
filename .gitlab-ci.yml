@@ -7,7 +7,7 @@ test-mypy:
   stage: test
   when: manual
   script:
-    - pip install mypy --quiet
+    - pip install -e . mypy --quiet
     - mypy src
 
 test-pylint:
@@ -15,13 +15,14 @@ test-pylint:
   stage: test
   when: manual
   script:
-    - pip install pylint --quiet
+    - pip install -e . pylint --quiet
     - pylint src
 
 test-pytest:
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
   stage: test
   script:
+    # TODO: install CAEN dependencies using debian packages
     - pip install -e . pytest --quiet
     - pytest tests/
 
