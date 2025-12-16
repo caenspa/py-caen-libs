@@ -11,13 +11,14 @@
 -----------------------------------------------------------------------------
 
 
-v3.1.0 (XX/XX/2025)
+v3.1.0 (16/12/2025)
 -------------------
 
 New features:
 - Dropped support for Python 3.9.
 
 Fixes:
+- The object `caendpplib.DgtzParams.ch` was read only since v3.0.0.
 - Fixed the data size returned by `blt_read_cycle` and `fifo_blt_read_cycle`
     on `caenvme`. Note that the return type has also changed; see the
     following points for details.

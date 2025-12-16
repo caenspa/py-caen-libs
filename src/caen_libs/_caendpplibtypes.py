@@ -1461,7 +1461,7 @@ class DgtzParams:
     Binding of ::CAENDPP_DgtzParams_t
     """
 
-    @dataclass(frozen=True, slots=True)
+    @dataclass(slots=True)
     class _ChData:
         pulse_polarity: PulsePolarity = PulsePolarity.POSITIVE
         dc_offset: int = 0
