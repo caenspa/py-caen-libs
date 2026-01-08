@@ -60,8 +60,8 @@ class TestDevice(unittest.TestCase):
 
     def test_get_serial_number(self):
         """Test get_serial_number"""
-        serial_number = self.device.get_serial_number()
-        self.assertEqual(serial_number, '')
+        result = self.device.get_serial_number()
+        self.assertEqual(result, '')
         self.mock_lib.get_serial_number.assert_called_once_with(self.device.handle, ANY, 32)
 
     def test_get_info(self):
@@ -148,8 +148,8 @@ class TestDevice(unittest.TestCase):
 
     def test_connection_status(self):
         """Test connection_status"""
-        status = self.device.connection_status()
-        self.assertEqual(status, 0)
+        result = self.device.connection_status()
+        self.assertEqual(result, 0)
         self.mock_lib.connection_status.assert_called_once_with(self.device.handle, ANY)
 
 if __name__ == '__main__':
