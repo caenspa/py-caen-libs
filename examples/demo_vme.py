@@ -146,12 +146,13 @@ class InteractiveDemo:
             print(f'Invalid input: {ex}')
             return
         try:
-            buffer = self.device.blt_read_cycle(self.__vme_base_address | address, size, self.__address_modifier, self.__data_width)
+            res = self.device.blt_read_cycle(self.__vme_base_address | address, size, self.__address_modifier, self.__data_width)
         except vme.Error as ex:
             print(f'Failed: {ex}')
             return
+        print('Bus error:', res.bus_error)
         print('Buffer:')
-        print(buffer)
+        print(res.data)
 
 
 def _quit():
