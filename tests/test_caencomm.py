@@ -1,5 +1,6 @@
 """Tests for the caen_libs.caencomm module."""
 
+import struct
 import unittest
 from unittest.mock import ANY, DEFAULT, patch
 
@@ -53,8 +54,8 @@ class TestDevice(unittest.TestCase):
             args[2].value = value
             return DEFAULT
         self.mock_lib.read32.side_effect = side_effect
-        value = self.device.read32(address)
-        self.assertEqual(value, value)
+        result = self.device.read32(address)
+        self.assertEqual(result, value)
         self.mock_lib.read32.assert_called_once_with(self.device.handle, address, ANY)
 
     def test_read16(self):
@@ -65,8 +66,8 @@ class TestDevice(unittest.TestCase):
             args[2].value = value
             return DEFAULT
         self.mock_lib.read16.side_effect = side_effect
-        value = self.device.read16(address)
-        self.assertEqual(value, value)
+        result = self.device.read16(address)
+        self.assertEqual(result, value)
         self.mock_lib.read16.assert_called_once_with(self.device.handle, address, ANY)
 
     def test_reg(self):
@@ -107,8 +108,8 @@ class TestDevice(unittest.TestCase):
             args[3][:] = data
             return DEFAULT
         self.mock_lib.multi_read32.side_effect = side_effect
-        values = self.device.multi_read32(addrs)
-        self.assertEqual(values, data)
+        result = self.device.multi_read32(addrs)
+        self.assertEqual(result, data)
         self.mock_lib.multi_read32.assert_called_once_with(self.device.handle, ANY, len(addrs), ANY, ANY)
 
     def test_multi_read16(self):
@@ -119,24 +120,44 @@ class TestDevice(unittest.TestCase):
             args[3][:] = data
             return DEFAULT
         self.mock_lib.multi_read16.side_effect = side_effect
-        values = self.device.multi_read16(addrs)
-        self.assertEqual(values, data)
+        result = self.device.multi_read16(addrs)
+        self.assertEqual(result, data)
         self.mock_lib.multi_read16.assert_called_once_with(self.device.handle, ANY, len(addrs), ANY, ANY)
 
     def test_blt_read(self):
         """Test blt_read"""
         address = 0x1000
         blt_size = 256
-        values = self.device.blt_read(address, blt_size)
-        self.assertEqual(values, b'')
+        data = [i for i in range(blt_size)]
+        def side_effect(*args):
+            args[2][:] = data
+            args[4].value = len(data)
+            return DEFAULT
+        self.mock_lib.blt_read.side_effect = side_effect
+        result = self.device.blt_read(address, blt_size)
+        self.assertIsInstance(result, comm.ReadResult)
+        # Recompact the bytes into groups of 4 (uint32 native endianness)
+        actual_data = list(struct.unpack('I' * (len(result.data) // 4), result.data))
+        self.assertEqual(actual_data, data)
+        self.assertFalse(result.terminated)
         self.mock_lib.blt_read.assert_called_once_with(self.device.handle, address, ANY, blt_size, ANY)
 
     def test_mblt_read(self):
         """Test mblt_read"""
         address = 0x1000
         blt_size = 256
-        values = self.device.mblt_read(address, blt_size)
-        self.assertEqual(values, b'')
+        data = [i for i in range(blt_size)]
+        def side_effect(*args):
+            args[2][:] = data
+            args[4].value = len(data)
+            return DEFAULT
+        self.mock_lib.mblt_read.side_effect = side_effect
+        result = self.device.mblt_read(address, blt_size)
+        self.assertIsInstance(result, comm.ReadResult)
+        # Recompact the bytes into groups of 4 (uint32 native endianness)
+        actual_data = list(struct.unpack('I' * (len(result.data) // 4), result.data))
+        self.assertEqual(actual_data, data)
+        self.assertFalse(result.terminated)
         self.mock_lib.mblt_read.assert_called_once_with(self.device.handle, address, ANY, blt_size, ANY)
 
     def test_irq_disable(self):
@@ -154,8 +175,8 @@ class TestDevice(unittest.TestCase):
     def test_iack_cycle(self):
         """Test iack_cycle"""
         for i in set(comm.IRQLevels):
-            value = self.device.iack_cycle(i)
-            self.assertEqual(value, 0)
+            result = self.device.iack_cycle(i)
+            self.assertEqual(result, 0)
             self.mock_lib.iack_cycle.assert_called_with(self.device.handle, i, ANY)
             self.mock_lib.iack_cycle.reset_mock()
 
@@ -168,15 +189,15 @@ class TestDevice(unittest.TestCase):
     def test_info(self):
         """Test info"""
         for i in set(comm.Info):
-            value = self.device.info(i)
-            self.assertEqual(value, '')
+            result = self.device.info(i)
+            self.assertEqual(result, '')
             self.mock_lib.info.assert_called_with(self.device.handle, i, ANY)
             self.mock_lib.info.reset_mock()
 
     def test_vme_handle(self):
         """Test vme_handle"""
-        value = self.device.vme_handle()
-        self.assertEqual(value, 0)
+        result = self.device.vme_handle()
+        self.assertEqual(result, 0)
         self.mock_lib.info.assert_called_once_with(self.device.handle, 5, ANY)
 
 if __name__ == '__main__':

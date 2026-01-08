@@ -73,8 +73,9 @@ with comm.Device.open(connection_type, link_number, conet_node, vme_base_address
     device.reg32[0x8100] &= ~0x4    # Stop Command
 
     # Read data from the digitizer
-    buffer = device.blt_read(0x0000, 256)
-    print(f'Size of data read: {len(buffer)} bytes')
-    print(buffer)
+    res = device.blt_read(0x0000, 256)
+    print(f'Size of data read: {len(res.data)} bytes')
+    print(f'Terminated: {res.terminated}')
+    print(res.data)
 
     device.reg32[0xEF24] = 1        # Reset

@@ -9,6 +9,19 @@ from dataclasses import dataclass
 from enum import IntEnum, IntFlag, unique
 
 
+@dataclass(slots=True)
+class ReadResult:
+    """
+    Result of a block transfer read operation.
+
+    BUS_ERROR is not considered fatal during BLT/MBLT reads - it typically
+    indicates the end of a transfer when the device has no more data available.
+    The data field contains all successfully read bytes before the error.
+    """
+    data: bytes
+    bus_error: bool
+
+
 @unique
 class BoardType(IntEnum):
     """

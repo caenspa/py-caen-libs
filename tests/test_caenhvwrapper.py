@@ -33,20 +33,20 @@ class TestDevice(unittest.TestCase):
 
     def test_get_crate_map(self):
         """Test get_crate_map"""
-        crate_map = self.device.get_crate_map()
-        self.assertEqual(len(crate_map), 0)
+        result = self.device.get_crate_map()
+        self.assertEqual(len(result), 0)
         self.mock_lib.get_crate_map.assert_called_once_with(self.device.handle, ANY, ANY, ANY, ANY, ANY, ANY, ANY)
 
     def test_get_sys_prop_list(self):
         """Test get_sys_prop_list"""
-        prop_list = self.device.get_sys_prop_list()
-        self.assertEqual(len(prop_list), 0)
+        result = self.device.get_sys_prop_list()
+        self.assertEqual(len(result), 0)
         self.mock_lib.get_sys_prop_list.assert_called_once_with(self.device.handle, ANY, ANY)
 
     def test_get_sys_prop_info(self):
         """Test get_sys_prop_info"""
-        prop_info = self.device.get_sys_prop_info('TestProp')
-        self.assertEqual(prop_info, hv.SysProp('TestProp', 0, 0))
+        result = self.device.get_sys_prop_info('TestProp')
+        self.assertEqual(result, hv.SysProp('TestProp', 0, 0))
         self.mock_lib.get_sys_prop_info.assert_called_once_with(self.device.handle, b'TestProp', ANY, ANY)
 
     def test_get_sys_prop(self):
@@ -55,8 +55,8 @@ class TestDevice(unittest.TestCase):
             args[3].value = hv.SysPropType.STR.value
             return DEFAULT
         self.mock_lib.get_sys_prop_info.side_effect = side_effect
-        value = self.device.get_sys_prop('TestProp')
-        self.assertEqual(value, '')
+        result = self.device.get_sys_prop('TestProp')
+        self.assertEqual(result, '')
         self.mock_lib.get_sys_prop.assert_called_once_with(self.device.handle, b'TestProp', ANY)
 
     def test_set_sys_prop(self):
@@ -67,18 +67,18 @@ class TestDevice(unittest.TestCase):
     def test_get_bd_param(self):
         """Test get_bd_param"""
         def side_effect(*args):
-            args[4]._obj.value = 0
+            args[4]._obj.value = 0  # pylint: disable=W0212
             return DEFAULT
         self.mock_lib.get_bd_param_prop.side_effect = side_effect
         slot_list = [0, 1]
-        values = self.device.get_bd_param(slot_list, 'TestParam')
-        self.assertEqual(values, [0, 0])
+        result = self.device.get_bd_param(slot_list, 'TestParam')
+        self.assertEqual(result, [0, 0])
         self.mock_lib.get_bd_param.assert_called_once_with(self.device.handle, 2, ANY, b'TestParam', ANY)
 
     def test_set_bd_param(self):
         """Test set_bd_param"""
         def side_effect(*args):
-            args[4]._obj.value = 0
+            args[4]._obj.value = 0  # pylint: disable=W0212
             return DEFAULT
         self.mock_lib.get_bd_param_prop.side_effect = side_effect
         slot_list = [0, 1]
@@ -87,19 +87,19 @@ class TestDevice(unittest.TestCase):
 
     def test_get_ch_param(self):
         """Test get_ch_param"""
-        def side_effect(*args):
-            args[5]._obj.value = 0
+        def side_effect(*args) :
+            args[5]._obj.value = 0  # pylint: disable=W0212
             return DEFAULT
         self.mock_lib.get_ch_param_prop.side_effect = side_effect
         channel_list = [0, 1]
-        values = self.device.get_ch_param(0, channel_list, 'TestParam')
-        self.assertEqual(values, [0, 0])
+        result = self.device.get_ch_param(0, channel_list, 'TestParam')
+        self.assertEqual(result, [0, 0])
         self.mock_lib.get_ch_param.assert_called_once_with(self.device.handle, 0, b'TestParam', 2, ANY, ANY)
 
     def test_set_ch_param(self):
         """Test set_ch_param"""
         def side_effect(*args):
-            args[5]._obj.value = 0
+            args[5]._obj.value = 0  # pylint: disable=W0212
             return DEFAULT
         self.mock_lib.get_ch_param_prop.side_effect = side_effect
         channel_list = [0, 1]
@@ -108,8 +108,8 @@ class TestDevice(unittest.TestCase):
 
     def test_get_exec_comm_list(self):
         """Test get_exec_comm_list"""
-        exec_comm_list = self.device.get_exec_comm_list()
-        self.assertEqual(len(exec_comm_list), 0)
+        result = self.device.get_exec_comm_list()
+        self.assertEqual(len(result), 0)
         self.mock_lib.get_exec_comm_list.assert_called_once_with(self.device.handle, ANY, ANY)
 
     def test_exec_comm(self):

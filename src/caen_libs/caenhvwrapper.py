@@ -518,22 +518,19 @@ class Device:
         first_index = slot_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(first_index, None, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
-        if param_type is ParamType.STRING and self.__char_p_p_str_bd_param_arg():
-            # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
-            p_begin = ct.addressof(l_data)
-            p_size = ct.sizeof(l_data)
-            assert p_size % _STR_SIZE == 0
-            l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
-        else:
-            l_data_proxy = l_data
+        match param_type, self.system_type:
+            case ParamType.STRING, SystemType.N1068 | SystemType.N1168 | SystemType.N568E:
+                l_data_proxy = self.__str_array_data_proxy(l_data, n_indexes)
+            case _:
+                l_data_proxy = l_data
         lib.get_bd_param(self.handle, n_indexes, l_index_list, name.encode('ascii'), l_data_proxy)
-        if param_type is ParamType.STRING:
-            if self.__char_p_p_str_bd_param_arg():
+        match param_type, self.system_type:
+            case ParamType.STRING, SystemType.N1068 | SystemType.N1168 | SystemType.N568E:
                 return list(_string.from_n_char_array(l_data, _STR_SIZE, n_indexes))
-            else:
+            case ParamType.STRING, _:
                 return list(_string.from_char(l_data, n_indexes))
-        else:
-            return l_data[:]
+            case _:
+                return l_data[:]
 
     def set_bd_param(self, slot_list: Sequence[int], name: str, value: str | float | int | None) -> None:
         """
@@ -650,22 +647,19 @@ class Device:
         first_index = channel_list[0]  # Assuming all types are equal
         param_type = self.__get_param_type(slot, first_index, name)
         l_data = _PARAM_TYPE_GET_ARG[param_type](n_indexes)
-        if param_type is ParamType.STRING and self.__char_p_p_str_ch_param_arg():
-            # Some systems require a char** instead of a char*: we build it using the same buffer, with different decode.
-            p_begin = ct.addressof(l_data)
-            p_size = ct.sizeof(l_data)
-            assert p_size % _STR_SIZE == 0
-            l_data_proxy = (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
-        else:
-            l_data_proxy = l_data
+        match param_type, self.system_type:
+            case ParamType.STRING, SystemType.N1068 | SystemType.N1168 | SystemType.N568E | SystemType.V8100:
+                l_data_proxy = self.__str_array_data_proxy(l_data, n_indexes)
+            case _:
+                l_data_proxy = l_data
         lib.get_ch_param(self.handle, slot, name.encode('ascii'), n_indexes, l_index_list, l_data_proxy)
-        if param_type is ParamType.STRING:
-            if self.__char_p_p_str_ch_param_arg():
+        match param_type, self.system_type:
+            case ParamType.STRING, SystemType.N1068 | SystemType.N1168 | SystemType.N568E | SystemType.V8100:
                 return list(_string.from_n_char_array(l_data, _STR_SIZE, n_indexes))
-            else:
+            case ParamType.STRING, _:
                 return list(_string.from_char(l_data, n_indexes))
-        else:
-            return l_data[:]
+            case _:
+                return l_data[:]
 
     def set_ch_param(self, slot: int, channel_list: Sequence[int], name: str, value: str | float | int | None) -> None:
         """
@@ -889,19 +883,16 @@ class Device:
         """
         return self.system_type in {SystemType.R6060}
 
-    def __char_p_p_str_bd_param_arg(self) -> bool:
+    @staticmethod
+    def __str_array_data_proxy(l_data: ct.Array, n_indexes: int) -> ct.Array[ct.c_void_p]:
         """
-        Devices that requires a char** as argument of get_bd_param of
-        type STRING
+        Some systems require a char** instead of a char*: we build it
+        using the same buffer, to be parsed later with different decode.
         """
-        return self.system_type in {SystemType.N1068, SystemType.N1168, SystemType.N568E}
-
-    def __char_p_p_str_ch_param_arg(self) -> bool:
-        """
-        Devices that requires a char** as argument of get_ch_param of
-        type STRING
-        """
-        return self.system_type in {SystemType.N1068, SystemType.N1168, SystemType.N568E, SystemType.V8100}
+        p_begin = ct.addressof(l_data)
+        p_size = ct.sizeof(l_data)
+        assert p_size % _STR_SIZE == 0
+        return (ct.c_void_p * n_indexes)(*range(p_begin, p_begin + p_size, _STR_SIZE))
 
     @overload
     def __subscribe_params(self, param_list: Sequence[str], slot: None, channel: None) -> None: ...

@@ -21,6 +21,7 @@ from caen_libs._caencommtypes import (  # pylint: disable=W0611
     ConnectionType,
     Info,
     IRQLevels,
+    ReadResult,
 )
 
 
@@ -88,8 +89,8 @@ class _Lib(_utils.Lib):
         self.multi_write16 = self.__get('MultiWrite16', ct.c_int, _c_uint32_p, ct.c_int, _c_uint16_p, _c_int_p)
         self.multi_read32 = self.__get('MultiRead32', ct.c_int, _c_uint32_p, ct.c_int, _c_uint32_p, _c_int_p)
         self.multi_read16 = self.__get('MultiRead16', ct.c_int, _c_uint32_p, ct.c_int, _c_uint16_p, _c_int_p)
-        self.blt_read = self.__get('BLTRead', ct.c_int, ct.c_uint32, _c_uint32_p, ct.c_int, _c_int_p)
-        self.mblt_read = self.__get('MBLTRead', ct.c_int, ct.c_uint32, _c_uint32_p, ct.c_int, _c_int_p)
+        self.blt_read = self.__get('BLTRead', ct.c_int, ct.c_uint32, _c_uint32_p, ct.c_int, _c_int_p, blt_read=True)
+        self.mblt_read = self.__get('MBLTRead', ct.c_int, ct.c_uint32, _c_uint32_p, ct.c_int, _c_int_p, blt_read=True)
         self.irq_disable = self.__get('IRQDisable', ct.c_int)
         self.irq_enable = self.__get('IRQEnable', ct.c_int)
         self.iack_cycle = self.__get('IACKCycle', ct.c_int, ct.c_int, _c_int_p)
@@ -110,6 +111,12 @@ class _Lib(_utils.Lib):
             raise Error(self.decode_error(res), res, func.__name__)
         return res
 
+    def __api_errcheck_blt_read(self, res: int, func, _: tuple) -> int:
+        """Error check for BLT/MBLT read operations that tolerates TERMINATED."""
+        if res < 0 and res != Error.Code.TERMINATED:
+            raise Error(self.decode_error(res), res, func.__name__)
+        return res
+
     def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         min_version = kwargs.get('min_version')
         if min_version is not None:
@@ -120,7 +127,11 @@ class _Lib(_utils.Lib):
         func = self.get(f'CAENComm_{name}')
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck  # type: ignore
+        # Use specific errcheck for BLT/MBLT read operations
+        if kwargs.get('blt_read', False):
+            func.errcheck = self.__api_errcheck_blt_read  # type: ignore
+        else:
+            func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     # C API bindings
@@ -349,23 +360,25 @@ class Device:
         """Utility to simplify 16-bit register access"""
         return self.__reg16
 
-    def blt_read(self, address: int, blt_size: int) -> bytes:
+    def blt_read(self, address: int, blt_size: int) -> ReadResult:
         """
         Binding of CAENComm_BLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
-        lib.blt_read(self.handle, address, l_data, blt_size, l_nw)
-        return ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32))
+        res = lib.blt_read(self.handle, address, l_data, blt_size, l_nw)
+        terminated = (res == Error.Code.TERMINATED)
+        return ReadResult(ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32)), terminated)
 
-    def mblt_read(self, address: int, blt_size: int) -> bytes:
+    def mblt_read(self, address: int, blt_size: int) -> ReadResult:
         """
         Binding of CAENComm_MBLTRead()
         """
         l_data = (ct.c_uint32 * blt_size)()
         l_nw = ct.c_int()
-        lib.mblt_read(self.handle, address, l_data, blt_size, l_nw)
-        return ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32))
+        res = lib.mblt_read(self.handle, address, l_data, blt_size, l_nw)
+        terminated = (res == Error.Code.TERMINATED)
+        return ReadResult(ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32)), terminated)
 
     def irq_disable(self, mask: int) -> None:
         """

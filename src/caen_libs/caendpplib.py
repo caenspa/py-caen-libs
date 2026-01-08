@@ -189,9 +189,7 @@ def _default_log_file_path() -> Path:
         assert app_data is not None
         user_path = Path(app_data) / 'CAEN'
     else:
-        home = os.getenv('HOME')
-        assert home is not None
-        user_path = Path(home) / '.CAEN'
+        user_path = Path.home() / '.CAEN'
     os.makedirs(user_path, exist_ok=True)
     return user_path / 'caendpplib-python.log'
 

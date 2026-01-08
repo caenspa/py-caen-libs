@@ -3,21 +3,32 @@ stages:
   - deploy
 
 test-mypy:
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
   stage: test
   when: manual
   script:
+    - pip install -e . mypy --quiet
     - mypy src
 
 test-pylint:
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
   stage: test
   when: manual
   script:
+    - pip install -e . pylint --quiet
     - pylint src
 
+test-pytest:
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
+  stage: test
+  when: manual
+  script:
+    # TODO: install CAEN dependencies using debian packages
+    - pip install -e . pytest --quiet
+    - pytest tests/
+
 pypi-upload:
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10
   stage: deploy
   rules:
     - if: $CI_COMMIT_TAG

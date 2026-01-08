@@ -34,6 +34,7 @@ from caen_libs._caenvmetypes import (  # pylint: disable=W0611
     LEDPolarity,
     OutputSelect,
     PulserSelect,
+    ReadResult,
     ReleaseTypes,
     RequesterTypes,
     ScalerMode,
@@ -104,10 +105,10 @@ class _Lib(_utils.Lib):
         self.write_cycle = self.__get('WriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int)
         self.multi_read = self.__get('MultiRead', ct.c_int32, _c_uint32_p, _c_uint32_p, ct.c_int, _c_int_p, _c_int_p, _c_int_p)
         self.multi_write = self.__get('MultiWrite', ct.c_int32, _c_uint32_p, _c_uint32_p, ct.c_int, _c_int_p, _c_int_p, _c_int_p)
-        self.blt_read_cycle = self.__get('BLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p)
-        self.fifo_blt_read_cycle = self.__get('FIFOBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p)
-        self.mblt_read_cycle = self.__get('MBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, _c_int_p)
-        self.fifo_mblt_read_cycle = self.__get('FIFOMBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, _c_int_p)
+        self.blt_read_cycle = self.__get('BLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p, blt_read=True)
+        self.fifo_blt_read_cycle = self.__get('FIFOBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p, blt_read=True)
+        self.mblt_read_cycle = self.__get('MBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, _c_int_p, blt_read=True)
+        self.fifo_mblt_read_cycle = self.__get('FIFOMBLTReadCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, _c_int_p, blt_read=True)
         self.blt_write_cycle = self.__get('BLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p)
         self.fifo_blt_write_cycle = self.__get('FIFOBLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, _c_int_p)
         self.mblt_write_cycle = self.__get('MBLTWriteCycle', ct.c_int32, ct.c_uint32, ct.c_void_p, ct.c_int, ct.c_int, _c_int_p)
@@ -183,6 +184,12 @@ class _Lib(_utils.Lib):
             raise Error(self.__decode_error(res), res, func.__name__)
         return res
 
+    def __api_errcheck_blt_read(self, res: int, func, _: tuple) -> int:
+        """Error check for BLT/MBLT read operations that tolerates BUS_ERROR."""
+        if res < 0 and res != Error.Code.BUS_ERROR:
+            raise Error(self.__decode_error(res), res, func.__name__)
+        return res
+
     def __get(self, name: str, *args: type, **kwargs) -> Callable[..., int]:
         if kwargs.get('linux_only', False) and sys.platform == 'win32':
             def fallback_win(*args, **kwargs):
@@ -191,7 +198,11 @@ class _Lib(_utils.Lib):
         func = self.get(f'CAENVME_{name}')
         func.argtypes = args
         func.restype = ct.c_int
-        func.errcheck = self.__api_errcheck  # type: ignore
+        # Use specific errcheck for BLT/MBLT read operations
+        if kwargs.get('blt_read', False):
+            func.errcheck = self.__api_errcheck_blt_read  # type: ignore
+        else:
+            func.errcheck = self.__api_errcheck  # type: ignore
         return func
 
     def __get_str(self, name: str, *args) -> Callable[..., str]:
@@ -370,41 +381,45 @@ class Device:
         if failed_cycles:
             raise RuntimeError(f'multi_write failed at cycles {failed_cycles}')
 
-    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> bytes:
+    def blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> ReadResult:
         """
         Binding of CAENVME_BLTReadCycle()
         """
         l_data = (ct.c_ubyte * size)()
         l_nb = ct.c_int()
-        lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_nb)
-        return ct.string_at(l_data, l_nb.value)
+        res = lib.blt_read_cycle(self.handle, address, l_data, size, am, dw, l_nb)
+        bus_error = (res == Error.Code.BUS_ERROR)
+        return ReadResult(ct.string_at(l_data, l_nb.value), bus_error)
 
-    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> bytes:
+    def fifo_blt_read_cycle(self, address: int, size: int, am: AddressModifiers, dw: DataWidth) -> ReadResult:
         """
         Binding of CAENVME_FIFOBLTReadCycle()
         """
         l_data = (ct.c_ubyte * size)()
         l_nb = ct.c_int()
-        lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_nb)
-        return ct.string_at(l_data, l_nb.value)
+        res = lib.fifo_blt_read_cycle(self.handle, address, l_data, size, am, dw, l_nb)
+        bus_error = (res == Error.Code.BUS_ERROR)
+        return ReadResult(ct.string_at(l_data, l_nb.value), bus_error)
 
-    def mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
+    def mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> ReadResult:
         """
         Binding of CAENVME_MBLTReadCycle()
         """
         l_data = (ct.c_ubyte * size)()
         l_nb = ct.c_int()
-        lib.mblt_read_cycle(self.handle, address, l_data, size, am, l_nb)
-        return ct.string_at(l_data, l_nb.value)
+        res = lib.mblt_read_cycle(self.handle, address, l_data, size, am, l_nb)
+        bus_error = (res == Error.Code.BUS_ERROR)
+        return ReadResult(ct.string_at(l_data, l_nb.value), bus_error)
 
-    def fifo_mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> bytes:
+    def fifo_mblt_read_cycle(self, address: int, size: int, am: AddressModifiers) -> ReadResult:
         """
         Binding of CAENVME_FIFOMBLTReadCycle()
         """
         l_data = (ct.c_ubyte * size)()
         l_nb = ct.c_int()
-        lib.fifo_mblt_read_cycle(self.handle, address, l_data, size, am, l_nb)
-        return ct.string_at(l_data, l_nb.value)
+        res = lib.fifo_mblt_read_cycle(self.handle, address, l_data, size, am, l_nb)
+        bus_error = (res == Error.Code.BUS_ERROR)
+        return ReadResult(ct.string_at(l_data, l_nb.value), bus_error)
 
     def blt_write_cycle(self, address: int, data: bytes, am: AddressModifiers, dw: DataWidth) -> int:
         """
