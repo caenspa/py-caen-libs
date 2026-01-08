@@ -3,7 +3,21 @@ __copyright__ = 'Copyright (C) 2024 CAEN SpA'
 __license__ = 'LGPL-3.0-or-later'
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
+from dataclasses import dataclass
 from enum import IntEnum, IntFlag, unique
+
+
+@dataclass(slots=True)
+class ReadResult:
+    """
+    Result of a block transfer read operation.
+
+    TERMINATED is not considered fatal during BLT/MBLT reads - it typically
+    indicates the end of a transfer when the device has no more data available.
+    The data field contains all successfully read bytes before the error.
+    """
+    data: bytes
+    terminated: bool
 
 
 @unique
