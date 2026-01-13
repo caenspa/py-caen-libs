@@ -1,6 +1,7 @@
 """Tests for the caen_libs.caencomm module."""
 
 import struct
+from typing import override
 import unittest
 from unittest.mock import ANY, DEFAULT, patch
 
@@ -10,6 +11,7 @@ import caen_libs.caencomm as comm
 class TestDevice(unittest.TestCase):
     """Test the Device class."""
 
+    @override
     def setUp(self):
         patcher = patch('caen_libs.caencomm.lib', autospec=True)
         self.addCleanup(patcher.stop)

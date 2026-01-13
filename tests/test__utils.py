@@ -1,5 +1,6 @@
 """Tests for the caen_libs._utils module."""
 
+from typing import override
 import unittest
 from unittest.mock import Mock
 from caen_libs._utils import Registers, version_to_tuple
@@ -15,6 +16,7 @@ class TestVersionToTuple(unittest.TestCase):
 
 
 class TestRegisters(unittest.TestCase):
+    @override
     def setUp(self):
         self.getter = Mock(return_value=42)
         self.setter = Mock()

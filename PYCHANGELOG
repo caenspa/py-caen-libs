@@ -11,6 +11,15 @@
 -----------------------------------------------------------------------------
 
 
+v3.3.0 (XX/XX/2026)
+------------------
+
+Changes:
+- On `caendigitizer`: `DPPPSDParams.discr` type changed from `bool` to the
+    new type `DPPDiscrimination`, binding of `CAEN_DGTZ_DPP_Discrimination_t`.
+    Old `False` corresponds to `LED` and `True` to `CFD`.
+
+
 v3.2.0 (08/01/2026)
 -------------------
 

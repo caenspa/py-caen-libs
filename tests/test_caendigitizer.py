@@ -1,5 +1,6 @@
 """Tests for the caen_libs.caendigitizer module."""
 
+from typing import override
 import unittest
 from unittest.mock import ANY, DEFAULT, MagicMock, patch
 
@@ -648,6 +649,7 @@ class TestDeviceStandard(_TestDevice):
     Test the Device class. Specific for Standard Firmware.
     """
 
+    @override
     def setUp(self):
         self.baseSetUp(dgtz._types.FirmwareCode.STANDARD_FW)  # pylint: disable=W0212
 
@@ -691,6 +693,7 @@ class TestDeviceDPP(_TestDevice):
     Test the Device class. Specific for DPP Firmware.
     """
 
+    @override
     def setUp(self):
         self.baseSetUp(dgtz._types.FirmwareCode.V1720_DPP_PSD)  # pylint: disable=W0212
 
@@ -747,6 +750,7 @@ class TestDeviceDAW(_TestDevice):
     Test the Device class. Specific for DAW  Firmware.
     """
 
+    @override
     def setUp(self):
         self.baseSetUp(dgtz._types.FirmwareCode.V1730_DPP_DAW)  # pylint: disable=W0212
 
@@ -798,6 +802,7 @@ class TestDeviceZLE(_TestDevice):
     Test the Device class. Specific for ZLE Firmware.
     """
 
+    @override
     def setUp(self):
         self.baseSetUp(dgtz._types.FirmwareCode.V1730_DPP_ZLE)  # pylint: disable=W0212
 

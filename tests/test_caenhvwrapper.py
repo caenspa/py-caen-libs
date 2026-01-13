@@ -1,5 +1,6 @@
 """Tests for the caen_libs.caenhvwrapper module."""
 
+from typing import override
 import unittest
 from unittest.mock import ANY, DEFAULT, patch
 
@@ -9,6 +10,7 @@ import caen_libs.caenhvwrapper as hv
 class TestDevice(unittest.TestCase):
     """Test the Device class."""
 
+    @override
     def setUp(self):
         patcher = patch('caen_libs.caenhvwrapper.lib', autospec=True)
         self.addCleanup(patcher.stop)
