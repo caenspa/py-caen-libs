@@ -14,6 +14,9 @@
 v3.3.0 (XX/XX/2026)
 ------------------
 
+Fixes:
+- On `caendigitizer`: add `DPPPUR` enumerator to main namespace.
+
 Changes:
 - On `caendigitizer`: `DPPPSDParams.discr` type changed from `bool` to the
     new type `DPPDiscrimination`, binding of `CAEN_DGTZ_DPP_Discrimination_t`.
