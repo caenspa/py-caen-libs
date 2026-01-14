@@ -16,7 +16,7 @@ v3.3.0 (XX/XX/2026)
 
 New features:
 - Added examples for `caendigitizer` for x720 and x751, inspired to the C
-    demos of the CAEN Digitizer library.
+    demos of the CAEN Digitizer library, and for x742 inspired to  Wave Dump.
 
 Fixes:
 - On `caendigitizer`: add `DPPPUR` enumerator to main namespace.

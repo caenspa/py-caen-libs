@@ -19,6 +19,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
+from time import sleep
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -69,6 +70,8 @@ class Tests:
         match self.__info.firmware_code, self.__info.family_code:
             case dgtz.FirmwareCode.STANDARD_FW, _:
                 self._test_standard_fw()
+            case dgtz.FirmwareCode.STANDARD_FW_X742, dgtz.BoardFamilyCode.XX742:
+                self._test_standard_fw_x742()
             case dgtz.FirmwareCode.V1720_DPP_CI, dgtz.BoardFamilyCode.XX720:
                 self._test_dpp_ci_x720()
             case dgtz.FirmwareCode.V1720_DPP_PSD, dgtz.BoardFamilyCode.XX720:
@@ -107,6 +110,25 @@ class Tests:
                 evt = self.device.decode_event(buffer)
                 for ch in range(self.__info.channels):
                     plt.plot(evt.data_channel[ch], label=f'Ch{ch}')
+
+    def _run_standard_fw_x742_readout(self):
+        self.device.malloc_readout_buffer()
+        self.device.allocate_event()
+        with self._start_acquisition():
+            self.device.send_sw_trigger()
+            sleep(0.1)
+            self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+            for i in range(self.device.get_num_events()):
+                evt_info, buffer = self.device.get_event_info(i)
+                evt = self.device.decode_event(buffer)
+                assert isinstance(evt, dgtz.X742Event)
+                for gr_idx, group in enumerate(evt.data_group):
+                    if group is not None:
+                        # Each group has 8 data channels + 1 fast trigger channel
+                        for ch_idx, ch_data in enumerate(group.data_channel):  # 0-7: data channels, 8: fast trigger
+                            if ch_data is not None and len(ch_data) > 0:
+                                label = f'Gr{gr_idx}_TR' if ch_idx == 8 else f'Ch{gr_idx * 8 + ch_idx}'
+                                plt.plot(ch_data, label=label)
 
     def _run_dpp_ci_readout(self):
         self.device.malloc_readout_buffer()
@@ -191,6 +213,29 @@ class Tests:
         self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
 
         self._run_standard_fw_readout()
+
+    def _test_standard_fw_x742(self):
+        groups = self.__info.channels
+        channels = groups * 8
+        group_mask = (1 << groups) - 1
+        self.device.set_group_enable_mask(group_mask)
+        self.device.set_record_length(1024)
+        self.device.set_post_trigger_size(50)
+        self.device.set_fast_trigger_digitizing(dgtz.EnaDis.ENABLE)
+        self.device.set_fast_trigger_mode(dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_max_num_events_blt(1024)
+        self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
+        for ch in range(channels):
+            self.device.set_channel_dc_offset(ch, 0x8000)
+        self.device.set_drs4_sampling_frequency(dgtz.DRS4Frequency.F_5GHz)
+        for gr in range(groups):
+            self.device.set_group_fast_trigger_dc_offset(gr, 32768)
+            self.device.set_group_fast_trigger_threshold(gr, 20934)
+        self.device.load_drs4_correction_data(dgtz.DRS4Frequency.F_5GHz)
+        self.device.enable_drs4_correction()
+
+        self._run_standard_fw_x742_readout()
 
     def _test_dpp_ci_x720(self):
         ch_mask = (1 << self.__info.channels) - 1
