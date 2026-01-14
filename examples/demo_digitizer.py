@@ -109,34 +109,35 @@ class Tests:
                 plt.plot(evt.data_channel[ch], label=f'Ch{ch}')
         self.device.sw_stop_acquisition()
 
-    def _test_dpp_psd_x730(self):
+    def _test_dpp_ci_x720(self):
         ch_mask = (1 << self.__info.channels) - 1
         self.device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
         self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
+        self.device.set_record_length(300)
         self.device.set_io_level(dgtz.IOLevel.TTL)
         self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
         self.device.set_channel_enable_mask(ch_mask)
         self.device.set_dpp_event_aggregation(0, 0)
         self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
+        # Set pre-trigger size for CI (common to all channels, use -1)
+        self.device.set_dpp_pre_trigger_size(-1, 80)
         for i in range(self.__info.channels):
-            if i % 2 == 0:
-                self.device.set_record_length(1024, i)
             self.device.set_channel_dc_offset(i, 0x8000)
-            self.device.set_dpp_pre_trigger_size(i, 80)
-            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
+            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.NEGATIVE)
 
-        dpp_params = dgtz.DPPPSDParams()
+        dpp_params = dgtz.DPPCIParams()
         dpp_params.resize(self.__info.channels)
         for par_ch in dpp_params.ch:
-            par_ch.thr = 50
+            par_ch.thr = 100
             par_ch.nsbl = 2
-            par_ch.lgate = 32
-            par_ch.sgate = 24
-            par_ch.pgate = 8
+            par_ch.gate = 200
+            par_ch.pgate = 25
             par_ch.selft = True
-            par_ch.trgc = dgtz.DPPTriggerConfig.THRESHOLD
+            par_ch.trgc = dgtz.DPPTriggerConfig.PEAK
             par_ch.tvaw = 50
-            par_ch.csens = 0
+        dpp_params.blthr = 3
+        dpp_params.bltmo = 100
+        dpp_params.trgho = 0
         self.device.set_dpp_parameters(ch_mask, dpp_params)
 
         self.device.malloc_readout_buffer()
@@ -148,9 +149,9 @@ class Tests:
         self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
         for ch_idx, ch in enumerate(self.device.get_dpp_events()):
             for evt_idx, evt in enumerate(ch):
-                assert isinstance(evt, dgtz.DPPPSDEvent)
+                assert isinstance(evt, dgtz.DPPCIEvent)
                 w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
-                assert isinstance(w, dgtz.DPPPSDWaveforms)
+                assert isinstance(w, dgtz.DPPCIWaveforms)
                 plt.plot(w.trace1, label=f'Ch{ch_idx}')
         self.device.sw_stop_acquisition()
 
@@ -202,35 +203,34 @@ class Tests:
                 plt.plot(w.trace1, label=f'Ch{ch_idx}')
         self.device.sw_stop_acquisition()
 
-    def _test_dpp_ci_x720(self):
+    def _test_dpp_psd_x730(self):
         ch_mask = (1 << self.__info.channels) - 1
         self.device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
         self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
-        self.device.set_record_length(300)
         self.device.set_io_level(dgtz.IOLevel.TTL)
         self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
         self.device.set_channel_enable_mask(ch_mask)
         self.device.set_dpp_event_aggregation(0, 0)
         self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
-        # Set pre-trigger size for CI (common to all channels, use -1)
-        self.device.set_dpp_pre_trigger_size(-1, 80)
         for i in range(self.__info.channels):
+            if i % 2 == 0:
+                self.device.set_record_length(1024, i)
             self.device.set_channel_dc_offset(i, 0x8000)
-            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.NEGATIVE)
+            self.device.set_dpp_pre_trigger_size(i, 80)
+            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
 
-        dpp_params = dgtz.DPPCIParams()
+        dpp_params = dgtz.DPPPSDParams()
         dpp_params.resize(self.__info.channels)
         for par_ch in dpp_params.ch:
-            par_ch.thr = 100
+            par_ch.thr = 50
             par_ch.nsbl = 2
-            par_ch.gate = 200
-            par_ch.pgate = 25
+            par_ch.lgate = 32
+            par_ch.sgate = 24
+            par_ch.pgate = 8
             par_ch.selft = True
-            par_ch.trgc = dgtz.DPPTriggerConfig.PEAK
+            par_ch.trgc = dgtz.DPPTriggerConfig.THRESHOLD
             par_ch.tvaw = 50
-        dpp_params.blthr = 3
-        dpp_params.bltmo = 100
-        dpp_params.trgho = 0
+            par_ch.csens = 0
         self.device.set_dpp_parameters(ch_mask, dpp_params)
 
         self.device.malloc_readout_buffer()
@@ -242,9 +242,9 @@ class Tests:
         self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
         for ch_idx, ch in enumerate(self.device.get_dpp_events()):
             for evt_idx, evt in enumerate(ch):
-                assert isinstance(evt, dgtz.DPPCIEvent)
+                assert isinstance(evt, dgtz.DPPPSDEvent)
                 w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
-                assert isinstance(w, dgtz.DPPCIWaveforms)
+                assert isinstance(w, dgtz.DPPPSDWaveforms)
                 plt.plot(w.trace1, label=f'Ch{ch_idx}')
         self.device.sw_stop_acquisition()
 
@@ -295,60 +295,6 @@ class Tests:
                 plt.plot(w.trace1, label=f'Ch{ch_idx}')
         self.device.sw_stop_acquisition()
 
-    def _test_dpp_pha_x730(self):
-        ch_mask = (1 << self.__info.channels) - 1
-        self.device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
-        self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
-        self.device.set_io_level(dgtz.IOLevel.TTL)
-        self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
-        self.device.set_channel_enable_mask(ch_mask)
-        self.device.set_dpp_event_aggregation(0, 0)
-        self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
-        for i in range(self.__info.channels):
-            if i % 2 == 0:
-                self.device.set_record_length(1024, i)
-            self.device.set_channel_dc_offset(i, 0x8000)
-            self.device.set_dpp_pre_trigger_size(i, 80)
-            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
-
-        dpp_params = dgtz.DPPPHAParams()
-        dpp_params.resize(self.__info.channels)
-        for par_ch in dpp_params.ch:
-            par_ch.thr = 100
-            par_ch.k = 3000
-            par_ch.m = 900
-            par_ch.m_ = 50000
-            par_ch.ftd = 500
-            par_ch.a = 4
-            par_ch.b = 200
-            par_ch.trgho = 1200
-            par_ch.nsbl = 4
-            par_ch.nspk = 0
-            par_ch.pkho = 2000
-            par_ch.blho = 500
-            par_ch.enf = 1.0
-            par_ch.decimation = 0
-            par_ch.dgain = 0
-            par_ch.otrej = 0
-            par_ch.trgwin = 0
-            par_ch.twwdt = 100
-        self.device.set_dpp_parameters(ch_mask, dpp_params)
-
-        self.device.malloc_readout_buffer()
-        self.device.malloc_dpp_events()
-        self.device.malloc_dpp_waveforms()
-
-        self.device.sw_start_acquisition()
-        self.device.send_sw_trigger()
-        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-        for ch_idx, ch in enumerate(self.device.get_dpp_events()):
-            for evt_idx, evt in enumerate(ch):
-                assert isinstance(evt, dgtz.DPPPHAEvent)
-                w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
-                assert isinstance(w, dgtz.DPPPHAWaveforms)
-                plt.plot(w.trace1, label=f'Ch{ch_idx}')
-        self.device.sw_stop_acquisition()
-
     def _test_dpp_pha_x724(self):
         ch_mask = (1 << self.__info.channels) - 1
         self.device.registers[0x8000] |= 0x01000100  # Force bit 8 and 24 to 1 (see manual)
@@ -395,6 +341,60 @@ class Tests:
         self.device.sw_start_acquisition()
         self.device.send_sw_trigger()
 
+        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+        for ch_idx, ch in enumerate(self.device.get_dpp_events()):
+            for evt_idx, evt in enumerate(ch):
+                assert isinstance(evt, dgtz.DPPPHAEvent)
+                w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
+                assert isinstance(w, dgtz.DPPPHAWaveforms)
+                plt.plot(w.trace1, label=f'Ch{ch_idx}')
+        self.device.sw_stop_acquisition()
+
+    def _test_dpp_pha_x730(self):
+        ch_mask = (1 << self.__info.channels) - 1
+        self.device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
+        self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
+        self.device.set_io_level(dgtz.IOLevel.TTL)
+        self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_channel_enable_mask(ch_mask)
+        self.device.set_dpp_event_aggregation(0, 0)
+        self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
+        for i in range(self.__info.channels):
+            if i % 2 == 0:
+                self.device.set_record_length(1024, i)
+            self.device.set_channel_dc_offset(i, 0x8000)
+            self.device.set_dpp_pre_trigger_size(i, 80)
+            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
+
+        dpp_params = dgtz.DPPPHAParams()
+        dpp_params.resize(self.__info.channels)
+        for par_ch in dpp_params.ch:
+            par_ch.thr = 100
+            par_ch.k = 3000
+            par_ch.m = 900
+            par_ch.m_ = 50000
+            par_ch.ftd = 500
+            par_ch.a = 4
+            par_ch.b = 200
+            par_ch.trgho = 1200
+            par_ch.nsbl = 4
+            par_ch.nspk = 0
+            par_ch.pkho = 2000
+            par_ch.blho = 500
+            par_ch.enf = 1.0
+            par_ch.decimation = 0
+            par_ch.dgain = 0
+            par_ch.otrej = 0
+            par_ch.trgwin = 0
+            par_ch.twwdt = 100
+        self.device.set_dpp_parameters(ch_mask, dpp_params)
+
+        self.device.malloc_readout_buffer()
+        self.device.malloc_dpp_events()
+        self.device.malloc_dpp_waveforms()
+
+        self.device.sw_start_acquisition()
+        self.device.send_sw_trigger()
         self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
         for ch_idx, ch in enumerate(self.device.get_dpp_events()):
             for evt_idx, evt in enumerate(ch):
