@@ -181,10 +181,11 @@ class Tests:
                         plt.plot(full_indexes, full_values, label=f'Ch{ch_idx}')
 
     def _test_standard_fw(self):
+        ch_mask = (1 << self.__info.channels) - 1
         self.device.set_record_length(4096)
-        self.device.set_channel_enable_mask((1 << self.__info.channels) - 1)
+        self.device.set_channel_enable_mask(ch_mask)
         self.device.set_channel_trigger_threshold(0, 32768)
-        self.device.set_channel_self_trigger(0, dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_channel_self_trigger(dgtz.TriggerMode.ACQ_ONLY, ch_mask)
         self.device.set_sw_trigger_mode(dgtz.TriggerMode.ACQ_ONLY)
         self.device.set_max_num_events_blt(1)
         self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)

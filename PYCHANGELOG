@@ -20,6 +20,7 @@ New features:
 
 Fixes:
 - On `caendigitizer`: add `DPPPUR` enumerator to main namespace.
+- Fix some configuration in the `caendigitizer` example.
 
 Changes:
 - On `caenvme` and `caencomm`: the new `ReadResult` class introduced in
