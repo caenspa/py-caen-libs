@@ -137,7 +137,6 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.blt_read.side_effect = side_effect
         result = self.device.blt_read(address, blt_size)
-        self.assertIsInstance(result, comm.ReadResult)
         # Recompact the bytes into groups of 4 (uint32 native endianness)
         actual_data = list(struct.unpack('I' * (len(result.data) // 4), result.data))
         self.assertEqual(actual_data, data)
@@ -155,7 +154,6 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.mblt_read.side_effect = side_effect
         result = self.device.mblt_read(address, blt_size)
-        self.assertIsInstance(result, comm.ReadResult)
         # Recompact the bytes into groups of 4 (uint32 native endianness)
         actual_data = list(struct.unpack('I' * (len(result.data) // 4), result.data))
         self.assertEqual(actual_data, data)

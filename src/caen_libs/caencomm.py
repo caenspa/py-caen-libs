@@ -21,7 +21,7 @@ from caen_libs._caencommtypes import (  # pylint: disable=W0611
     ConnectionType,
     Info,
     IRQLevels,
-    ReadResult,
+    ReadResult as _ReadResult,
 )
 
 
@@ -360,7 +360,7 @@ class Device:
         """Utility to simplify 16-bit register access"""
         return self.__reg16
 
-    def blt_read(self, address: int, blt_size: int) -> ReadResult:
+    def blt_read(self, address: int, blt_size: int) -> _ReadResult:
         """
         Binding of CAENComm_BLTRead()
         """
@@ -368,9 +368,9 @@ class Device:
         l_nw = ct.c_int()
         res = lib.blt_read(self.handle, address, l_data, blt_size, l_nw)
         terminated = (res == Error.Code.TERMINATED)
-        return ReadResult(ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32)), terminated)
+        return _ReadResult(ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32)), terminated)
 
-    def mblt_read(self, address: int, blt_size: int) -> ReadResult:
+    def mblt_read(self, address: int, blt_size: int) -> _ReadResult:
         """
         Binding of CAENComm_MBLTRead()
         """
@@ -378,7 +378,7 @@ class Device:
         l_nw = ct.c_int()
         res = lib.mblt_read(self.handle, address, l_data, blt_size, l_nw)
         terminated = (res == Error.Code.TERMINATED)
-        return ReadResult(ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32)), terminated)
+        return _ReadResult(ct.string_at(l_data, l_nw.value * ct.sizeof(ct.c_uint32)), terminated)
 
     def irq_disable(self, mask: int) -> None:
         """

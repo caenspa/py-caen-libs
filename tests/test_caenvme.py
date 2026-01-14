@@ -136,7 +136,6 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.blt_read_cycle.side_effect = side_effect
         result = self.device.blt_read_cycle(address, size, address_modifier, data_width)
-        self.assertIsInstance(result, vme.ReadResult)
         self.assertEqual(list(result.data), data)
         self.assertFalse(result.bus_error)
         self.mock_lib.blt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
@@ -154,7 +153,6 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.fifo_blt_read_cycle.side_effect = side_effect
         result = self.device.fifo_blt_read_cycle(address, size, address_modifier, data_width)
-        self.assertIsInstance(result, vme.ReadResult)
         self.assertEqual(list(result.data), data)
         self.assertFalse(result.bus_error)
         self.mock_lib.fifo_blt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, data_width, ANY)
@@ -171,7 +169,6 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.mblt_read_cycle.side_effect = side_effect
         result = self.device.mblt_read_cycle(address, size, address_modifier)
-        self.assertIsInstance(result, vme.ReadResult)
         self.assertEqual(list(result.data), data)
         self.assertFalse(result.bus_error)
         self.mock_lib.mblt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, ANY)
@@ -188,7 +185,6 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.fifo_mblt_read_cycle.side_effect = side_effect
         result = self.device.fifo_mblt_read_cycle(address, size, address_modifier)
-        self.assertIsInstance(result, vme.ReadResult)
         self.assertEqual(list(result.data), data)
         self.assertFalse(result.bus_error)
         self.mock_lib.fifo_mblt_read_cycle.assert_called_once_with(self.device.handle, address, ANY, size, address_modifier, ANY)
