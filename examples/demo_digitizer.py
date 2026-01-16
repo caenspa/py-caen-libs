@@ -107,9 +107,10 @@ class Tests:
             self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
             for i in range(self.device.get_num_events()):
                 evt_info, buffer = self.device.get_event_info(i)
+                print(f'Event {i}: {evt_info}')
                 evt = self.device.decode_event(buffer)
-                for ch in range(self.__info.channels):
-                    plt.plot(evt.data_channel[ch], label=f'Ch{ch}')
+                for ch_idx, ch in enumerate(evt.data_channel):
+                    plt.plot(ch, label=f'Ch{ch_idx}')
 
     def _run_standard_fw_x742_readout(self):
         self.device.malloc_readout_buffer()
@@ -120,15 +121,15 @@ class Tests:
             self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
             for i in range(self.device.get_num_events()):
                 evt_info, buffer = self.device.get_event_info(i)
+                print(f'Event {i}: {evt_info}')
                 evt = self.device.decode_event(buffer)
                 assert isinstance(evt, dgtz.X742Event)
-                for gr_idx, group in enumerate(evt.data_group):
-                    if group is not None:
+                for gr_idx, gr in enumerate(evt.data_group):
+                    if gr is not None:
                         # Each group has 8 data channels + 1 fast trigger channel
-                        for ch_idx, ch_data in enumerate(group.data_channel):  # 0-7: data channels, 8: fast trigger
-                            if ch_data is not None and len(ch_data) > 0:
-                                label = f'Gr{gr_idx}_TR' if ch_idx == 8 else f'Ch{gr_idx * 8 + ch_idx}'
-                                plt.plot(ch_data, label=label)
+                        for ch_idx, ch in enumerate(gr.data_channel):
+                            label = f'Gr{gr_idx}_TR' if ch_idx == 8 else f'Ch{gr_idx * 8 + ch_idx}'
+                            plt.plot(ch, label=label)
 
     def _run_dpp_ci_readout(self):
         self.device.malloc_readout_buffer()
@@ -228,10 +229,10 @@ class Tests:
         self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
         for ch in range(channels):
             self.device.set_channel_dc_offset(ch, 0x8000)
-        self.device.set_drs4_sampling_frequency(dgtz.DRS4Frequency.F_5GHz)
         for gr in range(groups):
             self.device.set_group_fast_trigger_dc_offset(gr, 32768)
             self.device.set_group_fast_trigger_threshold(gr, 20934)
+        self.device.set_drs4_sampling_frequency(dgtz.DRS4Frequency.F_5GHz)
         self.device.load_drs4_correction_data(dgtz.DRS4Frequency.F_5GHz)
         self.device.enable_drs4_correction()
 
