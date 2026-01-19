@@ -313,7 +313,7 @@ class Tests:
         self.device.set_io_level(dgtz.IOLevel.TTL)
         self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
         self.device.set_channel_enable_mask(ch_mask)
-        self.device.set_dpp_event_aggregation(0, 0)
+        self.device.set_dpp_event_aggregation(1, 0)
         self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
         for i in range(self.__info.channels):
             if i % 2 == 0:

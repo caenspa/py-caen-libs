@@ -20,6 +20,9 @@ New features:
 
 Fixes:
 - On `caendigitizer`: add `DPPPUR` enumerator to main namespace.
+- On `caendigitizer`: workaround to prevent crash when calling 
+    `get_dpp_events` on an empty buffer, which causes undefined behavior in 
+    the underlying C library.
 - Fix some configuration in the `caendigitizer` example.
 
 Changes:
