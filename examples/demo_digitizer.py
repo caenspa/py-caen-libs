@@ -16,8 +16,11 @@ __license__ = 'MIT-0'
 __contact__ = 'https://www.caen.it/'
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
+from time import sleep
+from typing import ClassVar
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -48,6 +51,8 @@ print('-------------------------------------------------------------------------
 class Tests:
     """Tests for different firmwares"""
 
+    MAX_RETRIES: ClassVar[int] = 100
+
     device: dgtz.Device
     __info: dgtz.BoardInfo = field(init=False)
 
@@ -55,48 +60,295 @@ class Tests:
         self.__info = self.device.get_info()
         print('Connected with Digitizer')
         print(f'  Model Name:        {self.__info.model_name}')
+        print(f'  Family Code:       {self.__info.family_code.name}')
         print(f'  Serial Number:     {self.__info.serial_number}')
         print(f'  Firmware Code:     {self.__info.firmware_code.name}')
 
     def run(self):
-        """Run the test for the detected firmware"""
-        match self.__info.firmware_code:
-            case dgtz.FirmwareCode.STANDARD_FW:
+        """
+        Run the test for the detected firmware.
+
+        Not all firmwares are supported by this demo.
+        """
+        match self.__info.firmware_code, self.__info.family_code:
+            case dgtz.FirmwareCode.STANDARD_FW, _:
                 self._test_standard_fw()
-            case dgtz.FirmwareCode.V1730_DPP_PSD:
+            case dgtz.FirmwareCode.STANDARD_FW_X742, dgtz.BoardFamilyCode.XX742:
+                self._test_standard_fw_x742()
+            case dgtz.FirmwareCode.V1720_DPP_CI, dgtz.BoardFamilyCode.XX720:
+                self._test_dpp_ci_x720()
+            case dgtz.FirmwareCode.V1720_DPP_PSD, dgtz.BoardFamilyCode.XX720:
+                self._test_dpp_psd_x720()
+            case dgtz.FirmwareCode.V1730_DPP_PSD, dgtz.BoardFamilyCode.XX725 | dgtz.BoardFamilyCode.XX730:
                 self._test_dpp_psd_x730()
-            case dgtz.FirmwareCode.V1730_DPP_PHA:
-                self._test_dpp_pha_x730()
-            case dgtz.FirmwareCode.V1724_DPP_PHA:
+            case dgtz.FirmwareCode.V1751_DPP_PSD, dgtz.BoardFamilyCode.XX751:
+                self._test_dpp_psd_x751()
+            case dgtz.FirmwareCode.V1724_DPP_PHA, dgtz.BoardFamilyCode.XX724 | dgtz.BoardFamilyCode.XX781:
                 self._test_dpp_pha_x724()
-            case dgtz.FirmwareCode.V1730_DPP_DAW:
+            case dgtz.FirmwareCode.V1730_DPP_PHA, dgtz.BoardFamilyCode.XX725 | dgtz.BoardFamilyCode.XX730:
+                self._test_dpp_pha_x730()
+            case dgtz.FirmwareCode.V1730_DPP_DAW, dgtz.BoardFamilyCode.XX725 | dgtz.BoardFamilyCode.XX730:
                 self._test_dpp_daw_x730()
-            case dgtz.FirmwareCode.V1730_DPP_ZLE:
+            case dgtz.FirmwareCode.V1730_DPP_ZLE, dgtz.BoardFamilyCode.XX725 | dgtz.BoardFamilyCode.XX730:
                 self._test_dpp_zle_x730()
             case _:
                 raise NotImplementedError(f'Firmware {self.__info.firmware_code.name} not supported by this demo')
 
+    @contextmanager
+    def _start_acquisition(self):
+        self.device.sw_start_acquisition()
+        try:
+            yield
+        finally:
+            self.device.sw_stop_acquisition()
+
+    MAX_RETRIES = 10
+
+    def _run_standard_fw_readout(self):
+        self.device.malloc_readout_buffer()
+        self.device.allocate_event()
+        with self._start_acquisition():
+            self.device.send_sw_trigger()
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                if (n_events := self.device.get_num_events()) > 0:
+                    for i in range(n_events):
+                        evt_info, buffer = self.device.get_event_info(i)
+                        print(f'Event {i}: {evt_info}')
+                        evt = self.device.decode_event(buffer)
+                        for ch_idx, ch in enumerate(evt.data_channel):
+                            plt.plot(ch, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
+
+    def _run_standard_fw_x742_readout(self):
+        self.device.malloc_readout_buffer()
+        self.device.allocate_event()
+        with self._start_acquisition():
+            self.device.send_sw_trigger()
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                if (n_events := self.device.get_num_events()) > 0:
+                    for i in range(n_events):
+                        evt_info, buffer = self.device.get_event_info(i)
+                        print(f'Event {i}: {evt_info}')
+                        evt = self.device.decode_event(buffer)
+                        assert isinstance(evt, dgtz.X742Event)
+                        for gr_idx, gr in enumerate(evt.data_group):
+                            if gr is not None:
+                                # Each group has 8 data channels + 1 fast trigger channel
+                                for ch_idx, ch in enumerate(gr.data_channel):
+                                    label = f'Gr{gr_idx}_TR' if ch_idx == 8 else f'Ch{gr_idx * 8 + ch_idx}'
+                                    plt.plot(ch, label=label)
+                    break
+            else:
+                print('No events acquired after maximum retries')
+
+    def _run_dpp_ci_readout(self):
+        self.device.malloc_readout_buffer()
+        self.device.malloc_dpp_events()
+        self.device.malloc_dpp_waveforms()
+        with self._start_acquisition():
+            self.device.send_sw_trigger()
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_dpp_events()
+                if any(len(ch) > 0 for ch in events):
+                    for ch_idx, ch in enumerate(events):
+                        for evt_idx, evt in enumerate(ch):
+                            assert isinstance(evt, dgtz.DPPCIEvent)
+                            w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
+                            assert isinstance(w, dgtz.DPPCIWaveforms)
+                            plt.plot(w.trace1, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
+
+    def _run_dpp_psd_readout(self):
+        self.device.malloc_readout_buffer()
+        self.device.malloc_dpp_events()
+        self.device.malloc_dpp_waveforms()
+        with self._start_acquisition():
+            self.device.send_sw_trigger()
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_dpp_events()
+                if any(len(ch) > 0 for ch in events):
+                    for ch_idx, ch in enumerate(events):
+                        for evt_idx, evt in enumerate(ch):
+                            assert isinstance(evt, dgtz.DPPPSDEvent)
+                            w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
+                            assert isinstance(w, dgtz.DPPPSDWaveforms)
+                            plt.plot(w.trace1, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
+
+    def _run_dpp_pha_readout(self):
+        self.device.malloc_readout_buffer()
+        self.device.malloc_dpp_events()
+        self.device.malloc_dpp_waveforms()
+        with self._start_acquisition():
+            self.device.send_sw_trigger()
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_dpp_events()
+                if any(len(ch) > 0 for ch in events):
+                    for ch_idx, ch in enumerate(events):
+                        for evt_idx, evt in enumerate(ch):
+                            assert isinstance(evt, dgtz.DPPPHAEvent)
+                            w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
+                            assert isinstance(w, dgtz.DPPPHAWaveforms)
+                            plt.plot(w.trace1, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
+
+    def _run_dpp_daw_readout(self):
+        self.device.malloc_readout_buffer()
+        self.device.malloc_daw_events_and_waveforms()
+        with self._start_acquisition():
+            self.device.send_sw_trigger()
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_daw_events()
+                if len(events) > 0:
+                    for idx, evt in enumerate(events):
+                        assert isinstance(evt, dgtz.DPPDAWEvent)
+                        self.device.decode_daw_waveforms(idx)
+                        for ch_idx, ch in enumerate(evt.channel):
+                            if ch is not None:
+                                plt.plot(ch.waveforms.trace, label=f'Ch{ch_idx} (timetag={ch.time_stamp})')
+                    break
+            else:
+                print('No events acquired after maximum retries')
+
+    def _run_dpp_zle_readout(self, record_length: int):
+        self.device.malloc_readout_buffer()
+        self.device.malloc_zle_events_and_waveforms()
+        with self._start_acquisition():
+            self.device.send_sw_trigger()
+            full_indexes = np.arange(record_length)
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_zle_events()
+                if len(events) > 0:
+                    for idx, evt in enumerate(events):
+                        assert isinstance(evt, dgtz.ZLEEvent730)
+                        self.device.decode_zle_waveforms(idx)
+                        for ch_idx, ch in enumerate(evt.channel):
+                            if ch is not None:
+                                w = ch.waveforms
+                                full_values = np.full_like(full_indexes, ch.baseline, dtype=w.trace.dtype)
+                                np.put(full_values, w.trace_index, w.trace)
+                                plt.plot(full_indexes, full_values, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
+
     def _test_standard_fw(self):
+        ch_mask = (1 << self.__info.channels) - 1
         self.device.set_record_length(4096)
-        self.device.set_channel_enable_mask((1 << self.__info.channels) - 1)
+        self.device.set_channel_enable_mask(ch_mask)
         self.device.set_channel_trigger_threshold(0, 32768)
-        self.device.set_channel_self_trigger(0, dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_channel_self_trigger(dgtz.TriggerMode.ACQ_ONLY, ch_mask)
         self.device.set_sw_trigger_mode(dgtz.TriggerMode.ACQ_ONLY)
         self.device.set_max_num_events_blt(1)
         self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
 
-        self.device.malloc_readout_buffer()
-        self.device.allocate_event()
+        self._run_standard_fw_readout()
 
-        self.device.sw_start_acquisition()
-        self.device.send_sw_trigger()
-        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-        for i in range(self.device.get_num_events()):
-            evt_info, buffer = self.device.get_event_info(i)
-            evt = self.device.decode_event(buffer)
-            for ch in range(self.__info.channels):
-                plt.plot(evt.data_channel[ch], label=f'Ch{ch}')
-        self.device.sw_stop_acquisition()
+    def _test_standard_fw_x742(self):
+        groups = self.__info.channels
+        channels = groups * 8
+        group_mask = (1 << groups) - 1
+        self.device.set_group_enable_mask(group_mask)
+        self.device.set_record_length(1024)
+        self.device.set_post_trigger_size(50)
+        self.device.set_fast_trigger_digitizing(dgtz.EnaDis.ENABLE)
+        self.device.set_fast_trigger_mode(dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_max_num_events_blt(1024)
+        self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
+        for ch in range(channels):
+            self.device.set_channel_dc_offset(ch, 0x8000)
+        for gr in range(groups):
+            self.device.set_group_fast_trigger_dc_offset(gr, 32768)
+            self.device.set_group_fast_trigger_threshold(gr, 20934)
+        self.device.set_drs4_sampling_frequency(dgtz.DRS4Frequency.F_5GHz)
+        self.device.load_drs4_correction_data(dgtz.DRS4Frequency.F_5GHz)
+        self.device.enable_drs4_correction()
+
+        self._run_standard_fw_x742_readout()
+
+    def _test_dpp_ci_x720(self):
+        ch_mask = (1 << self.__info.channels) - 1
+        self.device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
+        self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
+        self.device.set_record_length(300)
+        self.device.set_io_level(dgtz.IOLevel.TTL)
+        self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_channel_enable_mask(ch_mask)
+        self.device.set_dpp_event_aggregation(0, 0)
+        self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
+        # Set pre-trigger size for CI (common to all channels, use -1)
+        self.device.set_dpp_pre_trigger_size(-1, 80)
+        for i in range(self.__info.channels):
+            self.device.set_channel_dc_offset(i, 0x8000)
+            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.NEGATIVE)
+
+        dpp_params = dgtz.DPPCIParams()
+        dpp_params.resize(self.__info.channels)
+        for par_ch in dpp_params.ch:
+            par_ch.thr = 100
+            par_ch.nsbl = 2
+            par_ch.gate = 200
+            par_ch.pgate = 25
+            par_ch.selft = True
+            par_ch.trgc = dgtz.DPPTriggerConfig.PEAK
+            par_ch.tvaw = 50
+        dpp_params.blthr = 3
+        dpp_params.bltmo = 100
+        dpp_params.trgho = 0
+        self.device.set_dpp_parameters(ch_mask, dpp_params)
+
+        self._run_dpp_ci_readout()
+
+    def _test_dpp_psd_x720(self):
+        ch_mask = (1 << self.__info.channels) - 1
+        self.device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
+        self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
+        self.device.set_io_level(dgtz.IOLevel.TTL)
+        self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_channel_enable_mask(ch_mask)
+        self.device.set_dpp_event_aggregation(0, 0)
+        self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
+        for i in range(self.__info.channels):
+            self.device.set_record_length(12, i)
+            self.device.set_channel_dc_offset(i, 0x8000)
+            self.device.set_dpp_pre_trigger_size(i, 80)
+            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.NEGATIVE)
+
+        dpp_params = dgtz.DPPPSDParams()
+        dpp_params.resize(self.__info.channels)
+        for par_ch in dpp_params.ch:
+            par_ch.thr = 50
+            par_ch.nsbl = 2
+            par_ch.lgate = 32
+            par_ch.sgate = 24
+            par_ch.pgate = 8
+            par_ch.selft = True
+            par_ch.trgc = dgtz.DPPTriggerConfig.THRESHOLD
+            par_ch.tvaw = 50
+            par_ch.csens = 0
+        dpp_params.purh = dgtz.DPPPUR.DETECT_ONLY
+        dpp_params.purgap = 100
+        dpp_params.blthr = 3
+        dpp_params.trgho = 8
+        self.device.set_dpp_parameters(ch_mask, dpp_params)
+
+        self._run_dpp_psd_readout()
 
     def _test_dpp_psd_x730(self):
         ch_mask = (1 << self.__info.channels) - 1
@@ -105,7 +357,7 @@ class Tests:
         self.device.set_io_level(dgtz.IOLevel.TTL)
         self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
         self.device.set_channel_enable_mask(ch_mask)
-        self.device.set_dpp_event_aggregation(0, 0)
+        self.device.set_dpp_event_aggregation(1, 0)
         self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
         for i in range(self.__info.channels):
             if i % 2 == 0:
@@ -128,22 +380,9 @@ class Tests:
             par_ch.csens = 0
         self.device.set_dpp_parameters(ch_mask, dpp_params)
 
-        self.device.malloc_readout_buffer()
-        self.device.malloc_dpp_events()
-        self.device.malloc_dpp_waveforms()
+        self._run_dpp_psd_readout()
 
-        self.device.sw_start_acquisition()
-        self.device.send_sw_trigger()
-        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-        for ch_idx, ch in enumerate(self.device.get_dpp_events()):
-            for evt_idx, evt in enumerate(ch):
-                assert isinstance(evt, dgtz.DPPPSDEvent)
-                w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
-                assert isinstance(w, dgtz.DPPPSDWaveforms)
-                plt.plot(w.trace1, label=f'Ch{ch_idx}')
-        self.device.sw_stop_acquisition()
-
-    def _test_dpp_pha_x730(self):
+    def _test_dpp_psd_x751(self):
         ch_mask = (1 << self.__info.channels) - 1
         self.device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
         self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
@@ -153,49 +392,29 @@ class Tests:
         self.device.set_dpp_event_aggregation(0, 0)
         self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
         for i in range(self.__info.channels):
-            if i % 2 == 0:
-                self.device.set_record_length(1024, i)
+            self.device.set_record_length(360, i)
             self.device.set_channel_dc_offset(i, 0x8000)
             self.device.set_dpp_pre_trigger_size(i, 80)
-            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
+            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.NEGATIVE)
 
-        dpp_params = dgtz.DPPPHAParams()
+        dpp_params = dgtz.DPPPSDParams()
         dpp_params.resize(self.__info.channels)
         for par_ch in dpp_params.ch:
-            par_ch.thr = 100
-            par_ch.k = 3000
-            par_ch.m = 900
-            par_ch.m_ = 50000
-            par_ch.ftd = 500
-            par_ch.a = 4
-            par_ch.b = 200
-            par_ch.trgho = 1200
-            par_ch.nsbl = 4
-            par_ch.nspk = 0
-            par_ch.pkho = 2000
-            par_ch.blho = 500
-            par_ch.enf = 1.0
-            par_ch.decimation = 0
-            par_ch.dgain = 0
-            par_ch.otrej = 0
-            par_ch.trgwin = 0
-            par_ch.twwdt = 100
+            par_ch.thr = 50
+            par_ch.nsbl = 1
+            par_ch.lgate = 200
+            par_ch.sgate = 24
+            par_ch.pgate = 8
+            par_ch.selft = True
+            par_ch.trgc = dgtz.DPPTriggerConfig.THRESHOLD
+            par_ch.tvaw = 50
+            par_ch.csens = 0
+        dpp_params.purh = dgtz.DPPPUR.DETECT_ONLY
+        dpp_params.blthr = 3
+        dpp_params.trgho = 8
         self.device.set_dpp_parameters(ch_mask, dpp_params)
 
-        self.device.malloc_readout_buffer()
-        self.device.malloc_dpp_events()
-        self.device.malloc_dpp_waveforms()
-
-        self.device.sw_start_acquisition()
-        self.device.send_sw_trigger()
-        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-        for ch_idx, ch in enumerate(self.device.get_dpp_events()):
-            for evt_idx, evt in enumerate(ch):
-                assert isinstance(evt, dgtz.DPPPHAEvent)
-                w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
-                assert isinstance(w, dgtz.DPPPHAWaveforms)
-                plt.plot(w.trace1, label=f'Ch{ch_idx}')
-        self.device.sw_stop_acquisition()
+        self._run_dpp_psd_readout()
 
     def _test_dpp_pha_x724(self):
         ch_mask = (1 << self.__info.channels) - 1
@@ -236,21 +455,48 @@ class Tests:
             ch.twwdt = 0
         self.device.set_dpp_parameters(ch_mask, dpp_params)
 
-        self.device.malloc_readout_buffer()
-        self.device.malloc_dpp_events()
-        self.device.malloc_dpp_waveforms()
+        self._run_dpp_pha_readout()
 
-        self.device.sw_start_acquisition()
-        self.device.send_sw_trigger()
+    def _test_dpp_pha_x730(self):
+        ch_mask = (1 << self.__info.channels) - 1
+        self.device.set_dpp_acquisition_mode(dgtz.DPPAcqMode.MIXED, dgtz.DPPSaveParam.ENERGY_AND_TIME)
+        self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
+        self.device.set_io_level(dgtz.IOLevel.TTL)
+        self.device.set_ext_trigger_input_mode(dgtz.TriggerMode.ACQ_ONLY)
+        self.device.set_channel_enable_mask(ch_mask)
+        self.device.set_dpp_event_aggregation(0, 0)
+        self.device.set_run_synchronization_mode(dgtz.RunSyncMode.DISABLED)
+        for i in range(self.__info.channels):
+            if i % 2 == 0:
+                self.device.set_record_length(1024, i)
+            self.device.set_channel_dc_offset(i, 0x8000)
+            self.device.set_dpp_pre_trigger_size(i, 80)
+            self.device.set_channel_pulse_polarity(i, dgtz.PulsePolarity.POSITIVE)
 
-        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-        for ch_idx, ch in enumerate(self.device.get_dpp_events()):
-            for evt_idx, evt in enumerate(ch):
-                assert isinstance(evt, dgtz.DPPPHAEvent)
-                w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
-                assert isinstance(w, dgtz.DPPPHAWaveforms)
-                plt.plot(w.trace1, label=f'Ch{ch_idx}')
-        self.device.sw_stop_acquisition()
+        dpp_params = dgtz.DPPPHAParams()
+        dpp_params.resize(self.__info.channels)
+        for par_ch in dpp_params.ch:
+            par_ch.thr = 100
+            par_ch.k = 3000
+            par_ch.m = 900
+            par_ch.m_ = 50000
+            par_ch.ftd = 500
+            par_ch.a = 4
+            par_ch.b = 200
+            par_ch.trgho = 1200
+            par_ch.nsbl = 4
+            par_ch.nspk = 0
+            par_ch.pkho = 2000
+            par_ch.blho = 500
+            par_ch.enf = 1.0
+            par_ch.decimation = 0
+            par_ch.dgain = 0
+            par_ch.otrej = 0
+            par_ch.trgwin = 0
+            par_ch.twwdt = 100
+        self.device.set_dpp_parameters(ch_mask, dpp_params)
+
+        self._run_dpp_pha_readout()
 
     def _test_dpp_daw_x730(self):
         self.device.set_acquisition_mode(dgtz.AcqMode.SW_CONTROLLED)
@@ -270,19 +516,7 @@ class Tests:
             self.device.registers[0x107C | (i << 8)] = 4096  # Max-Tail
             self.device.registers[0x1078 | (i << 8)] = 1024  # Look-Ahead window
 
-        self.device.malloc_readout_buffer()
-        self.device.malloc_daw_events_and_waveforms()
-
-        self.device.sw_start_acquisition()
-        self.device.send_sw_trigger()
-        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-        for idx, evt in enumerate(self.device.get_daw_events()):
-            assert isinstance(evt, dgtz.DPPDAWEvent)
-            self.device.decode_daw_waveforms(idx)
-            for ch_idx, ch in enumerate(evt.channel):
-                if ch is not None:
-                    plt.plot(ch.waveforms.trace, label=f'Ch{ch_idx} (timetag={ch.time_stamp})')
-        self.device.sw_stop_acquisition()
+        self._run_dpp_daw_readout()
 
     def _test_dpp_zle_x730(self):
         record_length = 4096
@@ -303,23 +537,7 @@ class Tests:
             self.device.registers[0x105C | (i << 8)] = 5  # Data Threshold
             self.device.registers[0x1060 | (i << 8)] = 5  # Trigger Threshold
 
-        self.device.malloc_readout_buffer()
-        self.device.malloc_zle_events_and_waveforms()
-
-        self.device.sw_start_acquisition()
-        self.device.send_sw_trigger()
-        self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-        full_indexes = np.arange(record_length)
-        for idx, evt in enumerate(self.device.get_zle_events()):
-            assert isinstance(evt, dgtz.ZLEEvent730)
-            self.device.decode_zle_waveforms(idx)
-            for ch_idx, ch in enumerate(evt.channel):
-                if ch is not None:
-                    w = ch.waveforms
-                    full_values = np.full_like(full_indexes, ch.baseline, dtype=w.trace.dtype)
-                    np.put(full_values, w.trace_index, w.trace)
-                    plt.plot(full_indexes, full_values, label=f'Ch{ch_idx}')
-        self.device.sw_stop_acquisition()
+        self._run_dpp_zle_readout(record_length)
 
 
 plt.title('CAEN Digitizer Python demo')

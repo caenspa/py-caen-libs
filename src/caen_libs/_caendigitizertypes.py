@@ -1727,6 +1727,15 @@ class DPPPSDParamsRaw(ct.Structure):
 
 
 @unique
+class DPPDiscrimination(IntEnum):
+    """
+    Binding of ::CAEN_DGTZ_DPP_Discrimination_t
+    """
+    LED = 0
+    CFD = 1
+
+
+@unique
 class DPPTriggerConfig(IntEnum):
     """
     Binding of ::CAEN_DGTZ_DPP_TriggerConfig_t
@@ -1762,7 +1771,7 @@ class DPPPSDParams:
         pgate: int = 0
         tvaw: int = 0
         nsbl: int = 0
-        discr: bool = False
+        discr: DPPDiscrimination = DPPDiscrimination.LED
         cfdf: int = 0
         cfdd: int = 0
         trgc: DPPTriggerConfig = DPPTriggerConfig.PEAK

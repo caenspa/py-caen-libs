@@ -1,6 +1,7 @@
 """Tests for the caen_libs.caencomm module."""
 
 import struct
+from typing import override
 import unittest
 from unittest.mock import ANY, DEFAULT, patch
 
@@ -10,6 +11,7 @@ import caen_libs.caencomm as comm
 class TestDevice(unittest.TestCase):
     """Test the Device class."""
 
+    @override
     def setUp(self):
         patcher = patch('caen_libs.caencomm.lib', autospec=True)
         self.addCleanup(patcher.stop)
@@ -135,7 +137,6 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.blt_read.side_effect = side_effect
         result = self.device.blt_read(address, blt_size)
-        self.assertIsInstance(result, comm.ReadResult)
         # Recompact the bytes into groups of 4 (uint32 native endianness)
         actual_data = list(struct.unpack('I' * (len(result.data) // 4), result.data))
         self.assertEqual(actual_data, data)
@@ -153,7 +154,6 @@ class TestDevice(unittest.TestCase):
             return DEFAULT
         self.mock_lib.mblt_read.side_effect = side_effect
         result = self.device.mblt_read(address, blt_size)
-        self.assertIsInstance(result, comm.ReadResult)
         # Recompact the bytes into groups of 4 (uint32 native endianness)
         actual_data = list(struct.unpack('I' * (len(result.data) // 4), result.data))
         self.assertEqual(actual_data, data)

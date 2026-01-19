@@ -11,6 +11,29 @@
 -----------------------------------------------------------------------------
 
 
+v3.3.0 (19/01/2026)
+------------------
+
+New features:
+- Added examples for `caendigitizer` for x720 and x751, inspired to the C
+    demos of the CAEN Digitizer library, and for x742 inspired to  Wave Dump.
+
+Fixes:
+- On `caendigitizer`: add `DPPPUR` enumerator to main namespace.
+- On `caendigitizer`: workaround to prevent crash when calling 
+    `get_dpp_events` on an empty buffer, which causes undefined behavior in 
+    the underlying C library.
+- Fix some configuration in the `caendigitizer` example.
+
+Changes:
+- On `caenvme` and `caencomm`: the new `ReadResult` class introduced in
+    v3.2.0 has been renamed `_ReadResult` since it is not meant to be
+    created directly by user, but only as return type of BLT read functions.
+- On `caendigitizer`: `DPPPSDParams.discr` type changed from `bool` to the
+    new type `DPPDiscrimination`, binding of `CAEN_DGTZ_DPP_Discrimination_t`.
+    Old `False` corresponds to `LED` and `True` to `CFD`.
+
+
 v3.2.0 (08/01/2026)
 -------------------
 

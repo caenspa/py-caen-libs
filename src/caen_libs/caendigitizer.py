@@ -34,6 +34,7 @@ from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     DPPCIWaveforms,
     DPPDAWEvent,
     DPPDAWWaveforms,
+    DPPDiscrimination,
     DPPFirmware,
     DPPPHAEvent,
     DPPPHAParams,
@@ -42,6 +43,7 @@ from caen_libs._caendigitizertypes import (  # pylint: disable=W0611
     DPPPSDEvent,
     DPPPSDParams,
     DPPPSDWaveforms,
+    DPPPUR,
     DPPQDCEvent,
     DPPQDCParams,
     DPPQDCWaveforms,
@@ -1096,8 +1098,12 @@ class Device:
             raise RuntimeError('Readout buffer not allocated')
         if self.__dpp_events is None:
             raise RuntimeError('DPP events not allocated')
+        size = self.__ro_buff.occupancy.value
+        if size == 0:
+            # Workaround for empty buffer, causes a segfault in the C API
+            return [[] for _ in range(self.__info.channels)] # type: ignore
         l_n_events_ch = (ct.c_uint32 * self.__info.channels)()
-        lib.get_dpp_events(self.handle, self.__ro_buff.data, self.__ro_buff.occupancy, self.__dpp_events, l_n_events_ch)
+        lib.get_dpp_events(self.handle, self.__ro_buff.data, size, self.__dpp_events, l_n_events_ch)
         evts_p_p = ct.cast(self.__dpp_events, self.__e.raw_p_p)
         # Safe to use zip because l_n_events_ch has the size of
         # self.__info.channels: this will constrain the iteration of the
@@ -1122,7 +1128,8 @@ class Device:
             raise RuntimeError('DAW events not allocated')
         n_words = self.__ro_buff.occupancy.value // 4
         if n_words == 0:
-            return []  # Workaround for empty buffer, causes a segfault in the C API
+            # Workaround for empty buffer, causes a segfault in the C API
+            return []
         l_n_events = ct.c_uint32()
         lib.get_dpp_events(self.handle, self.__ro_buff.data, n_words, self.__daw_events.data, l_n_events)
         evts_p = ct.cast(self.__daw_events.data, self.__e.raw_p)
@@ -1629,7 +1636,8 @@ class Device:
             raise RuntimeError('ZLE events not allocated')
         n_words = self.__ro_buff.occupancy.value // 4
         if n_words == 0:
-            return []  # Workaround for empty buffer, causes a segfault in the C API
+            # Workaround for empty buffer, causes a segfault in the C API
+            return []
         l_n_events = ct.c_uint32()
         lib.get_zle_events(self.handle, self.__ro_buff.data, n_words, self.__zle_events.data, l_n_events)
         evts_p = ct.cast(self.__zle_events.data, self.__e.raw_p)
