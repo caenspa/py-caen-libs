@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
 from time import sleep
+from typing import ClassVar
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,6 +50,8 @@ print('-------------------------------------------------------------------------
 @dataclass
 class Tests:
     """Tests for different firmwares"""
+
+    MAX_RETRIES: ClassVar[int] = 100
 
     device: dgtz.Device
     __info: dgtz.BoardInfo = field(init=False)
@@ -99,37 +102,48 @@ class Tests:
         finally:
             self.device.sw_stop_acquisition()
 
+    MAX_RETRIES = 10
+
     def _run_standard_fw_readout(self):
         self.device.malloc_readout_buffer()
         self.device.allocate_event()
         with self._start_acquisition():
             self.device.send_sw_trigger()
-            self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-            for i in range(self.device.get_num_events()):
-                evt_info, buffer = self.device.get_event_info(i)
-                print(f'Event {i}: {evt_info}')
-                evt = self.device.decode_event(buffer)
-                for ch_idx, ch in enumerate(evt.data_channel):
-                    plt.plot(ch, label=f'Ch{ch_idx}')
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                if (n_events := self.device.get_num_events()) > 0:
+                    for i in range(n_events):
+                        evt_info, buffer = self.device.get_event_info(i)
+                        print(f'Event {i}: {evt_info}')
+                        evt = self.device.decode_event(buffer)
+                        for ch_idx, ch in enumerate(evt.data_channel):
+                            plt.plot(ch, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
 
     def _run_standard_fw_x742_readout(self):
         self.device.malloc_readout_buffer()
         self.device.allocate_event()
         with self._start_acquisition():
             self.device.send_sw_trigger()
-            sleep(0.1)
-            self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-            for i in range(self.device.get_num_events()):
-                evt_info, buffer = self.device.get_event_info(i)
-                print(f'Event {i}: {evt_info}')
-                evt = self.device.decode_event(buffer)
-                assert isinstance(evt, dgtz.X742Event)
-                for gr_idx, gr in enumerate(evt.data_group):
-                    if gr is not None:
-                        # Each group has 8 data channels + 1 fast trigger channel
-                        for ch_idx, ch in enumerate(gr.data_channel):
-                            label = f'Gr{gr_idx}_TR' if ch_idx == 8 else f'Ch{gr_idx * 8 + ch_idx}'
-                            plt.plot(ch, label=label)
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                if (n_events := self.device.get_num_events()) > 0:
+                    for i in range(n_events):
+                        evt_info, buffer = self.device.get_event_info(i)
+                        print(f'Event {i}: {evt_info}')
+                        evt = self.device.decode_event(buffer)
+                        assert isinstance(evt, dgtz.X742Event)
+                        for gr_idx, gr in enumerate(evt.data_group):
+                            if gr is not None:
+                                # Each group has 8 data channels + 1 fast trigger channel
+                                for ch_idx, ch in enumerate(gr.data_channel):
+                                    label = f'Gr{gr_idx}_TR' if ch_idx == 8 else f'Ch{gr_idx * 8 + ch_idx}'
+                                    plt.plot(ch, label=label)
+                    break
+            else:
+                print('No events acquired after maximum retries')
 
     def _run_dpp_ci_readout(self):
         self.device.malloc_readout_buffer()
@@ -137,13 +151,19 @@ class Tests:
         self.device.malloc_dpp_waveforms()
         with self._start_acquisition():
             self.device.send_sw_trigger()
-            self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-            for ch_idx, ch in enumerate(self.device.get_dpp_events()):
-                for evt_idx, evt in enumerate(ch):
-                    assert isinstance(evt, dgtz.DPPCIEvent)
-                    w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
-                    assert isinstance(w, dgtz.DPPCIWaveforms)
-                    plt.plot(w.trace1, label=f'Ch{ch_idx}')
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_dpp_events()
+                if any(len(ch) > 0 for ch in events):
+                    for ch_idx, ch in enumerate(events):
+                        for evt_idx, evt in enumerate(ch):
+                            assert isinstance(evt, dgtz.DPPCIEvent)
+                            w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
+                            assert isinstance(w, dgtz.DPPCIWaveforms)
+                            plt.plot(w.trace1, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
 
     def _run_dpp_psd_readout(self):
         self.device.malloc_readout_buffer()
@@ -151,13 +171,19 @@ class Tests:
         self.device.malloc_dpp_waveforms()
         with self._start_acquisition():
             self.device.send_sw_trigger()
-            self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-            for ch_idx, ch in enumerate(self.device.get_dpp_events()):
-                for evt_idx, evt in enumerate(ch):
-                    assert isinstance(evt, dgtz.DPPPSDEvent)
-                    w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
-                    assert isinstance(w, dgtz.DPPPSDWaveforms)
-                    plt.plot(w.trace1, label=f'Ch{ch_idx}')
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_dpp_events()
+                if any(len(ch) > 0 for ch in events):
+                    for ch_idx, ch in enumerate(events):
+                        for evt_idx, evt in enumerate(ch):
+                            assert isinstance(evt, dgtz.DPPPSDEvent)
+                            w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
+                            assert isinstance(w, dgtz.DPPPSDWaveforms)
+                            plt.plot(w.trace1, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
 
     def _run_dpp_pha_readout(self):
         self.device.malloc_readout_buffer()
@@ -165,43 +191,61 @@ class Tests:
         self.device.malloc_dpp_waveforms()
         with self._start_acquisition():
             self.device.send_sw_trigger()
-            self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-            for ch_idx, ch in enumerate(self.device.get_dpp_events()):
-                for evt_idx, evt in enumerate(ch):
-                    assert isinstance(evt, dgtz.DPPPHAEvent)
-                    w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
-                    assert isinstance(w, dgtz.DPPPHAWaveforms)
-                    plt.plot(w.trace1, label=f'Ch{ch_idx}')
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_dpp_events()
+                if any(len(ch) > 0 for ch in events):
+                    for ch_idx, ch in enumerate(events):
+                        for evt_idx, evt in enumerate(ch):
+                            assert isinstance(evt, dgtz.DPPPHAEvent)
+                            w = self.device.decode_dpp_waveforms(ch_idx, evt_idx)
+                            assert isinstance(w, dgtz.DPPPHAWaveforms)
+                            plt.plot(w.trace1, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
 
     def _run_dpp_daw_readout(self):
         self.device.malloc_readout_buffer()
         self.device.malloc_daw_events_and_waveforms()
         with self._start_acquisition():
             self.device.send_sw_trigger()
-            self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
-            for idx, evt in enumerate(self.device.get_daw_events()):
-                assert isinstance(evt, dgtz.DPPDAWEvent)
-                self.device.decode_daw_waveforms(idx)
-                for ch_idx, ch in enumerate(evt.channel):
-                    if ch is not None:
-                        plt.plot(ch.waveforms.trace, label=f'Ch{ch_idx} (timetag={ch.time_stamp})')
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_daw_events()
+                if len(events) > 0:
+                    for idx, evt in enumerate(events):
+                        assert isinstance(evt, dgtz.DPPDAWEvent)
+                        self.device.decode_daw_waveforms(idx)
+                        for ch_idx, ch in enumerate(evt.channel):
+                            if ch is not None:
+                                plt.plot(ch.waveforms.trace, label=f'Ch{ch_idx} (timetag={ch.time_stamp})')
+                    break
+            else:
+                print('No events acquired after maximum retries')
 
     def _run_dpp_zle_readout(self, record_length: int):
         self.device.malloc_readout_buffer()
         self.device.malloc_zle_events_and_waveforms()
         with self._start_acquisition():
             self.device.send_sw_trigger()
-            self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
             full_indexes = np.arange(record_length)
-            for idx, evt in enumerate(self.device.get_zle_events()):
-                assert isinstance(evt, dgtz.ZLEEvent730)
-                self.device.decode_zle_waveforms(idx)
-                for ch_idx, ch in enumerate(evt.channel):
-                    if ch is not None:
-                        w = ch.waveforms
-                        full_values = np.full_like(full_indexes, ch.baseline, dtype=w.trace.dtype)
-                        np.put(full_values, w.trace_index, w.trace)
-                        plt.plot(full_indexes, full_values, label=f'Ch{ch_idx}')
+            for _ in range(self.MAX_RETRIES):
+                self.device.read_data(dgtz.ReadMode.SLAVE_TERMINATED_READOUT_MBLT)
+                events = self.device.get_zle_events()
+                if len(events) > 0:
+                    for idx, evt in enumerate(events):
+                        assert isinstance(evt, dgtz.ZLEEvent730)
+                        self.device.decode_zle_waveforms(idx)
+                        for ch_idx, ch in enumerate(evt.channel):
+                            if ch is not None:
+                                w = ch.waveforms
+                                full_values = np.full_like(full_indexes, ch.baseline, dtype=w.trace.dtype)
+                                np.put(full_values, w.trace_index, w.trace)
+                                plt.plot(full_indexes, full_values, label=f'Ch{ch_idx}')
+                    break
+            else:
+                print('No events acquired after maximum retries')
 
     def _test_standard_fw(self):
         ch_mask = (1 << self.__info.channels) - 1
